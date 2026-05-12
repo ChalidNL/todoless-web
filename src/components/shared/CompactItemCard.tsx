@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Item } from '../../types';
 import { useApp } from '../../context/AppContext';
-import { ShoppingCart, Trash2, Menu, X, RotateCcw, Plus, Minus, ToggleLeft } from 'lucide-react';
+import { ShoppingCart, Trash2, Menu, X, RotateCcw, Plus, Minus, ToggleLeft, Lock, Unlock, User } from 'lucide-react';
 import { LabelBadge } from './LabelBadge';
 
 interface CompactItemCardProps {
@@ -9,12 +9,14 @@ interface CompactItemCardProps {
 }
 
 export const CompactItemCard = ({ item }: CompactItemCardProps) => {
-  const { updateItem, deleteItem, convertItemToTask, shops, createShop } = useApp();
+  const { updateItem, deleteItem, convertItemToTask, shops, createShop, users } = useApp();
   const [showMenu, setShowMenu] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showActions, setShowActions] = useState(false);
   const [showShopSelector, setShowShopSelector] = useState(false);
   const [shopSearchQuery, setShopSearchQuery] = useState('');
+  const [showAssigneeSelector, setShowAssigneeSelector] = useState(false);
+  const [assigneeSearchQuery, setAssigneeSearchQuery] = useState('');
 
   const handleToggle = () => {
     updateItem(item.id, { completed: !item.completed });
@@ -40,10 +42,15 @@ export const CompactItemCard = ({ item }: CompactItemCardProps) => {
 
   const closeAllPanels = () => {
     setShowShopSelector(false);
+    setShowAssigneeSelector(false);
   };
 
   const filteredShops = shops.filter(s => 
     s.name.toLowerCase().includes(shopSearchQuery.toLowerCase())
+  );
+
+  const filteredUsers = users.filter(u => 
+    u.name.toLowerCase().includes(assigneeSearchQuery.toLowerCase())
   );
 
   const handleCreateShop = () => {
@@ -123,6 +130,18 @@ export const CompactItemCard = ({ item }: CompactItemCardProps) => {
                 <ShoppingCart className={`w-4 h-4 ${currentShop ? 'text-blue-500' : 'text-neutral-400'}`} />
               </button>
 
+              {/* User - Assignee */}
+              <button 
+                onClick={() => {
+                  closeAllPanels();
+                  setShowAssigneeSelector(!showAssigneeSelector);
+                }}
+                className={`p-1.5 rounded transition-colors ${showAssigneeSelector ? 'bg-black' : 'hover:bg-neutral-100'}`}
+                title="Assignee"
+              >
+                <User className={`w-4 h-4 ${showAssigneeSelector ? 'text-white' : item.assignedTo ? 'text-blue-500' : 'text-neutral-400'}`} />
+              </button>
+
               {/* Convert to Task */}
               <button
                 onClick={() => convertItemToTask(item.id)}
@@ -130,6 +149,19 @@ export const CompactItemCard = ({ item }: CompactItemCardProps) => {
                 title="Convert to Task"
               >
                 <ToggleLeft className="w-4 h-4 text-neutral-400" />
+              </button>
+
+              {/* Lock/Unlock - Privacy */}
+              <button
+                onClick={() => updateItem(item.id, { isPrivate: !item.isPrivate })}
+                className="p-1.5 rounded transition-colors hover:bg-neutral-100"
+                title={item.isPrivate ? 'Private (only you)' : 'Shared with family'}
+              >
+                {item.isPrivate ? (
+                  <Lock className="w-4 h-4 text-purple-500" />
+                ) : (
+                  <Unlock className="w-4 h-4 text-neutral-400" />
+                )}
               </button>
               
               {/* Restock - Only show for completed items */}
@@ -191,6 +223,40 @@ export const CompactItemCard = ({ item }: CompactItemCardProps) => {
                   Create "{shopSearchQuery}"
                 </button>
               )}
+            </div>
+          )}
+
+          {/* Assignee selector with search */}
+          {showAssigneeSelector && (
+            <div className="mt-2 pt-2 border-t border-neutral-100">
+              <div className="text-xs text-neutral-600 mb-2">Assign to</div>
+              <input
+                type="text"
+                value={assigneeSearchQuery}
+                onChange={(e) => setAssigneeSearchQuery(e.target.value)}
+                placeholder="Search users..."
+                className="w-full px-2 py-1.5 text-xs border border-neutral-200 rounded mb-2"
+                autoFocus
+              />
+              <div className="space-y-1 max-h-32 overflow-y-auto">
+                {filteredUsers.map((user) => (
+                  <button
+                    key={user.id}
+                    onClick={() => {
+                      updateItem(item.id, { assignedTo: item.assignedTo === user.id ? undefined : user.id });
+                      setAssigneeSearchQuery('');
+                    }}
+                    className={`w-full px-2 py-1.5 text-left text-xs rounded flex items-center gap-2 ${
+                      item.assignedTo === user.id ? 'bg-blue-100' : 'hover:bg-neutral-50'
+                    }`}
+                  >
+                    <div className="w-5 h-5 rounded-full bg-neutral-200 flex items-center justify-center text-xs">
+                      {user.name.charAt(0)}
+                    </div>
+                    {user.name}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 

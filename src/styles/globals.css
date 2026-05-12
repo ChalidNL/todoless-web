@@ -198,3 +198,62 @@ html {
 .animate-fade-in {
   animation: fade-in 0.3s ease-out;
 }
+
+/**
+ * Mobile-first responsive utilities
+ */
+@layer utilities {
+  /* Safe area insets for notched devices (iOS notch, Android status bar) */
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  .safe-left {
+    padding-left: env(safe-area-inset-left, 0);
+  }
+  .safe-right {
+    padding-right: env(safe-area-inset-right, 0);
+  }
+
+  /* Touch-friendly minimum tap target (44x44px Apple HIG) */
+  .touch-target {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Mobile content padding that respects safe areas */
+  .mobile-content {
+    padding-left: calc(1rem + env(safe-area-inset-left, 0));
+    padding-right: calc(1rem + env(safe-area-inset-right, 0));
+  }
+
+  /* Scrollable container with momentum scrolling on iOS */
+  .scroll-momentum {
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+  }
+
+  /* Prevent pull-to-refresh on mobile */
+  .no-overscroll {
+    overscroll-behavior: none;
+  }
+
+  /* Hide scrollbar but keep scrollable */
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Bottom sheet snap points */
+  .sheet-snap {
+    scroll-snap-type: y mandatory;
+  }
+  .sheet-snap > * {
+    scroll-snap-align: start;
+  }
+}

@@ -19,6 +19,7 @@ import type {
   InviteCode,
   Reward,
   Goal,
+  Project,
 } from '../types';
 
 interface AppContextType {
@@ -35,6 +36,7 @@ interface AppContextType {
   inviteCodes: InviteCode[];
   rewards: Reward[];
   goals: Goal[];
+  projects: Project[];
   sharedView: boolean;
   appSettings: AppSettings;
   progressStats: ProgressStats;
@@ -69,6 +71,9 @@ interface AppContextType {
   deleteCalendarEvent: (id: string) => void;
   deleteFilter: (id: string) => void;
   deleteSprint: (id: string) => void;
+  updateSprint: (id: string, updates: Partial<Sprint>) => void;
+  startSprint: (id: string) => void;
+  completeSprint: (id: string) => void;
   archiveCompletedSprintTasks: (sprintId?: string) => void;
   archiveAllDoneTasks: () => void;
   deleteArchivedTasks: () => void;
@@ -94,6 +99,12 @@ interface AppContextType {
   setSharedView: (shared: boolean) => void;
   refreshRewards: () => Promise<void>;
   refreshGoals: () => Promise<void>;
+  totalPoints: number;
+  updateReward: (id: string, updates: Partial<Reward>) => void;
+  addProject: (project: Omit<Project, 'id' | 'createdAt'>) => void;
+  updateProject: (id: string, updates: Partial<Project>) => void;
+  deleteProject: (id: string) => void;
+  refreshProjects: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -122,6 +133,10 @@ const defaultSettings: AppSettings = {
   archiveRetention: 30,
   autoCleanup: true,
   theme: 'light',
+  notificationEmail: false,
+  notificationPush: false,
+  taskReminders: true,
+  reminderMinutes: 15,
 };
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
@@ -138,6 +153,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [inviteCodes, setInviteCodes] = useState<InviteCode[]>([]);
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [sharedView, setSharedView] = useState(false);
   const [appSettings, setAppSettings] = useState<AppSettings>(defaultSettings);
   const [progressStats, setProgressStats] = useState<ProgressStats>({
@@ -159,6 +175,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const refreshInvites = async () => setInviteCodes(await api.getInvites());
   const refreshRewards = async () => setRewards(await api.getRewards());
   const refreshGoals = async () => setGoals(await api.getGoals());
+  const refreshProjects = async () => setProjects(await api.getProjects());
 
   const refreshSettings = async () => {
     const settings = await api.getSettings();
@@ -184,6 +201,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       setInviteCodes([]);
       setRewards([]);
       setGoals([]);
+      setProjects([]);
       setAppSettings(defaultSettings);
       return;
     }
@@ -200,6 +218,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       refreshInvites(),
       refreshRewards(),
       refreshGoals(),
+      refreshProjects(),
       refreshSettings(),
     ]);
   };
@@ -236,6 +255,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         pb.collection('sprints').subscribe('*', () => void refreshSprints()),
         pb.collection('invite_codes').subscribe('*', () => void refreshInvites()),
         pb.collection('app_settings').subscribe('*', () => void refreshSettings()),
+        pb.collection('projects').subscribe('*', () => void refreshProjects()),
+        pb.collection('rewards').subscribe('*', () => void refreshRewards()),
+        pb.collection('goals').subscribe('*', () => void refreshGoals()),
       ]);
     };
 
@@ -251,6 +273,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       pb.collection('sprints').unsubscribe();
       pb.collection('invite_codes').unsubscribe();
       pb.collection('app_settings').unsubscribe();
+      pb.collection('projects').unsubscribe();
+      pb.collection('rewards').unsubscribe();
+      pb.collection('goals').unsubscribe();
     };
   }, [pb.authStore.isValid]);
 
@@ -455,6 +480,29 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     })();
   };
 
+  const updateSprintFn = (id: string, updates: Partial<Sprint>) => {
+    void (async () => {
+      await api.updateSprint(id, updates);
+      await refreshSprints();
+    })();
+  };
+
+  const startSprint = (id: string) => {
+    void (async () => {
+      await api.updateSprint(id, { status: 'active' });
+      await refreshSprints();
+    })();
+  };
+
+  const completeSprint = (id: string) => {
+    void (async () => {
+      await api.updateSprint(id, { status: 'completed' });
+      await refreshSprints();
+      // Archive completed tasks for this sprint
+      archiveCompletedSprintTasks(id);
+    })();
+  };
+
   const archiveCompletedSprintTasks = (sprintId?: string) => {
     const now = Date.now();
     const retention = appSettings.archiveRetention || 0;
@@ -545,6 +593,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       duration: duration as SprintDuration,
       weekNumber: getISOWeek(startDate),
       year: startDate.getFullYear(),
+      status: 'planned',
     };
 
     addSprint(sprint);
@@ -640,6 +689,50 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     })();
   };
 
+  // Derived: total points earned by the current user from rewards
+  const totalPoints = useMemo(() => {
+    const currentUserId = pb.authStore.record?.id;
+    return rewards
+      .filter(r => r.earnedBy === currentUserId || !r.earnedBy)
+      .reduce((sum, r) => sum + r.points, 0);
+  }, [rewards]);
+
+  const updateReward = (id: string, updates: Partial<Reward>) => {
+    void (async () => {
+      const pbUpdates: Record<string, unknown> = {};
+      if (updates.title !== undefined) pbUpdates.title = updates.title;
+      if (updates.points !== undefined) pbUpdates.points = updates.points;
+      if (updates.earnedBy !== undefined) pbUpdates.earned_by = updates.earnedBy;
+      if (updates.earnedAt !== undefined) pbUpdates.earned_at = new Date(updates.earnedAt).toISOString();
+      if (updates.reason !== undefined) pbUpdates.reason = updates.reason;
+      if (updates.taskId !== undefined) pbUpdates.task_id = updates.taskId;
+      if (updates.awardedBy !== undefined) pbUpdates.awarded_by = updates.awardedBy;
+      await pb.collection('rewards').update(id, pbUpdates);
+      await refreshRewards();
+    })();
+  };
+
+  const addProject = (project: Omit<Project, 'id' | 'createdAt'>) => {
+    void (async () => {
+      await api.createProject(project);
+      await refreshProjects();
+    })();
+  };
+
+  const updateProjectFn = (id: string, updates: Partial<Project>) => {
+    void (async () => {
+      await api.updateProject(id, updates);
+      await refreshProjects();
+    })();
+  };
+
+  const deleteProject = (id: string) => {
+    void (async () => {
+      await api.deleteProject(id);
+      await refreshProjects();
+    })();
+  };
+
   const contextValue = useMemo(
     () => ({
       items,
@@ -686,6 +779,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       deleteCalendarEvent,
       deleteFilter,
       deleteSprint,
+      updateSprint: updateSprintFn,
+      startSprint,
+      completeSprint,
       archiveCompletedSprintTasks,
       archiveAllDoneTasks,
       deleteArchivedTasks,
@@ -705,15 +801,22 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       uncheckAllDoneItems,
       rewards,
       goals,
+      projects,
       sharedView,
+      totalPoints,
       addReward,
       deleteReward,
+      updateReward,
       addGoal,
       updateGoal: updateGoalFn,
       deleteGoal,
       setSharedView,
       refreshRewards,
       refreshGoals,
+      addProject,
+      updateProject: updateProjectFn,
+      deleteProject,
+      refreshProjects,
     }),
     [
       items,
@@ -729,7 +832,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       inviteCodes,
       rewards,
       goals,
+      projects,
       sharedView,
+      totalPoints,
       appSettings,
       progressStats,
       activeLabelFilters,

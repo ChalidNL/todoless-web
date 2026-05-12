@@ -15,9 +15,10 @@ import { Calendar } from './components/Calendar';
 import { Rewards } from './components/Rewards';
 import { Dashboard } from './components/Dashboard';
 import { ProjectsView } from './components/ProjectsView';
+import { TabletDashboard } from './components/TabletDashboard';
 import { pb } from './lib/pocketbase';
 import { api } from './lib/pocketbase-client';
-import { Inbox as InboxIcon, CheckSquare, ShoppingCart, FileText, Settings as SettingsIcon, CalendarDays, RefreshCw, FolderOpen } from 'lucide-react';
+import { Inbox as InboxIcon, CheckSquare, ShoppingCart, FileText, Settings as SettingsIcon, CalendarDays, RefreshCw, FolderOpen, LayoutDashboard } from 'lucide-react';
 import { getOnboardingMode, OnboardingMode } from './lib/onboarding-gate';
 
 const ONBOARDING_SEEN_KEY = 'todoless_onboarding_completed';
@@ -220,6 +221,7 @@ function AppContent() {
   const navItems: { to: string; label: string; icon: React.ReactNode }[] = [
     { to: '/', label: 'Inbox', icon: <InboxIcon className="w-5 h-5" /> },
     { to: '/tasks', label: 'Tasks', icon: <CheckSquare className="w-5 h-5" /> },
+    { to: '/projects', label: 'Projects', icon: <FolderOpen className="w-5 h-5" /> },
     { to: '/calendar', label: 'Calendar', icon: <CalendarDays className="w-5 h-5" /> },
     { to: '/items', label: 'Groceries', icon: <ShoppingCart className="w-5 h-5" /> },
     { to: '/notes', label: 'Notes', icon: <FileText className="w-5 h-5" /> },
@@ -238,6 +240,7 @@ function AppContent() {
           <Route path="/settings" element={<Settings />} />
           <Route path="/rewards" element={<Rewards />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/tablet" element={<TabletDashboard />} />
           <Route path="/projects" element={<ProjectsView />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
@@ -251,7 +254,7 @@ function AppContent() {
         </div>
       )}
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 safe-area-inset-bottom z-40">
+      <nav className={`fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 safe-area-inset-bottom z-40 ${location.pathname === '/tablet' ? 'hidden' : ''}`}>
         <div className="max-w-2xl mx-auto flex justify-around">
           {navItems.map((item) => (
             <NavLink

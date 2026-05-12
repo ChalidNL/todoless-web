@@ -1,70 +1,139 @@
-import React, { useState } from 'react';
-import { Plus, Check, Settings as SettingsIcon, Trash2 } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Plus, Check, Trash2, Loader2, AlertCircle } from 'lucide-react';
+import { api } from '../lib/api-client';
 
 interface ApiIntegration {
   id: string;
-  name: string;
   type: 'home_assistant' | 'paperless' | 'actual_budget' | 'custom';
+  name: string;
   apiUrl: string;
-  apiKey: string;
   enabled: boolean;
+  lastSync?: string;
 }
 
-export const ApiIntegrations = () => {
+interface IntegrationFormData {
+  name: string;
+  type: ApiIntegration['type'];
+  apiUrl: string;
+  apiKey: string;
+  config: Record<string, unknown>;
+}
+
+const typeLabels: Record<ApiIntegration['type'], string> = {
+  home_assistant: 'Home Assistant',
+  paperless: 'Paperless-ngx',
+  actual_budget: 'Actual Budget',
+  custom: 'Custom API',
+};
+
+const typePlaceholders: Record<ApiIntegration['type'], string> = {
+  home_assistant: 'http://homeassistant.local:8123',
+  paperless: 'http://paperless.local:8000',
+  actual_budget: 'http://actual.local:5006',
+  custom: 'https://api.example.com',
+};
+
+export const ApiIntegrations: React.FC = () => {
   const [integrations, setIntegrations] = useState<ApiIntegration[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newIntegration, setNewIntegration] = useState({
+  const [formData, setFormData] = useState<IntegrationFormData>({
     name: '',
-    type: 'custom' as const,
+    type: 'custom',
     apiUrl: '',
     apiKey: '',
+    config: {},
   });
+  const [saving, setSaving] = useState(false);
 
-  const integrationTypes = [
-    { value: 'home_assistant', label: 'Home Assistant', placeholder: 'http://homeassistant.local:8123' },
-    { value: 'paperless', label: 'Paperless-ngx', placeholder: 'http://paperless.local:8000' },
-    { value: 'actual_budget', label: 'Actual Budget', placeholder: 'http://actual.local:5006' },
-    { value: 'custom', label: 'Custom API', placeholder: 'https://api.example.com' },
-  ];
+  const loadIntegrations = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const list = await api.integrations.list();
+      setIntegrations(
+        list.map((item: any) => ({
+          id: item.id,
+          type: item.type as ApiIntegration['type'],
+          name: typeLabels[item.type] || item.type,
+          apiUrl: item.api_url,
+          enabled: item.enabled,
+          lastSync: item.last_sync,
+        }))
+      );
+    } catch (err: any) {
+      setError(err.message || 'Failed to load integrations');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const handleAdd = () => {
-    if (!newIntegration.name || !newIntegration.apiUrl) return;
+  useEffect(() => {
+    loadIntegrations();
+  }, [loadIntegrations]);
 
-    const integration: ApiIntegration = {
-      id: Math.random().toString(36).substring(2, 11),
-      name: newIntegration.name,
-      type: newIntegration.type,
-      apiUrl: newIntegration.apiUrl,
-      apiKey: newIntegration.apiKey,
-      enabled: true,
-    };
+  const handleAdd = async () => {
+    if (!formData.name || !formData.apiUrl) return;
 
-    setIntegrations([...integrations, integration]);
-    setShowAddModal(false);
-    setNewIntegration({
-      name: '',
-      type: 'custom',
-      apiUrl: '',
-      apiKey: '',
-    });
+    try {
+      setSaving(true);
+      await api.integrations.create({
+        type: formData.type,
+        api_url: formData.apiUrl,
+        api_key: formData.apiKey,
+        config: formData.config,
+      });
+      setShowAddModal(false);
+      setFormData({ name: '', type: 'custom', apiUrl: '', apiKey: '', config: {} });
+      await loadIntegrations();
+    } catch (err: any) {
+      setError(err.message || 'Failed to add integration');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleToggle = (id: string) => {
-    setIntegrations(prev =>
-      prev.map(int =>
-        int.id === id ? { ...int, enabled: !int.enabled } : int
-      )
+  const handleToggle = async (id: string, currentEnabled: boolean) => {
+    try {
+      await api.integrations.update(id, { enabled: !currentEnabled });
+      await loadIntegrations();
+    } catch (err: any) {
+      setError(err.message || 'Failed to update integration');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await api.integrations.delete(id);
+      await loadIntegrations();
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete integration');
+    }
+  };
+
+  const selectedType = formData.type;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="w-6 h-6 animate-spin text-neutral-400" />
+      </div>
     );
-  };
-
-  const handleDelete = (id: string) => {
-    setIntegrations(prev => prev.filter(int => int.id !== id));
-  };
-
-  const selectedType = integrationTypes.find(t => t.value === newIntegration.type);
+  }
 
   return (
     <div>
+      {error && (
+        <div className="flex items-center gap-2 p-3 mb-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          <AlertCircle className="w-4 h-4" />
+          {error}
+          <button onClick={() => setError(null)} className="ml-auto text-red-500 hover:text-red-700">
+            ✕
+          </button>
+        </div>
+      )}
+
       <button
         onClick={() => setShowAddModal(true)}
         className="flex items-center gap-2 px-4 py-2 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 mb-4"
@@ -73,9 +142,9 @@ export const ApiIntegrations = () => {
         Add Integration
       </button>
 
-      {integrations.length > 0 && (
+      {integrations.length > 0 ? (
         <div className="space-y-3">
-          {integrations.map(integration => (
+          {integrations.map((integration) => (
             <div
               key={integration.id}
               className="flex items-center gap-3 p-3 border border-neutral-200 rounded bg-white"
@@ -83,11 +152,14 @@ export const ApiIntegrations = () => {
               <div className="flex-1">
                 <p className="font-medium text-sm">{integration.name}</p>
                 <p className="text-xs text-neutral-600">{integration.apiUrl}</p>
-                <p className="text-xs text-neutral-400 capitalize mt-1">{integration.type.replace('_', ' ')}</p>
+                <p className="text-xs text-neutral-400 capitalize mt-1">
+                  {integration.type.replace('_', ' ')}
+                  {integration.lastSync && ` · Last sync: ${new Date(integration.lastSync).toLocaleString()}`}
+                </p>
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => handleToggle(integration.id)}
+                  onClick={() => handleToggle(integration.id, integration.enabled)}
                   className={`p-2 rounded transition-colors ${
                     integration.enabled
                       ? 'bg-green-100 text-green-700'
@@ -108,6 +180,10 @@ export const ApiIntegrations = () => {
             </div>
           ))}
         </div>
+      ) : (
+        <p className="text-sm text-neutral-500 text-center py-8">
+          No integrations configured yet.
+        </p>
       )}
 
       {/* Add Integration Modal */}
@@ -120,18 +196,18 @@ export const ApiIntegrations = () => {
               <div>
                 <label className="block text-sm text-neutral-600 mb-1">Integration Type</label>
                 <select
-                  value={newIntegration.type}
+                  value={formData.type}
                   onChange={(e) =>
-                    setNewIntegration({
-                      ...newIntegration,
-                      type: e.target.value as typeof newIntegration.type,
+                    setFormData({
+                      ...formData,
+                      type: e.target.value as IntegrationFormData['type'],
                     })
                   }
                   className="w-full px-3 py-2 border border-neutral-200 rounded"
                 >
-                  {integrationTypes.map(type => (
-                    <option key={type.value} value={type.value}>
-                      {type.label}
+                  {Object.entries(typeLabels).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
                     </option>
                   ))}
                 </select>
@@ -141,11 +217,9 @@ export const ApiIntegrations = () => {
                 <label className="block text-sm text-neutral-600 mb-1">Name</label>
                 <input
                   type="text"
-                  value={newIntegration.name}
-                  onChange={(e) =>
-                    setNewIntegration({ ...newIntegration, name: e.target.value })
-                  }
-                  placeholder="My Home Assistant"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder={`My ${typeLabels[selectedType]}`}
                   className="w-full px-3 py-2 border border-neutral-200 rounded"
                 />
               </div>
@@ -154,11 +228,9 @@ export const ApiIntegrations = () => {
                 <label className="block text-sm text-neutral-600 mb-1">API URL</label>
                 <input
                   type="url"
-                  value={newIntegration.apiUrl}
-                  onChange={(e) =>
-                    setNewIntegration({ ...newIntegration, apiUrl: e.target.value })
-                  }
-                  placeholder={selectedType?.placeholder}
+                  value={formData.apiUrl}
+                  onChange={(e) => setFormData({ ...formData, apiUrl: e.target.value })}
+                  placeholder={typePlaceholders[selectedType]}
                   className="w-full px-3 py-2 border border-neutral-200 rounded"
                 />
               </div>
@@ -169,28 +241,55 @@ export const ApiIntegrations = () => {
                 </label>
                 <input
                   type="password"
-                  value={newIntegration.apiKey}
-                  onChange={(e) =>
-                    setNewIntegration({ ...newIntegration, apiKey: e.target.value })
-                  }
+                  value={formData.apiKey}
+                  onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
                   placeholder="Your API key or bearer token"
                   className="w-full px-3 py-2 border border-neutral-200 rounded"
                 />
               </div>
 
+              {/* Paperless-specific config */}
+              {selectedType === 'paperless' && (
+                <div>
+                  <label className="block text-sm text-neutral-600 mb-1">
+                    Todo Tag (documents with this tag become tasks)
+                  </label>
+                  <input
+                    type="text"
+                    value={(formData.config.todo_tag as string) || 'todo'}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        config: { ...formData.config, todo_tag: e.target.value },
+                      })
+                    }
+                    placeholder="todo"
+                    className="w-full px-3 py-2 border border-neutral-200 rounded"
+                  />
+                </div>
+              )}
+
               <div className="flex gap-2 pt-2">
                 <button
                   onClick={() => setShowAddModal(false)}
                   className="flex-1 px-4 py-2 border border-neutral-200 rounded"
+                  disabled={saving}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleAdd}
-                  disabled={!newIntegration.name || !newIntegration.apiUrl}
-                  className="flex-1 px-4 py-2 bg-neutral-900 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!formData.name || !formData.apiUrl || saving}
+                  className="flex-1 px-4 py-2 bg-neutral-900 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  Add Integration
+                  {saving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Add Integration'
+                  )}
                 </button>
               </div>
             </div>

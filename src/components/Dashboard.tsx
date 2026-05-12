@@ -1,10 +1,104 @@
 import React, { useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { LayoutDashboard, CheckCircle, ShoppingCart, AlertTriangle, Users } from 'lucide-react';
+import { LayoutDashboard, CheckCircle, ShoppingCart, AlertTriangle, Users, TrendingDown, Calendar, Target } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  LineChart, Line, CartesianGrid,
+  LineChart, Line, CartesianGrid, Legend,
 } from 'recharts';
+
+/**
+ * Generate burndown chart data for a sprint.
+ * Returns array of daily data points with actual remaining, ideal remaining,
+ * and cumulative completed counts.
+ */
+export interface BurndownPoint {
+  date: string;
+  dateLabel: string;
+  remaining: number;
+  ideal: number;
+  completed: number;
+}
+
+export interface SprintStats {
+  totalTasks: number;
+  completedTasks: number;
+  completionPct: number;
+  daysRemaining: number;
+  totalDays: number;
+  velocity: number; // tasks/day
+  isSprintActive: boolean;
+  isSprintOver: boolean;
+}
+
+export function generateBurndownData(
+  sprintTasks: Array<{ completedAt?: number }>,
+  sprintStart: number,
+  sprintEnd: number,
+  now: number,
+): BurndownPoint[] {
+  const total = sprintTasks.length;
+  if (total === 0) return [];
+
+  // Pre-compute completion counts per day (O(n) instead of O(n*m))
+  const completionsByDay = new Map<number, number>();
+  sprintTasks.forEach(t => {
+    if (t.completedAt) {
+      const dayStart = Math.floor(t.completedAt / 86400000) * 86400000;
+      completionsByDay.set(dayStart, (completionsByDay.get(dayStart) || 0) + 1);
+    }
+  });
+
+  const points: BurndownPoint[] = [];
+  const end = Math.min(sprintEnd, now);
+  let cumulativeDone = 0;
+
+  for (let d = sprintStart; d <= end; d += 86400000) {
+    const dayStart = Math.floor(d / 86400000) * 86400000;
+    cumulativeDone += completionsByDay.get(dayStart) || 0;
+    const remaining = total - cumulativeDone;
+
+    // Ideal: linear burn from total at start to 0 at end
+    const progress = (d - sprintStart) / (sprintEnd - sprintStart);
+    const ideal = Math.max(0, total - Math.round(total * progress));
+
+    points.push({
+      date: new Date(d).toISOString().split('T')[0],
+      dateLabel: new Date(d).toLocaleDateString('en', { month: 'short', day: 'numeric' }),
+      remaining,
+      ideal,
+      completed: cumulativeDone,
+    });
+  }
+
+  return points;
+}
+
+export function computeSprintStats(
+  tasks: Array<{ sprintId?: string; status: string; completedAt?: number; archived?: boolean }>,
+  sprintId: string,
+  sprintStart: number,
+  sprintEnd: number,
+  now: number,
+): SprintStats {
+  const sprintTasks = tasks.filter(t => t.sprintId === sprintId && !t.archived);
+  const total = sprintTasks.length;
+  const completed = sprintTasks.filter(t => t.status === 'done').length;
+  const totalDays = Math.ceil((sprintEnd - sprintStart) / 86400000);
+  const daysElapsed = Math.max(0, Math.ceil((Math.min(now, sprintEnd) - sprintStart) / 86400000));
+  const daysRemaining = Math.max(0, totalDays - daysElapsed);
+  const velocity = daysElapsed > 0 ? completed / daysElapsed : 0;
+
+  return {
+    totalTasks: total,
+    completedTasks: completed,
+    completionPct: total > 0 ? Math.round((completed / total) * 100) : 0,
+    daysRemaining,
+    totalDays,
+    velocity: Math.round(velocity * 10) / 10,
+    isSprintActive: now >= sprintStart && now < sprintEnd,
+    isSprintOver: now >= sprintEnd,
+  };
+}
 
 export const Dashboard = () => {
   const { tasks, items, users, sprints, currentSprint } = useApp();
@@ -31,23 +125,24 @@ export const Dashboard = () => {
     }));
   }, [tasks, users]);
 
-  // Simple burndown: days in current sprint with remaining tasks
+  // Sprint burndown with ideal line
   const burndownData = useMemo(() => {
     if (!currentSprint) return [];
     const sprintTasks = tasks.filter(t => t.sprintId === currentSprint.id);
-    const total = sprintTasks.length;
-    const days: { day: string; remaining: number }[] = [];
-    const start = currentSprint.startDate;
-    const end = Math.min(currentSprint.endDate, now);
-    for (let d = start; d <= end; d += 86400000) {
-      const done = sprintTasks.filter(t => t.completedAt && t.completedAt <= d).length;
-      days.push({
-        day: new Date(d).toLocaleDateString('en', { weekday: 'short' }),
-        remaining: total - done,
-      });
-    }
-    return days;
-  }, [tasks, currentSprint]);
+    return generateBurndownData(sprintTasks, currentSprint.startDate, currentSprint.endDate, now);
+  }, [tasks, currentSprint, now]);
+
+  // Sprint progress stats
+  const sprintStats = useMemo((): SprintStats | null => {
+    if (!currentSprint) return null;
+    return computeSprintStats(
+      tasks,
+      currentSprint.id,
+      currentSprint.startDate,
+      currentSprint.endDate,
+      now,
+    );
+  }, [tasks, currentSprint, now]);
 
   // Upcoming due dates
   const upcoming = tasks
@@ -80,18 +175,93 @@ export const Dashboard = () => {
       </div>
 
       {/* Sprint Burndown */}
-      {burndownData.length > 0 && (
+      {currentSprint && burndownData.length > 0 && (
         <div className="bg-white rounded-lg border border-neutral-200 p-4 mb-6">
-          <h2 className="font-semibold mb-3">Sprint Burndown</h2>
-          <ResponsiveContainer width="100%" height={200}>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold flex items-center gap-2">
+              <TrendingDown className="w-4 h-4 text-blue-500" />
+              Sprint Burndown
+            </h2>
+            <span className="text-xs text-neutral-400">
+              {currentSprint.name}
+            </span>
+          </div>
+
+          {/* Sprint stats bar */}
+          {sprintStats && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4 text-sm">
+              <div className="flex items-center gap-2 bg-neutral-50 rounded px-3 py-2">
+                <Target className="w-4 h-4 text-blue-500" />
+                <div>
+                  <span className="text-xs text-neutral-400 block">Progress</span>
+                  <span className="font-semibold">{sprintStats.completionPct}%</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 bg-neutral-50 rounded px-3 py-2">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+                <div>
+                  <span className="text-xs text-neutral-400 block">Completed</span>
+                  <span className="font-semibold">{sprintStats.completedTasks}/{sprintStats.totalTasks}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 bg-neutral-50 rounded px-3 py-2">
+                <Calendar className="w-4 h-4 text-orange-500" />
+                <div>
+                  <span className="text-xs text-neutral-400 block">Days Left</span>
+                  <span className="font-semibold">{sprintStats.daysRemaining}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 bg-neutral-50 rounded px-3 py-2">
+                <TrendingDown className="w-4 h-4 text-purple-500" />
+                <div>
+                  <span className="text-xs text-neutral-400 block">Velocity</span>
+                  <span className="font-semibold">{sprintStats.velocity} tasks/day</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <ResponsiveContainer width="100%" height={220}>
             <LineChart data={burndownData}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="day" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip />
-              <Line type="monotone" dataKey="remaining" stroke="#3b82f6" strokeWidth={2} dot={false} />
+              <XAxis dataKey="dateLabel" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} domain={[0, 'dataMax']} />
+              <Tooltip
+                formatter={(value: number, name: string) => {
+                  const label = name === 'remaining' ? 'Remaining' : name === 'ideal' ? 'Ideal' : 'Completed';
+                  return [value, label];
+                }}
+              />
+              <Legend />
+              <Line
+                type="monotone"
+                dataKey="ideal"
+                stroke="#9ca3af"
+                strokeWidth={1.5}
+                strokeDasharray="5 5"
+                dot={false}
+                name="Ideal"
+              />
+              <Line
+                type="monotone"
+                dataKey="remaining"
+                stroke="#3b82f6"
+                strokeWidth={2}
+                dot={{ r: 2 }}
+                name="Actual"
+              />
             </LineChart>
           </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* No sprint message */}
+      {currentSprint && burndownData.length === 0 && (
+        <div className="bg-white rounded-lg border border-neutral-200 p-4 mb-6">
+          <div className="flex items-center gap-2 text-neutral-400">
+            <TrendingDown className="w-4 h-4" />
+            <span className="text-sm">No tasks assigned to current sprint yet</span>
+          </div>
         </div>
       )}
 

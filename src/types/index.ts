@@ -24,7 +24,9 @@ export type Priority = 'urgent' | 'normal' | 'low';
 export type Horizon = 'week' | 'month' | '3months' | '6months' | 'year';
 export type TaskStatus = 'backlog' | 'todo' | 'done';
 export type SprintDuration = '1week' | '2weeks' | '3weeks' | '1month';
+export type SprintStatus = 'planned' | 'active' | 'completed';
 export type RepeatInterval = 'week' | 'month' | 'year';
+export type ReminderRepeatInterval = 'hour' | 'day' | 'week' | 'month' | 'year';
 
 export interface User {
   id: string;
@@ -45,6 +47,8 @@ export interface InviteCode {
   usedAt?: number;
 }
 
+export type ItemLinkedType = 'task' | 'item';
+
 export interface Item {
   id: string;
   title: string;
@@ -55,6 +59,8 @@ export interface Item {
   assignedTo?: string;
   dueDate?: number;
   labels: string[];
+  linkedTaskIds?: string[];
+  linkedNoteIds?: string[];
   createdAt: number;
   createdBy?: string;
   isPrivate?: boolean;
@@ -70,6 +76,7 @@ export interface Task {
   horizon?: Horizon;
   assignedTo?: string;
   sprintId?: string;
+  projectId?: string;
   dueDate?: number;
   repeatInterval?: RepeatInterval;
   completedAt?: number;
@@ -78,6 +85,12 @@ export interface Task {
   deleteAfter?: number;
   isPrivate?: boolean;
   labels: string[];
+  linkedItemIds?: string[];
+  linkedNoteIds?: string[];
+  // Reminders module fields
+  linkedTo?: string;              // ~linked — ID of linked entity
+  linkedType?: 'task' | 'item' | 'note'; // ~linked — type of linked entity
+  flag: boolean;                  // flag — visual reminder marker
   createdAt: number;
   createdBy?: string;
 }
@@ -87,9 +100,17 @@ export interface Note {
   title?: string;
   content: string;
   pinned?: boolean;
-  linkedType?: 'task' | 'item';
+  linkedType?: 'task' | 'item' | 'note';
   linkedTo?: string;
+  linkedIds?: string[];
+  linkedTaskIds?: string[];
+  linkedItemIds?: string[];
+  projectId?: string;
   labels: string[];
+  assignedTo?: string;
+  dueDate?: number;
+  repeatInterval?: RepeatInterval;
+  isPrivate?: boolean;
   createdAt: number;
   createdBy?: string;
 }
@@ -102,6 +123,8 @@ export interface Sprint {
   duration: SprintDuration;
   weekNumber: number;
   year: number;
+  status: SprintStatus;
+  goal?: number;
   createdBy?: string;
 }
 
@@ -141,6 +164,10 @@ export interface AppSettings {
   archiveRetention?: number;
   autoCleanup?: boolean;
   theme?: 'light' | 'dark';
+  notificationEmail?: boolean;
+  notificationPush?: boolean;
+  taskReminders?: boolean;
+  reminderMinutes?: number;
 }
 
 export interface ProgressStats {
@@ -169,4 +196,40 @@ export interface Goal {
   completed: boolean;
   completedAt?: number;
   createdBy: string;
+}
+
+export type ProjectStatus = 'active' | 'completed' | 'archived';
+
+export interface Project {
+  id: string;
+  title: string;
+  description?: string;
+  color: string;
+  status: ProjectStatus;
+  taskIds: string[];
+  dueDate?: number;
+  createdAt: number;
+  createdBy?: string;
+}
+
+export type ReminderSource = 'task' | 'item' | 'manual';
+
+export interface Reminder {
+  id: string;
+  title: string;
+  description?: string;
+  dueDate: number;
+  endTime?: number;
+  recurring?: RepeatInterval;
+  assignee?: string;
+  labels: string[];
+  flagged: boolean;
+  isPrivate: boolean;
+  linkedType?: 'task' | 'item';
+  linkedTo?: string;
+  source: ReminderSource;
+  dismissed: boolean;
+  dismissedAt?: number;
+  createdAt: number;
+  createdBy?: string;
 }

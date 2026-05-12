@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Task } from '../../types';
 import { useApp } from '../../context/AppContext';
-import { Clock, Tag, User, Flag, AlertCircle, Trash2, Zap, Lock, Unlock, Menu, X, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Clock, Tag, User, Flag, AlertCircle, Trash2, Zap, Lock, Unlock, Menu, X, ToggleLeft, ToggleRight, FolderOpen } from 'lucide-react';
 import { LabelBadge } from './LabelBadge';
 import { LabelSelector } from './LabelSelector';
 import { EditableText } from './EditableText';
@@ -12,7 +12,7 @@ interface CompactTaskCardProps {
 }
 
 export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardProps) => {
-  const { updateTask, deleteTask, labels, users, sprints, createLabel, convertTaskToItem } = useApp();
+  const { updateTask, deleteTask, labels, users, sprints, projects, createLabel, convertTaskToItem } = useApp();
   const [showMenu, setShowMenu] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showActions, setShowActions] = useState(false);
@@ -22,6 +22,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
   const [showPrioritySelector, setShowPrioritySelector] = useState(false);
   const [showBlockerInput, setShowBlockerInput] = useState(false);
   const [showSprintSelector, setShowSprintSelector] = useState(false);
+  const [showProjectSelector, setShowProjectSelector] = useState(false);
   const [labelSearchQuery, setLabelSearchQuery] = useState('');
   const [assigneeSearchQuery, setAssigneeSearchQuery] = useState('');
 
@@ -54,6 +55,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
     setShowPrioritySelector(false);
     setShowBlockerInput(false);
     setShowSprintSelector(false);
+    setShowProjectSelector(false);
   };
 
   const filteredLabels = labels.filter(l => 
@@ -184,6 +186,18 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                 title="Sprint"
               >
                 <Zap className={`w-4 h-4 ${showSprintSelector ? 'text-white' : task.sprintId ? 'text-green-500' : 'text-neutral-400'}`} />
+              </button>
+
+              {/* FolderOpen - Project */}
+              <button
+                onClick={() => {
+                  closeAllPanels();
+                  setShowProjectSelector(!showProjectSelector);
+                }}
+                className={`p-1.5 rounded transition-colors ${showProjectSelector ? 'bg-black' : 'hover:bg-neutral-100'}`}
+                title="Project"
+              >
+                <FolderOpen className={`w-4 h-4 ${showProjectSelector ? 'text-white' : task.projectId ? 'text-indigo-500' : 'text-neutral-400'}`} />
               </button>
               
               {/* Lock/Unlock - Privacy */}
@@ -438,6 +452,47 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
               </>
             ) : (
               <p className="text-xs text-neutral-400 italic">No active sprints</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Project selector */}
+      {showProjectSelector && (
+        <div className="mt-2 pt-2 border-t border-neutral-100">
+          <div className="text-xs text-neutral-600 mb-2">Assign to Project</div>
+          <div className="space-y-1">
+            {projects && projects.filter(p => p.status === 'active').length > 0 ? (
+              <>
+                {projects.filter(p => p.status === 'active').map((project) => (
+                  <button
+                    key={project.id}
+                    onClick={() => {
+                      updateTask(task.id, { projectId: task.projectId === project.id ? undefined : project.id });
+                      setShowProjectSelector(false);
+                    }}
+                    className={`w-full px-2 py-1.5 text-left text-xs rounded flex items-center gap-2 ${
+                      task.projectId === project.id ? 'bg-indigo-100' : 'hover:bg-neutral-50'
+                    }`}
+                  >
+                    <div className="w-3 h-3 rounded shrink-0" style={{ backgroundColor: project.color }} />
+                    {project.title}
+                  </button>
+                ))}
+                {task.projectId && (
+                  <button
+                    onClick={() => {
+                      updateTask(task.id, { projectId: undefined });
+                      setShowProjectSelector(false);
+                    }}
+                    className="w-full px-2 py-1.5 text-left text-xs rounded hover:bg-neutral-50 text-neutral-500"
+                  >
+                    Remove from project
+                  </button>
+                )}
+              </>
+            ) : (
+              <p className="text-xs text-neutral-400 italic">No active projects</p>
             )}
           </div>
         </div>

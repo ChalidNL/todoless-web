@@ -6,6 +6,8 @@ import type {
   Item,
   Label,
   Note,
+  Project,
+  Reminder,
   Shop,
   Sprint,
   Task,
@@ -34,6 +36,7 @@ const normalizeTask = (record: any): Task => ({
   horizon: record.horizon || undefined,
   assignedTo: record.assigned_to || undefined,
   sprintId: record.sprint_id || undefined,
+  projectId: record.project_id || undefined,
   dueDate: toTimestamp(record.due_date),
   repeatInterval: record.repeat_interval || undefined,
   completedAt: toTimestamp(record.completed_at),
@@ -42,6 +45,11 @@ const normalizeTask = (record: any): Task => ({
   deleteAfter: toTimestamp(record.delete_after),
   isPrivate: !!record.is_private,
   labels: Array.isArray(record.labels) ? record.labels : [],
+  linkedItemIds: Array.isArray(record.linked_item_ids) ? record.linked_item_ids : [],
+  linkedNoteIds: Array.isArray(record.linked_note_ids) ? record.linked_note_ids : [],
+  linkedTo: record.linked_to || undefined,
+  linkedType: record.linked_type || undefined,
+  flag: !!record.flag,
   createdAt: toTimestamp(record.created) || Date.now(),
   createdBy: record.user,
 });
@@ -56,8 +64,11 @@ const normalizeItem = (record: any): Item => ({
   assignedTo: record.assigned_to || undefined,
   dueDate: toTimestamp(record.due_date),
   labels: Array.isArray(record.labels) ? record.labels : [],
+  linkedTaskIds: Array.isArray(record.linked_task_ids) ? record.linked_task_ids : [],
+  linkedNoteIds: Array.isArray(record.linked_note_ids) ? record.linked_note_ids : [],
   createdAt: toTimestamp(record.created) || Date.now(),
   createdBy: record.user,
+  isPrivate: !!record.is_private,
 });
 
 const normalizeNote = (record: any): Note => ({
@@ -67,7 +78,12 @@ const normalizeNote = (record: any): Note => ({
   pinned: !!record.pinned,
   linkedType: record.linked_type || undefined,
   linkedTo: record.linked_to || undefined,
+  linkedIds: Array.isArray(record.linked_ids) ? record.linked_ids : [],
   labels: Array.isArray(record.labels) ? record.labels : [],
+  assignedTo: record.assigned_to || undefined,
+  dueDate: toTimestamp(record.due_date),
+  repeatInterval: record.repeat_interval || undefined,
+  isPrivate: !!record.is_private,
   createdAt: toTimestamp(record.created) || Date.now(),
   createdBy: record.user,
 });
@@ -94,6 +110,8 @@ const normalizeSprint = (record: any): Sprint => ({
   duration: record.duration || '2weeks',
   weekNumber: record.week_number || 1,
   year: record.year || new Date().getFullYear(),
+  status: record.status || 'planned',
+  goal: record.goal ?? undefined,
   createdBy: record.user,
 });
 
@@ -130,6 +148,10 @@ const normalizeSettings = (record: any): AppSettings => ({
   archiveRetention: record.archive_retention_days ?? 30,
   autoCleanup: record.auto_cleanup ?? true,
   theme: record.theme || 'light',
+  notificationEmail: record.notification_email ?? false,
+  notificationPush: record.notification_push ?? false,
+  taskReminders: record.task_reminders ?? true,
+  reminderMinutes: record.reminder_minutes ?? 15,
 });
 
 const normalizeReward = (record: any): Reward => ({
@@ -152,6 +174,38 @@ const normalizeGoal = (record: any): Goal => ({
   targetUser: record.target_user,
   completed: !!record.completed,
   completedAt: toTimestamp(record.completed_at),
+  createdBy: record.user,
+});
+
+const normalizeProject = (record: any): Project => ({
+  id: record.id,
+  title: record.title,
+  description: record.description || undefined,
+  color: record.color || '#6366f1',
+  status: record.status || 'active',
+  taskIds: Array.isArray(record.task_ids) ? record.task_ids : [],
+  dueDate: toTimestamp(record.due_date),
+  createdAt: toTimestamp(record.created) || Date.now(),
+  createdBy: record.user,
+});
+
+const normalizeReminder = (record: any): Reminder => ({
+  id: record.id,
+  title: record.title,
+  description: record.description || undefined,
+  dueDate: toTimestamp(record.due_date) || Date.now(),
+  endTime: toTimestamp(record.end_time),
+  recurring: record.recurring || undefined,
+  assignee: record.assignee || undefined,
+  labels: Array.isArray(record.labels) ? record.labels : [],
+  flagged: !!record.flagged,
+  isPrivate: !!record.is_private,
+  linkedType: record.linked_type || undefined,
+  linkedTo: record.linked_to || undefined,
+  source: (record.source || 'manual') as Reminder['source'],
+  dismissed: !!record.dismissed,
+  dismissedAt: toTimestamp(record.dismissed_at),
+  createdAt: toTimestamp(record.created) || Date.now(),
   createdBy: record.user,
 });
 
@@ -283,6 +337,7 @@ class PocketBaseClient {
         horizon: task.horizon,
         assigned_to: task.assignedTo,
         sprint_id: task.sprintId,
+        project_id: task.projectId,
         due_date: task.dueDate ? new Date(task.dueDate).toISOString() : null,
         repeat_interval: task.repeatInterval,
         labels: task.labels || [],
@@ -291,6 +346,9 @@ class PocketBaseClient {
         archived_at: task.archivedAt ? new Date(task.archivedAt).toISOString() : null,
         delete_after: task.deleteAfter ? new Date(task.deleteAfter).toISOString() : null,
         completed_at: task.completedAt ? new Date(task.completedAt).toISOString() : null,
+        linked_to: task.linkedTo,
+        linked_type: task.linkedType,
+        flag: task.flag || false,
         user: userId,
       });
     } catch (error: any) {
@@ -307,6 +365,7 @@ class PocketBaseClient {
         ...updates,
         blocked_comment: updates.blockedComment,
         sprint_id: updates.sprintId,
+        project_id: updates.projectId,
         assigned_to: updates.assignedTo,
         due_date: updates.dueDate ? new Date(updates.dueDate).toISOString() : undefined,
         repeat_interval: updates.repeatInterval,
@@ -314,6 +373,9 @@ class PocketBaseClient {
         archived_at: updates.archivedAt ? new Date(updates.archivedAt).toISOString() : undefined,
         delete_after: updates.deleteAfter ? new Date(updates.deleteAfter).toISOString() : undefined,
         completed_at: updates.completedAt ? new Date(updates.completedAt).toISOString() : undefined,
+        linked_to: updates.linkedTo,
+        linked_type: updates.linkedType,
+        flag: updates.flag,
       });
     } catch (error: any) {
       const msg = error?.response?.message || error?.message || 'Failed to update task';
@@ -330,7 +392,9 @@ class PocketBaseClient {
   async getItems(): Promise<Item[]> {
     if (!pb.authStore.isValid) return [];
     const userId = pb.authStore.record?.id;
-    const list = await pb.collection('items').getFullList({ filter: `user.id = "${userId}"`, sort: '-created' });
+    const familyId = (pb.authStore.record as any)?.family_id;
+    const filter = familyId ? `user.family_id = "${familyId}"` : `user.id = "${userId}"`;
+    const list = await pb.collection('items').getFullList({ filter, sort: '-created' });
     return list.map(normalizeItem);
   }
 
@@ -383,7 +447,12 @@ class PocketBaseClient {
       pinned: note.pinned || false,
       linked_type: note.linkedType,
       linked_to: note.linkedTo,
+      linked_ids: note.linkedIds || [],
       labels: note.labels || [],
+      assigned_to: note.assignedTo,
+      due_date: note.dueDate ? new Date(note.dueDate).toISOString() : null,
+      repeat_interval: note.repeatInterval,
+      is_private: note.isPrivate || false,
       user: pb.authStore.record?.id,
     });
   }
@@ -393,6 +462,11 @@ class PocketBaseClient {
       ...updates,
       linked_type: updates.linkedType,
       linked_to: updates.linkedTo,
+      linked_ids: updates.linkedIds,
+      assigned_to: updates.assignedTo,
+      due_date: updates.dueDate ? new Date(updates.dueDate).toISOString() : undefined,
+      repeat_interval: updates.repeatInterval,
+      is_private: updates.isPrivate,
     });
   }
 
@@ -462,15 +536,22 @@ class PocketBaseClient {
       duration: sprint.duration,
       week_number: sprint.weekNumber,
       year: sprint.year,
+      status: sprint.status || 'planned',
+      goal: sprint.goal ?? null,
       user: pb.authStore.record?.id,
     });
   }
 
   async updateSprint(id: string, updates: Partial<Sprint>) {
     return pb.collection('sprints').update(id, {
-      ...updates,
+      name: updates.name,
       start_date: updates.startDate ? new Date(updates.startDate).toISOString() : undefined,
       end_date: updates.endDate ? new Date(updates.endDate).toISOString() : undefined,
+      duration: updates.duration,
+      week_number: updates.weekNumber,
+      year: updates.year,
+      status: updates.status,
+      goal: updates.goal ?? undefined,
     });
   }
 
@@ -706,6 +787,113 @@ class PocketBaseClient {
 
   async deleteGoal(id: string) {
     await pb.collection('goals').delete(id);
+  }
+
+  // Projects CRUD
+  async getProjects(): Promise<Project[]> {
+    if (!pb.authStore.isValid) return [];
+    const userId = pb.authStore.record?.id;
+    const list = await pb.collection('projects').getFullList({ filter: `user.id = "${userId}"`, sort: '-created' });
+    return list.map(normalizeProject);
+  }
+
+  async createProject(project: Partial<Project>) {
+    try {
+      return await pb.collection('projects').create({
+        title: project.title,
+        description: project.description,
+        color: project.color || '#6366f1',
+        status: project.status || 'active',
+        task_ids: project.taskIds || [],
+        due_date: project.dueDate ? new Date(project.dueDate).toISOString() : null,
+        user: pb.authStore.record?.id,
+      });
+    } catch (error: any) {
+      const msg = error?.response?.message || error?.message || 'Failed to create project';
+      console.error('createProject failed:', error);
+      this.showError(`Failed to create project: ${msg}`);
+      throw error;
+    }
+  }
+
+  async updateProject(id: string, updates: Partial<Project>) {
+    return pb.collection('projects').update(id, {
+      title: updates.title,
+      description: updates.description,
+      color: updates.color,
+      status: updates.status,
+      task_ids: updates.taskIds,
+      due_date: updates.dueDate ? new Date(updates.dueDate).toISOString() : undefined,
+    });
+  }
+
+  async deleteProject(id: string) {
+    await pb.collection('projects').delete(id);
+  }
+
+  // Reminders CRUD
+  async getReminders(): Promise<Reminder[]> {
+    if (!pb.authStore.isValid) return [];
+    const userId = pb.authStore.record?.id;
+    const list = await pb.collection('reminders').getFullList({ filter: `user.id = "${userId}"`, sort: 'due_date' });
+    return list.map(normalizeReminder);
+  }
+
+  async createReminder(reminder: Partial<Reminder>) {
+    try {
+      return await pb.collection('reminders').create({
+        title: reminder.title,
+        description: reminder.description,
+        due_date: reminder.dueDate ? new Date(reminder.dueDate).toISOString() : null,
+        end_time: reminder.endTime ? new Date(reminder.endTime).toISOString() : null,
+        recurring: reminder.recurring,
+        assignee: reminder.assignee,
+        labels: reminder.labels || [],
+        flagged: reminder.flagged || false,
+        is_private: reminder.isPrivate || false,
+        linked_type: reminder.linkedType,
+        linked_to: reminder.linkedTo,
+        source: reminder.source || 'manual',
+        dismissed: reminder.dismissed || false,
+        dismissed_at: reminder.dismissedAt ? new Date(reminder.dismissedAt).toISOString() : null,
+        user: pb.authStore.record?.id,
+      });
+    } catch (error: any) {
+      const msg = error?.response?.message || error?.message || 'Failed to create reminder';
+      console.error('createReminder failed:', error);
+      this.showError(`Failed to add reminder: ${msg}`);
+      throw error;
+    }
+  }
+
+  async updateReminder(id: string, updates: Partial<Reminder>) {
+    return pb.collection('reminders').update(id, {
+      title: updates.title,
+      description: updates.description,
+      due_date: updates.dueDate ? new Date(updates.dueDate).toISOString() : undefined,
+      end_time: updates.endTime ? new Date(updates.endTime).toISOString() : undefined,
+      recurring: updates.recurring,
+      assignee: updates.assignee,
+      labels: updates.labels,
+      flagged: updates.flagged,
+      is_private: updates.isPrivate,
+      linked_type: updates.linkedType,
+      linked_to: updates.linkedTo,
+      source: updates.source,
+      dismissed: updates.dismissed,
+      dismissed_at: updates.dismissedAt ? new Date(updates.dismissedAt).toISOString() : undefined,
+    });
+  }
+
+  async deleteReminder(id: string) {
+    await pb.collection('reminders').delete(id);
+  }
+
+  async dismissReminder(id: string) {
+    return pb.collection('reminders').update(id, {
+      dismissed: true,
+      dismissed_at: new Date().toISOString(),
+    });
   }
 
   // Shared views (multi-user)

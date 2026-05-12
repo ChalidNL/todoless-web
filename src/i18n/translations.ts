@@ -13,6 +13,7 @@ interface TranslationStructure {
     delete: string;
     edit: string;
     add: string;
+    create: string;
     search: string;
     filter: string;
     archive: string;
@@ -70,6 +71,25 @@ interface TranslationStructure {
     saturday: string;
     sunday: string;
   };
+  projects: {
+    title: string;
+    newProject: string;
+    createProject: string;
+    projectName: string;
+    description: string;
+    color: string;
+    progress: string;
+    tasksCompleted: string;
+    tasks: string;
+    subtasks: string;
+    noProjects: string;
+    noProjectsSub: string;
+    noTasks: string;
+    backToOverview: string;
+    statusActive: string;
+    statusCompleted: string;
+    statusArchived: string;
+  };
 }
 
 export const translations: Record<Language, TranslationStructure> = {
@@ -86,6 +106,7 @@ export const translations: Record<Language, TranslationStructure> = {
       delete: 'Delete',
       edit: 'Edit',
       add: 'Add',
+      create: 'Create',
       search: 'Search',
       filter: 'Filter',
       archive: 'Archive',
@@ -142,6 +163,25 @@ export const translations: Record<Language, TranslationStructure> = {
       friday: 'Friday',
       saturday: 'Saturday',
       sunday: 'Sunday',
+    },
+    projects: {
+      title: 'Projects',
+      newProject: 'New Project',
+      createProject: 'Create Project',
+      projectName: 'Project name',
+      description: 'Description',
+      color: 'Color',
+      progress: 'Progress',
+      tasksCompleted: 'tasks completed',
+      tasks: 'tasks',
+      subtasks: 'Sub-tasks',
+      noProjects: 'No projects yet',
+      noProjectsSub: 'Create your first project to get started',
+      noTasks: 'No sub-tasks in this project',
+      backToOverview: 'Back to overview',
+      statusActive: 'Active',
+      statusCompleted: 'Completed',
+      statusArchived: 'Archived',
     },
   },
   fr: {
@@ -214,6 +254,25 @@ export const translations: Record<Language, TranslationStructure> = {
       saturday: 'Samedi',
       sunday: 'Dimanche',
     },
+    projects: {
+      title: 'Projets',
+      newProject: 'Nouveau projet',
+      createProject: 'Créer un projet',
+      projectName: 'Nom du projet',
+      description: 'Description',
+      color: 'Couleur',
+      progress: 'Progrès',
+      tasksCompleted: 'tâches terminées',
+      tasks: 'tâches',
+      subtasks: 'Sous-tâches',
+      noProjects: 'Pas encore de projets',
+      noProjectsSub: 'Créez votre premier projet pour commencer',
+      noTasks: 'Pas de sous-tâches dans ce projet',
+      backToOverview: "Retour à l'aperçu",
+      statusActive: 'Actif',
+      statusCompleted: 'Terminé',
+      statusArchived: 'Archivé',
+    },
   },
   nl: {
     common: {
@@ -284,6 +343,25 @@ export const translations: Record<Language, TranslationStructure> = {
       friday: 'Vrijdag',
       saturday: 'Zaterdag',
       sunday: 'Zondag',
+    },
+    projects: {
+      title: 'Projecten',
+      newProject: 'Nieuw project',
+      createProject: 'Project aanmaken',
+      projectName: 'Projectnaam',
+      description: 'Beschrijving',
+      color: 'Kleur',
+      progress: 'Voortgang',
+      tasksCompleted: 'taken voltooid',
+      tasks: 'taken',
+      subtasks: 'Sub-taken',
+      noProjects: 'Nog geen projecten',
+      noProjectsSub: 'Maak je eerste project om te beginnen',
+      noTasks: 'Geen sub-taken in dit project',
+      backToOverview: 'Terug naar overzicht',
+      statusActive: 'Actief',
+      statusCompleted: 'Voltooid',
+      statusArchived: 'Gearchiveerd',
     },
   },
   de: {
@@ -356,5 +434,39 @@ export const translations: Record<Language, TranslationStructure> = {
       saturday: 'Samstag',
       sunday: 'Sonntag',
     },
+    projects: {
+      title: 'Projekte',
+      newProject: 'Neues Projekt',
+      createProject: 'Projekt erstellen',
+      projectName: 'Projektname',
+      description: 'Beschreibung',
+      color: 'Farbe',
+      progress: 'Fortschritt',
+      tasksCompleted: 'Aufgaben abgeschlossen',
+      tasks: 'Aufgaben',
+      subtasks: 'Teilaufgaben',
+      noProjects: 'Noch keine Projekte',
+      noProjectsSub: 'Erstellen Sie Ihr erstes Projekt',
+      noTasks: 'Keine Teilaufgaben in diesem Projekt',
+      backToOverview: 'Zurück zur Übersicht',
+      statusActive: 'Aktiv',
+      statusCompleted: 'Abgeschlossen',
+      statusArchived: 'Archiviert',
+    },
   },
 };
+
+/** Simple translation helper: looks up nested key in language dict. */
+export function t(key: string, lang: Language = 'en'): string {
+  const dict = translations[lang] ?? translations['en'];
+  const parts = key.split('.');
+  let value: any = dict;
+  for (const part of parts) {
+    if (value && typeof value === 'object' && part in value) {
+      value = value[part];
+    } else {
+      return key;
+    }
+  }
+  return typeof value === 'string' ? value : key;
+}

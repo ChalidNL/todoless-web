@@ -59,7 +59,11 @@ export interface Task {
   archived_at?: string;
   delete_after?: string;
   completed_at?: string;
-  user: string; // User ID relation
+  // Reminders module fields
+  linked_to?: string;          // ~linked — ID of linked task
+  linked_type?: 'task' | 'item' | 'note'; // ~linked — type of linked entity
+  flag: boolean;               // flag — visual reminder marker
+  user: string;                // User ID relation
   created: string;
   updated: string;
 }
@@ -75,6 +79,9 @@ export interface Item {
   labels: string[];
   shop_id?: string;
   is_private: boolean;
+  // Groceries module — linked relation fields
+  linked_type?: 'task' | 'item';
+  linked_to?: string;
   user: string; // User ID relation
   created: string;
   updated: string;

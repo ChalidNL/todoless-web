@@ -9,7 +9,7 @@ import { CompactTaskCard } from './shared/CompactTaskCard';
 type CalendarView = 'list' | 'day' | 'week' | 'month' | 'year';
 
 export const Calendar = () => {
-  const { tasks, addTask } = useApp();
+  const { tasks, addTask, calendarEvents } = useApp();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<CalendarView>('month');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -40,6 +40,14 @@ export const Calendar = () => {
 
   const handleNextMonth = () => {
     setCurrentDate(new Date(year, month + 1, 1));
+  };
+
+  const handlePreviousYear = () => {
+    setCurrentDate(new Date(year - 1, 0, 1));
+  };
+
+  const handleNextYear = () => {
+    setCurrentDate(new Date(year + 1, 0, 1));
   };
 
   const handleAddEvent = (value: string, metadata?: { assignee?: string; labels?: string[]; dueDate?: number }) => {
@@ -145,44 +153,111 @@ export const Calendar = () => {
     return monthsData;
   };
 
+  const getEventsForDay = (day: number) => {
+    const dayDate = new Date(year, month, day);
+    const dayStart = new Date(dayDate).setHours(0, 0, 0, 0);
+    const dayEnd = new Date(dayDate).setHours(23, 59, 59, 999);
+
+    const dayTasks = tasks.filter(task => {
+      if (!task.dueDate) return false;
+      return task.dueDate >= dayStart && task.dueDate <= dayEnd;
+    });
+
+    const dayCalEvents = (calendarEvents || []).filter(event => {
+      return event.startTime <= dayEnd && event.endTime >= dayStart;
+    });
+
+    return [...dayTasks.map(t => ({ type: 'task' as const, data: t })),
+            ...dayCalEvents.map(e => ({ type: 'event' as const, data: e }))];
+  };
+
+  const handleDayClick = (day: number) => {
+    setCurrentDate(new Date(year, month, day));
+    setView('day');
+  };
+
   const renderCalendarDays = () => {
     const days = [];
-    
+    const maxEventsVisible = 3;
+
     // Empty cells before first day
     for (let i = 0; i < startingDayOfWeek; i++) {
       days.push(
-        <div key={`empty-${i}`} className="min-h-24 bg-neutral-50 border border-neutral-100"></div>
+        <div key={`empty-${i}`} className="h-24 bg-neutral-50/50 border border-neutral-100" />
       );
     }
 
     // Days of month
     for (let day = 1; day <= daysInMonth; day++) {
-      const tasksForDay = getTasksForDay(day);
+      const events = getEventsForDay(day);
       const isToday = new Date().toDateString() === new Date(year, month, day).toDateString();
 
       days.push(
         <div
           key={day}
-          className={`min-h-24 border border-neutral-200 p-2 bg-white ${
-            isToday ? 'ring-2 ring-blue-500' : ''
+          onClick={() => handleDayClick(day)}
+          className={`h-24 border border-neutral-100 p-0.5 cursor-pointer hover:bg-neutral-50 transition-colors ${
+            isToday ? 'bg-blue-50/30' : 'bg-white'
           }`}
         >
-          <div className={`text-sm mb-1 ${isToday ? 'font-bold text-blue-500' : 'text-neutral-700'}`}>
-            {day}
+          <div className="flex items-center justify-between px-1">
+            <span className={`text-xs leading-none ${
+              isToday
+                ? 'inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-600 text-white font-semibold'
+                : 'text-neutral-500'
+            }`}>
+              {day}
+            </span>
           </div>
-          <div className="space-y-1">
-            {tasksForDay.slice(0, 3).map(task => (
-              <div
-                key={task.id}
-                className={`text-xs px-1.5 py-0.5 rounded truncate ${task.status === 'done' ? 'bg-neutral-100 text-neutral-500 line-through' : 'bg-blue-50 text-blue-700'}`}
-                title={task.title}
-              >
-                {task.title}
-              </div>
-            ))}
-            {tasksForDay.length > 3 && (
-              <div className="text-xs text-neutral-400 px-1.5">
-                +{tasksForDay.length - 3} more
+          <div className="mt-0.5 space-y-px">
+            {events.slice(0, maxEventsVisible).map(item => {
+              if (item.type === 'task') {
+                const task = item.data;
+                const hasTime = task.dueDate && new Date(task.dueDate).getHours() !== 0;
+                const timeStr = hasTime
+                  ? new Date(task.dueDate!).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })
+                  : '';
+                return (
+                  <div
+                    key={task.id}
+                    className={`text-[10px] leading-tight px-1 py-px rounded truncate ${
+                      task.status === 'done'
+                        ? 'bg-neutral-100 text-neutral-400 line-through'
+                        : task.priority === 'urgent'
+                        ? 'bg-red-100 text-red-700 font-medium'
+                        : task.priority === 'low'
+                        ? 'bg-neutral-50 text-neutral-500'
+                        : 'bg-blue-100 text-blue-700'
+                    }`}
+                    title={`${task.title}${timeStr ? ` ${timeStr}` : ''}`}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {timeStr && <span className="opacity-70 mr-0.5">{timeStr}</span>}
+                    {task.title}
+                  </div>
+                );
+              } else {
+                const event = item.data;
+                const isAllDay = event.allDay;
+                const timeStr = isAllDay
+                  ? ''
+                  : new Date(event.startTime).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+                return (
+                  <div
+                    key={event.id}
+                    className="text-[10px] leading-tight px-1 py-px rounded truncate bg-emerald-100 text-emerald-700"
+                    title={`${event.title}${timeStr ? ` ${timeStr}` : ''}`}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {timeStr && <span className="opacity-70 mr-0.5">{timeStr}</span>}
+                    {event.title}
+                  </div>
+                );
+              }
+            })}
+            {events.length > maxEventsVisible && (
+              <div className="text-[10px] text-neutral-400 px-1 font-medium">
+                +{events.length - maxEventsVisible} meer
               </div>
             )}
           </div>
@@ -195,16 +270,111 @@ export const Calendar = () => {
 
   const renderListView = () => {
     const allTasks = getAllTasks();
+    
+    // Group tasks by date
+    const groupedByDate: { [key: string]: typeof allTasks } = {};
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    allTasks.forEach(task => {
+      if (!task.dueDate) return;
+      const taskDate = new Date(task.dueDate);
+      taskDate.setHours(0, 0, 0, 0);
+      const dateKey = taskDate.toISOString().split('T')[0];
+      
+      if (!groupedByDate[dateKey]) {
+        groupedByDate[dateKey] = [];
+      }
+      groupedByDate[dateKey].push(task);
+    });
+
+    // Sort dates
+    const sortedDates = Object.keys(groupedByDate).sort();
+    
+    const formatDateHeader = (dateStr: string) => {
+      const date = new Date(dateStr);
+      const diffTime = date.getTime() - today.getTime();
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+      
+      let label = '';
+      if (diffDays === 0) label = 'Today';
+      else if (diffDays === 1) label = 'Tomorrow';
+      else if (diffDays === -1) label = 'Yesterday';
+      else if (diffDays > 1 && diffDays < 7) label = date.toLocaleDateString('nl-NL', { weekday: 'long' });
+      else label = date.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' });
+      
+      const dateNum = date.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
+      
+      return { label, dateNum, isToday: diffDays === 0, isPast: diffDays < 0 };
+    };
+
+    const formatTime = (timestamp: number) => {
+      const date = new Date(timestamp);
+      return date.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+    };
+
     return (
-      <div className="max-w-2xl mx-auto px-4 py-4 space-y-2">
-        {allTasks.length === 0 ? (
-          <div className="text-center py-12 text-neutral-500">
-            <p>No scheduled tasks found</p>
+      <div className="max-w-3xl mx-auto px-4 py-6">
+        {sortedDates.length === 0 ? (
+          <div className="text-center py-16 text-neutral-500">
+            <Clock className="w-12 h-12 mx-auto mb-3 opacity-30" />
+            <p className="text-lg">No scheduled tasks found</p>
+            <p className="text-sm mt-2">Add tasks with due dates to see them here</p>
           </div>
         ) : (
-          allTasks.map(task => (
-            <CompactTaskCard key={task.id} task={task} />
-          ))
+          <div className="space-y-6">
+            {sortedDates.map(dateStr => {
+              const tasks = groupedByDate[dateStr];
+              const { label, dateNum, isToday, isPast } = formatDateHeader(dateStr);
+              
+              return (
+                <div key={dateStr} className={`rounded-lg overflow-hidden ${isToday ? 'ring-2 ring-blue-500' : ''}`}>
+                  {/* Date Header */}
+                  <div className={`sticky top-[170px] z-10 px-4 py-2 border-b backdrop-blur-sm ${
+                    isToday 
+                      ? 'bg-blue-500/90 border-blue-400 text-white' 
+                      : isPast 
+                        ? 'bg-neutral-100/90 border-neutral-200 text-neutral-500'
+                        : 'bg-white/90 border-neutral-200 text-neutral-900'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold">{label}</span>
+                        <span className="text-sm opacity-75">{dateNum}</span>
+                      </div>
+                      <div className="text-sm opacity-75">
+                        {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Tasks List */}
+                  <div className="divide-y divide-neutral-100">
+                    {tasks.map(task => (
+                      <div 
+                        key={task.id} 
+                        className={`p-3 hover:bg-neutral-50 transition-colors ${
+                          task.status === 'done' ? 'opacity-60' : ''
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          {/* Time */}
+                          <div className="w-16 text-sm text-neutral-500 pt-0.5 flex-shrink-0">
+                            {task.dueDate ? formatTime(task.dueDate) : 'All day'}
+                          </div>
+                          
+                          {/* Task Card */}
+                          <div className="flex-1 min-w-0">
+                            <CompactTaskCard task={task} showCheckbox={true} />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     );
@@ -377,20 +547,84 @@ export const Calendar = () => {
     );
   };
 
+  const goToToday = () => setCurrentDate(new Date());
+  const goToPrevWeek = () => {
+    const d = new Date(currentDate);
+    d.setDate(d.getDate() - 7);
+    setCurrentDate(d);
+  };
+  const goToNextWeek = () => {
+    const d = new Date(currentDate);
+    d.setDate(d.getDate() + 7);
+    setCurrentDate(d);
+  };
+
+  const HOUR_START = 6;
+  const HOUR_END = 23;
+  const HOUR_HEIGHT = 48; // px per hour
+
   const renderWeekView = () => {
     const weekDays = getWeekDays();
-    
+    const now = new Date();
+    const isCurrentWeek = now >= weekDays[0] && now <= weekDays[6];
+
+    // Combine calendar events + tasks with dueDate into a unified list per day
+    const getDayEvents = (date: Date) => {
+      const dayStart = new Date(date).setHours(0, 0, 0, 0);
+      const dayEnd = new Date(date).setHours(23, 59, 59, 999);
+      const dayStr = date.toISOString().split('T')[0];
+
+      const timedEvents = calendarEvents.filter(ev => {
+        if (ev.allDay) return false;
+        return ev.startTime >= dayStart && ev.startTime <= dayEnd;
+      });
+
+      const allDayEvents = calendarEvents.filter(ev => {
+        if (!ev.allDay) return false;
+        return ev.startTime >= dayStart && ev.startTime <= dayEnd;
+      });
+
+      // Tasks with dueDate that fall on this day (treat as all-day if no time set)
+      const timedTasks = tasks.filter(t => {
+        if (!t.dueDate) return false;
+        const h = new Date(t.dueDate).getHours();
+        const m = new Date(t.dueDate).getMinutes();
+        return t.dueDate >= dayStart && t.dueDate <= dayEnd && (h !== 0 || m !== 0);
+      });
+
+      const allDayTasks = tasks.filter(t => {
+        if (!t.dueDate) return false;
+        const h = new Date(t.dueDate).getHours();
+        const m = new Date(t.dueDate).getMinutes();
+        return t.dueDate >= dayStart && t.dueDate <= dayEnd && h === 0 && m === 0;
+      });
+
+      return { timedEvents, allDayEvents, timedTasks, allDayTasks };
+    };
+
+    const allDayColumns = weekDays.map(day => {
+      const { allDayEvents, allDayTasks } = getDayEvents(day);
+      return [...allDayEvents, ...allDayTasks];
+    });
+    const maxAllDay = Math.max(...allDayColumns.map(c => c.length), 0);
+
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+    // Short day name (Mon-Sun)
+    const shortDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
     return (
-      <div className="max-w-full mx-auto px-4 py-4 overflow-x-auto">
-        <div className="min-w-[1200px] space-y-3">
-          {/* Header Row */}
-          <div className="grid grid-cols-7 gap-2 pb-2 border-b border-neutral-200">
+      <div className="flex flex-col h-[calc(100vh-200px)] max-w-6xl mx-auto">
+        {/* Week header */}
+        <div className="flex border-b border-neutral-200 bg-white sticky top-[105px] z-10">
+          <div className="w-14 shrink-0" /> {/* time gutter */}
+          <div className="flex-1 grid grid-cols-7">
             {weekDays.map((day, idx) => {
-              const isToday = new Date().toDateString() === day.toDateString();
+              const isToday = now.toDateString() === day.toDateString();
               return (
-                <div key={idx} className="text-center">
-                  <div className={`text-sm font-semibold ${isToday ? 'text-blue-600' : 'text-neutral-700'}`}>
-                    {daysOfWeek[day.getDay()]}
+                <div key={idx} className="text-center py-2 border-l border-neutral-100">
+                  <div className={`text-[10px] uppercase tracking-wide ${isToday ? 'text-blue-600' : 'text-neutral-500'}`}>
+                    {shortDays[day.getDay()]}
                   </div>
                   <div className={`text-lg font-bold ${isToday ? 'text-blue-600' : 'text-neutral-900'}`}>
                     {day.getDate()}
@@ -399,53 +633,121 @@ export const Calendar = () => {
               );
             })}
           </div>
-          
-          {/* Tasks Grid with Long Bars */}
-          <div className="grid grid-cols-7 gap-2">
-            {weekDays.map((day, idx) => {
-              const dayTasks = getTasksForDate(day);
-              const isToday = new Date().toDateString() === day.toDateString();
-              
-              return (
-                <div 
-                  key={idx} 
-                  className={`border-2 rounded-lg p-2 min-h-[400px] ${
-                    isToday ? 'border-blue-300 bg-blue-50' : 'border-neutral-200 bg-white'
-                  }`}
-                >
-                  <div className="space-y-2">
-                    {dayTasks.map(task => (
+        </div>
+
+        {/* All-day row */}
+        {maxAllDay > 0 && (
+          <div className="flex bg-white border-b border-neutral-200" style={{ height: `${maxAllDay * 24}px` }}>
+            <div className="w-14 shrink-0 text-[10px] text-neutral-400 flex items-center justify-center">all-day</div>
+            <div className="flex-1 grid grid-cols-7">
+              {allDayColumns.map((col, idx) => (
+                <div key={idx} className="border-l border-neutral-100 p-0.5 overflow-hidden">
+                  {col.map(ev => {
+                    const isTask = 'status' in ev;
+                    return (
                       <div
-                        key={task.id}
-                        className={`px-3 py-2 rounded-lg text-sm border ${
-                          task.status === 'done'
-                            ? 'bg-neutral-100 text-neutral-500 line-through border-neutral-200' 
-                            : task.priority === 'urgent'
-                            ? 'bg-red-50 text-red-700 border-red-200'
-                            : task.priority === 'low'
-                            ? 'bg-neutral-50 text-neutral-600 border-neutral-200'
-                            : 'bg-blue-50 text-blue-700 border-blue-200'
+                        key={ev.id}
+                        className={`text-[11px] px-1.5 py-0.5 rounded truncate ${
+                          isTask
+                            ? (ev as any).status === 'done'
+                              ? 'bg-neutral-100 text-neutral-400 line-through'
+                              : 'bg-blue-50 text-blue-700'
+                            : 'bg-indigo-100 text-indigo-700'
                         }`}
-                        title={task.title}
+                        title={ev.title}
                       >
-                        <div className="font-medium break-words">
-                          {task.title}
-                        </div>
-                        {task.dueDate && (
-                          <div className="text-xs mt-1 opacity-75">
-                            {new Date(task.dueDate).toLocaleTimeString('nl-NL', { 
-                              hour: '2-digit', 
-                              minute: '2-digit' 
-                            })}
-                          </div>
-                        )}
+                        {ev.title}
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
+              ))}
+            </div>
           </div>
+        )}
+
+        {/* Time grid */}
+        <div className="flex-1 overflow-y-auto bg-white relative">
+          {/* Current time line */}
+          {isCurrentWeek && (
+            <div
+              className="absolute left-14 right-0 z-10 pointer-events-none"
+              style={{ top: `${(nowMinutes / 60 - HOUR_START) * HOUR_HEIGHT + (maxAllDay * 24)}px` }}
+            >
+              <div className="flex items-center">
+                <div className="w-2 h-2 rounded-full bg-red-500 -ml-1" />
+                <div className="flex-1 h-[2px] bg-red-500" />
+              </div>
+            </div>
+          )}
+
+          {Array.from({ length: HOUR_END - HOUR_START + 1 }, (_, i) => HOUR_START + i).map(hour => {
+            const topPx = (hour - HOUR_START) * HOUR_HEIGHT + (maxAllDay * 24);
+            return (
+              <div key={hour} className="flex relative" style={{ height: `${HOUR_HEIGHT}px` }}>
+                <div className="w-14 shrink-0 text-[10px] text-neutral-400 text-right pr-2" style={{ marginTop: '-6px' }}>
+                  {String(hour).padStart(2, '0')}:00
+                </div>
+                <div className="flex-1 grid grid-cols-7 relative">
+                  {weekDays.map((day, idx) => {
+                    const isToday = now.toDateString() === day.toDateString();
+                    const { timedEvents, timedTasks } = getDayEvents(day);
+                    const allTimed = [
+                      ...timedEvents.map(ev => ({
+                        id: ev.id,
+                        title: ev.title,
+                        startMin: new Date(ev.startTime).getHours() * 60 + new Date(ev.startTime).getMinutes(),
+                        endMin: new Date(ev.endTime).getHours() * 60 + new Date(ev.endTime).getMinutes(),
+                        kind: 'event' as const,
+                      })),
+                      ...timedTasks.map(t => ({
+                        id: t.id,
+                        title: t.title,
+                        startMin: new Date(t.dueDate!).getHours() * 60 + new Date(t.dueDate!).getMinutes(),
+                        endMin: new Date(t.dueDate!).getHours() * 60 + new Date(t.dueDate!).getMinutes() + 30,
+                        kind: 'task' as const,
+                        status: t.status,
+                        priority: t.priority,
+                      })),
+                    ].filter(e => e.startMin >= hour * 60 && e.startMin < (hour + 1) * 60);
+
+                    return (
+                      <div key={idx} className={`border-l ${isToday ? 'bg-blue-50/30' : ''} border-neutral-100 relative`}>
+                        {/* Half-hour divider */}
+                        <div className="absolute left-0 right-0 top-1/2 border-t border-neutral-50" />
+                        {allTimed.map(ev => {
+                          const topOffset = ((ev.startMin - hour * 60) / 60) * HOUR_HEIGHT;
+                          const durationMin = Math.max(ev.endMin - ev.startMin, 15);
+                          const heightPx = Math.max((durationMin / 60) * HOUR_HEIGHT, 18);
+                          const isDone = 'status' in ev && ev.status === 'done';
+                          return (
+                            <div
+                              key={ev.id}
+                              className={`absolute inset-x-0.5 text-[10px] px-1 rounded overflow-hidden truncate leading-tight ${
+                                isDone
+                                  ? 'bg-neutral-100 text-neutral-400 line-through'
+                                  : ev.kind === 'event'
+                                  ? 'bg-indigo-100 text-indigo-700 border-l-2 border-indigo-400'
+                                  : (ev.priority === 'urgent')
+                                  ? 'bg-red-50 text-red-700 border-l-2 border-red-400'
+                                  : (ev.priority === 'low')
+                                  ? 'bg-neutral-50 text-neutral-600 border-l-2 border-neutral-300'
+                                  : 'bg-blue-50 text-blue-700 border-l-2 border-blue-400'
+                              }`}
+                              style={{ top: `${topOffset}px`, height: `${heightPx}px` }}
+                              title={ev.title}
+                            >
+                              {heightPx > 24 ? ev.title : ev.title}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     );
@@ -453,13 +755,13 @@ export const Calendar = () => {
 
   const renderMonthView = () => {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-4">
-        <div className="bg-white rounded-lg border border-neutral-200 overflow-hidden">
+      <div className="max-w-7xl mx-auto px-2 py-2">
+        <div className="bg-white rounded-lg border border-neutral-200 overflow-hidden shadow-sm">
           <div className="grid grid-cols-7 bg-neutral-50 border-b border-neutral-200">
             {daysOfWeek.map(day => (
               <div
                 key={day}
-                className="py-2 text-center text-sm font-medium text-neutral-700"
+                className="py-1.5 text-center text-[11px] font-semibold text-neutral-500 uppercase tracking-wide"
               >
                 {day}
               </div>
@@ -474,19 +776,89 @@ export const Calendar = () => {
   };
 
   const renderYearView = () => {
-    const monthsData = getTasksForYear();
-    
+    const shortDays = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'];
+    const today = new Date();
+
+    const getDayTaskCount = (m: number, d: number) => {
+      const dayStart = new Date(year, m, d).setHours(0, 0, 0, 0);
+      const dayEnd = new Date(year, m, d).setHours(23, 59, 59, 999);
+      return tasks.filter(t => {
+        if (!t.dueDate) return false;
+        return t.dueDate >= dayStart && t.dueDate <= dayEnd;
+      }).length;
+    };
+
+    const renderMiniMonth = (m: number) => {
+      const firstDay = new Date(year, m, 1);
+      // Monday-based: getDay() 0=Sun -> 6, 1=Mon -> 0
+      let startDow = firstDay.getDay() - 1;
+      if (startDow < 0) startDow = 6;
+      const daysInMonth = new Date(year, m + 1, 0).getDate();
+
+      const cells: React.ReactNode[] = [];
+      // leading empty cells
+      for (let i = 0; i < startDow; i++) {
+        cells.push(<div key={`e-${i}`} />);
+      }
+      // day cells
+      for (let d = 1; d <= daysInMonth; d++) {
+        const isToday = today.getFullYear() === year && today.getMonth() === m && today.getDate() === d;
+        const count = getDayTaskCount(m, d);
+        cells.push(
+          <div
+            key={d}
+            className={`text-center leading-5 cursor-pointer rounded-sm hover:bg-blue-100 transition-colors ${
+              isToday
+                ? 'bg-blue-600 text-white font-bold hover:bg-blue-700'
+                : count > 0
+                  ? 'font-semibold text-neutral-800'
+                  : 'text-neutral-500'
+            }`}
+            onClick={() => {
+              setCurrentDate(new Date(year, m, d));
+              setView('month');
+            }}
+          >
+            <span className="inline-block w-5 h-5 leading-5 text-[11px]">
+              {d}
+              {count > 0 && !isToday && (
+                <span className={`block mx-auto mt-[-2px] h-[3px] w-[3px] rounded-full ${
+                  count >= 3 ? 'bg-red-400' : 'bg-blue-400'
+                }`} />
+              )}
+            </span>
+          </div>
+        );
+      }
+
+      return (
+        <div
+          key={m}
+          className="bg-white rounded-lg border border-neutral-200 p-2 hover:border-neutral-300 transition-colors"
+        >
+          <h3
+            className="text-xs font-semibold mb-1 text-neutral-700 cursor-pointer hover:text-blue-600"
+            onClick={() => {
+              setCurrentDate(new Date(year, m, 1));
+              setView('month');
+            }}
+          >
+            {monthNames[m]}
+          </h3>
+          <div className="grid grid-cols-7 gap-0">
+            {shortDays.map(sd => (
+              <div key={sd} className="text-center text-[9px] text-neutral-400 leading-4">{sd}</div>
+            ))}
+            {cells}
+          </div>
+        </div>
+      );
+    };
+
     return (
-      <div className="max-w-7xl mx-auto px-4 py-4">
-        <div className="grid grid-cols-3 gap-4">
-          {monthsData.map(({ month: m, tasks: monthTasks }) => (
-            <div key={m} className="border border-neutral-200 rounded-lg p-3 bg-white">
-              <h3 className="text-sm font-semibold mb-2">{monthNames[m]}</h3>
-              <div className="text-xs text-neutral-600">
-                {monthTasks.length} {monthTasks.length === 1 ? 'task' : 'tasks'}
-              </div>
-            </div>
-          ))}
+      <div className="max-w-5xl mx-auto px-4 py-4">
+        <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
+          {Array.from({ length: 12 }, (_, m) => renderMiniMonth(m))}
         </div>
       </div>
     );
@@ -504,26 +876,59 @@ export const Calendar = () => {
         type="task"
       />
 
-      {/* Month Navigation & View Selector */}
+      {/* Navigation & View Selector */}
       <div className="bg-white border-b border-neutral-200 sticky top-[105px] z-20">
         <div className="max-w-7xl mx-auto px-4 py-3">
-          {/* Month Navigation - Centered */}
+          {/* Week/Month Navigation - Centered */}
           <div className="flex items-center justify-center gap-2 mb-3">
-            <button
-              onClick={handlePreviousMonth}
-              className="p-2 hover:bg-neutral-100 rounded"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <span className="text-lg font-medium min-w-48 text-center">
-              {monthNames[month]} {year}
-            </span>
-            <button
-              onClick={handleNextMonth}
-              className="p-2 hover:bg-neutral-100 rounded"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
+            {view === 'week' ? (
+              <>
+                <button onClick={goToToday} className="px-3 py-1.5 text-sm border border-neutral-200 rounded hover:bg-neutral-50">
+                  Today
+                </button>
+                <button onClick={goToPrevWeek} className="p-2 hover:bg-neutral-100 rounded">
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <span className="text-lg font-medium min-w-48 text-center">
+                  {(() => {
+                    const wd = getWeekDays();
+                    const s = wd[0];
+                    const e = wd[6];
+                    const sMonth = monthNames[s.getMonth()].slice(0, 3);
+                    const eMonth = monthNames[e.getMonth()].slice(0, 3);
+                    if (sMonth === eMonth) return `${sMonth} ${s.getDate()}–${e.getDate()}, ${s.getFullYear()}`;
+                    return `${sMonth} ${s.getDate()} – ${eMonth} ${e.getDate()}, ${s.getFullYear()}`;
+                  })()}
+                </span>
+                <button onClick={goToNextWeek} className="p-2 hover:bg-neutral-100 rounded">
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </>
+            ) : view === 'year' ? (
+              <>
+                <button onClick={handlePreviousYear} className="p-2 hover:bg-neutral-100 rounded">
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <span className="text-lg font-medium min-w-48 text-center">
+                  {year}
+                </span>
+                <button onClick={handleNextYear} className="p-2 hover:bg-neutral-100 rounded">
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </>
+            ) : (
+              <>
+                <button onClick={handlePreviousMonth} className="p-2 hover:bg-neutral-100 rounded">
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <span className="text-lg font-medium min-w-48 text-center">
+                  {monthNames[month]} {year}
+                </span>
+                <button onClick={handleNextMonth} className="p-2 hover:bg-neutral-100 rounded">
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </>
+            )}
           </div>
 
           {/* View Selector */}
