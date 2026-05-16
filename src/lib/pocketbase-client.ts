@@ -265,11 +265,10 @@ class PocketBaseClient {
       throw new Error(data.error || 'Admin registration failed');
     }
 
-    // Set auth token in PocketBase
-    pb.authStore.save(data.token, data.user);
-    await pb.collection('users').authRefresh();
+    // Authenticate via SDK so token is stored and authRefresh works
+    await pb.collection('users').authWithPassword(email, password);
 
-    return { token: data.token, user: normalizeUser(data.user) };
+    return { token: pb.authStore.token, user: normalizeUser(pb.authStore.record) };
   }
 
   async register(email: string, password: string, name: string, inviteCode?: string, userType: string = 'family_member') {
@@ -298,11 +297,10 @@ class PocketBaseClient {
       throw new Error(data.error || 'Registration failed');
     }
 
-    // Set auth token in PocketBase
-    pb.authStore.save(data.token, data.user);
-    await pb.collection('users').authRefresh();
+    // Authenticate via SDK so token is stored and authRefresh works
+    await pb.collection('users').authWithPassword(email, password);
 
-    return { token: data.token, user: normalizeUser(data.user) };
+    return { token: pb.authStore.token, user: normalizeUser(pb.authStore.record) };
   }
 
   async logout() {

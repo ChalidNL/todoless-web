@@ -286,6 +286,10 @@ describe('Multi-user: Invite flow', () => {
   });
 
   it('first user registers as admin without invite code', async () => {
+    mockUsersCollection.authWithPassword.mockImplementation(async () => {
+      (pb.authStore as any).record = { id: 'user-admin', email: 'admin@test.com', name: 'Admin', role: 'admin', family_id: 'fam-1' };
+      return { record: (pb.authStore as any).record };
+    });
     (fetch as any).mockResolvedValueOnce({
       ok: true,
       json: vi.fn().mockResolvedValue({
@@ -327,6 +331,10 @@ describe('Multi-user: Invite flow', () => {
   });
 
   it('non-first user with valid invite code registers as user', async () => {
+    mockUsersCollection.authWithPassword.mockImplementation(async () => {
+      (pb.authStore as any).record = { id: 'user-newbie', email: 'newbie@test.com', name: 'Newbie', role: 'user', family_id: 'fam-1' };
+      return { record: (pb.authStore as any).record };
+    });
     (fetch as any).mockResolvedValueOnce({
       ok: true,
       json: vi.fn().mockResolvedValue({

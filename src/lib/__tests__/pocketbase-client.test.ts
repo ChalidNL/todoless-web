@@ -56,6 +56,11 @@ describe('PocketBaseClient', () => {
   });
 
   describe('register', () => {
+    beforeEach(() => {
+      // Set authStore to "logged in after registration" state
+      (pb.authStore as any).record = { id: 'u1', email: 'admin@test.com', name: 'Admin', role: 'admin', family_id: 'fam1' };
+    });
+
     it('posts to todoless/register endpoint', async () => {
       (fetch as any).mockResolvedValueOnce({
         ok: true,
@@ -86,6 +91,7 @@ describe('PocketBaseClient', () => {
     });
 
     it('accepts user_type parameter', async () => {
+      (pb.authStore as any).record = { id: 'u2', email: 'assistant@test.com', name: 'Assistant', role: 'assistant', family_id: 'fam1' };
       (fetch as any).mockResolvedValueOnce({
         ok: true,
         json: vi.fn().mockResolvedValue({

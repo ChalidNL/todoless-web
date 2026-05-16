@@ -87,10 +87,7 @@ routerAdd('POST', '/api/todoless/register', (c) => {
       fam.set('name', d.family_name || 'My Family');
       fam.set('created_by', rec.id); $app.save(fam);
       rec.set('family_id', fam.id); $app.save(rec);
-      // Auth as the new user
-      var token = $app.createAuthToken(rec, 'users');
       return c.json(201, {
-        token: token,
         user: { id: rec.id, email: rec.email, name: rec.get('name') || '', role: 'admin', family_id: fam.id }
       });
     }
@@ -122,9 +119,7 @@ routerAdd('POST', '/api/todoless/register', (c) => {
     inv.set('used', true); inv.set('used_at', new Date().toISOString()); inv.set('used_by', rec.id);
     $app.save(inv);
 
-    var token = $app.createAuthToken(rec, 'users');
     return c.json(201, {
-      token: token,
       user: { id: rec.id, email: rec.email, name: rec.get('name') || '', role: role, family_id: fid }
     });
   } catch(e) { return c.json(400, { error: String(e) }); }
