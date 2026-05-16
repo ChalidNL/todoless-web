@@ -267,7 +267,7 @@ export const Settings = () => {
                       <p className="text-xs text-neutral-600">{user.email}</p>
                     </div>
                     <span className={`text-xs px-2 py-1 rounded capitalize ${
-                      user.role === 'admin' ? 'bg-neutral-900 text-white' : 'bg-neutral-100'
+                      user.role === 'admin' ? 'bg-neutral-900 text-white' : user.role === 'assistant' ? 'bg-blue-100 text-blue-700' : 'bg-neutral-100'
                     }`}>
                       {user.role || 'user'}
                     </span>

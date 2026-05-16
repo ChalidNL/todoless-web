@@ -102,6 +102,9 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-blue-50 text-blue-600">
                 <User className="w-3 h-3" />
                 {users.find(u => u.id === task.assignedTo)?.name || 'Unknown'}
+                {users.find(u => u.id === task.assignedTo)?.role === 'assistant' && (
+                  <span className="ml-0.5 px-1 py-0.5 bg-blue-200 text-blue-700 rounded text-[8px] font-semibold">AI</span>
+                )}
               </span>
             )}
           </div>
@@ -282,6 +285,9 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                   {user.name.charAt(0)}
                 </div>
                 {user.name}
+                {user.role === 'assistant' && (
+                  <span className="ml-auto px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-[9px] font-medium">Assistant</span>
+                )}
               </button>
             ))}
           </div>
