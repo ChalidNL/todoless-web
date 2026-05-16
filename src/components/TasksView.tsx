@@ -130,7 +130,7 @@ export const TasksView = () => {
   const activeLabelObjects = activeLabelFilters.map(id => labels.find(l => l.id === id)).filter(Boolean);
 
   return (
-    <div className="min-h-screen bg-neutral-50 pb-20">
+    <div className="min-h-screen bg-neutral-50 pb-24">
       <TopBar />
       {/* Global Header */}
       <NewGlobalHeader

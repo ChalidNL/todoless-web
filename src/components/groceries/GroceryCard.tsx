@@ -16,20 +16,19 @@ interface GroceryCardProps {
 }
 
 /**
- * Simple grocery card: checkbox, title, quantity +/-,
- * shop badge, and delete.
- * Unchecking resets quantity to 0.
+ * Grocery card: checkbox, title, quantity +/-,
+ * shop badge row, expanded menu for shop/label/assignee/delete.
  */
 export const GroceryCard = ({ item }: GroceryCardProps) => {
-  const { updateItem, deleteItem, shops } = useApp();
+  const { updateItem, deleteItem, shops, users } = useApp();
   const [showMenu, setShowMenu] = useState(false);
 
   const quantity = item.quantity ?? 0;
   const currentShop = item.shopId ? shops.find((s) => s.id === item.shopId) : null;
+  const assignee = item.assignedTo ? users.find((u) => u.id === item.assignedTo) : null;
 
   const handleToggle = () => {
     if (item.completed) {
-      // Unchecking: reset quantity to 0
       updateItem(item.id, { completed: false, quantity: 0 });
     } else {
       updateItem(item.id, { completed: true });
@@ -50,13 +49,13 @@ export const GroceryCard = ({ item }: GroceryCardProps) => {
 
   return (
     <div
-      className={`rounded-lg border-2 transition-all bg-white ${
+      className={`rounded-lg border bg-white transition-colors ${
         item.completed
           ? 'border-neutral-200 opacity-75'
           : 'border-neutral-200 hover:border-neutral-300'
       }`}
     >
-      <div className="p-3">
+      <div className="p-2.5">
         {/* Top row: checkbox + title + quantity + menu */}
         <div className="flex items-center gap-2">
           {/* Checkbox */}
@@ -83,7 +82,7 @@ export const GroceryCard = ({ item }: GroceryCardProps) => {
 
           {/* Quantity controls (unchecked only) */}
           {!item.completed && (
-            <div className="flex items-center gap-1 bg-neutral-100 rounded-md px-2 py-1">
+            <div className="flex items-center gap-1 bg-neutral-100 rounded-md px-2 py-1 flex-shrink-0">
               <button
                 onClick={decreaseQuantity}
                 className="hover:bg-neutral-200 rounded p-0.5"
@@ -91,7 +90,7 @@ export const GroceryCard = ({ item }: GroceryCardProps) => {
               >
                 <Minus className="w-3.5 h-3.5 text-neutral-600" />
               </button>
-              <span className="text-xs font-semibold text-neutral-700 min-w-[24px] text-center">
+              <span className="text-xs font-semibold text-neutral-700 min-w-[20px] text-center">
                 {quantity}
               </span>
               <button
@@ -106,13 +105,13 @@ export const GroceryCard = ({ item }: GroceryCardProps) => {
 
           {/* Quantity text when completed */}
           {item.completed && quantity > 0 && (
-            <span className="text-xs text-neutral-400 font-medium">x{quantity}</span>
+            <span className="text-xs text-neutral-400 font-medium flex-shrink-0">x{quantity}</span>
           )}
 
           {/* Menu button */}
           <button
             onClick={() => setShowMenu(!showMenu)}
-            className="p-1 hover:bg-neutral-100 rounded transition-colors"
+            className="p-1 hover:bg-neutral-100 rounded transition-colors flex-shrink-0"
           >
             {showMenu ? (
               <X className="w-4 h-4 text-neutral-600" />
@@ -122,32 +121,53 @@ export const GroceryCard = ({ item }: GroceryCardProps) => {
           </button>
         </div>
 
-        {/* Shop badge row */}
-        {currentShop && (
-          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+        {/* Attributes row — shop + assignee + labels */}
+        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+          {currentShop && (
             <LabelBadge label={currentShop} size="sm" />
-          </div>
-        )}
+          )}
+          {assignee && (
+            <span className="inline-flex items-center gap-0.5 text-[10px] bg-blue-50 text-blue-600 px-1 py-0.5 rounded">
+              {assignee.name}
+              {assignee.role === 'assistant' && (
+                <span className="px-0.5 bg-blue-200 text-blue-700 rounded text-[8px] font-semibold">AI</span>
+              )}
+            </span>
+          )}
+        </div>
 
-        {/* Expanded menu: shop selector + delete */}
+        {/* Expanded menu */}
         {showMenu && (
           <div className="mt-2 pt-2 border-t border-neutral-100 space-y-2">
             {/* Shop selector */}
-            <div>
-              <div className="flex items-center gap-1 flex-wrap">
-                {shops.map((shop) => (
-                  <button
-                    key={shop.id}
-                    onClick={() => handleSelectShop(shop.id)}
-                    className={item.shopId === shop.id ? 'ring-2 ring-neutral-900 rounded' : ''}
-                  >
-                    <LabelBadge label={shop} size="sm" />
-                  </button>
-                ))}
-              </div>
+            <div className="flex flex-wrap gap-1">
+              {shops.map((shop) => (
+                <button
+                  key={shop.id}
+                  onClick={() => handleSelectShop(shop.id)}
+                  className={item.shopId === shop.id ? 'ring-2 ring-neutral-900 rounded' : ''}
+                >
+                  <LabelBadge label={shop} size="sm" />
+                </button>
+              ))}
               {shops.length === 0 && (
                 <p className="text-xs text-neutral-400 italic">No shops — add in Settings</p>
               )}
+            </div>
+
+            {/* Assignee selector */}
+            <div className="flex flex-wrap gap-1">
+              {users.map(u => (
+                <button
+                  key={u.id}
+                  onClick={() => updateItem(item.id, { assignedTo: item.assignedTo === u.id ? undefined : u.id })}
+                  className={`text-xs px-1.5 py-0.5 rounded ${
+                    item.assignedTo === u.id ? 'bg-neutral-900 text-white' : 'bg-neutral-100 hover:bg-neutral-200'
+                  }`}
+                >
+                  {u.name}
+                </button>
+              ))}
             </div>
 
             {/* Delete */}

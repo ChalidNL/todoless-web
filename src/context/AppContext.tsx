@@ -760,23 +760,17 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const generateInviteCode = async (): Promise<InviteCode | null> => {
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const now = Date.now();
-    const expiresAt = now + 60 * 60 * 1000;
-
-    const inviteCode: InviteCode = {
-      id: crypto.randomUUID(),
-      code,
-      createdBy: appSettings.currentUserId,
-      createdAt: now,
-      expiresAt,
-      used: false,
-    };
-
     try {
-      await api.createInvite({ code, expiresAt });
+      const result = await api.createInvite({ code: '', expiresAt: 0 });
       await refreshInvites();
-      return inviteCode;
+      return {
+        id: result.id,
+        code: result.code,
+        createdBy: result.created_by || appSettings.currentUserId,
+        createdAt: Date.now(),
+        expiresAt: new Date(result.expires_at).getTime(),
+        used: false,
+      };
     } catch (error) {
       console.error('generateInviteCode failed:', error);
       return null;

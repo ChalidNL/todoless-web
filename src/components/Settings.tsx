@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from './AuthProvider';
 import { User } from '../types';
-import { ChevronDown, ChevronUp, Plus, Edit2, Trash2, X, LogOut, Lock, Eye, EyeOff, Upload, AlertTriangle, UserX } from 'lucide-react';
+import { ChevronDown, ChevronUp, Plus, Edit2, Trash2, X, LogOut, Eye, EyeOff } from 'lucide-react';
 import { NewGlobalHeader } from './shared/NewGlobalHeader';
 import { LabelBadge } from './shared/LabelBadge';
 import { TopBar } from './shared/TopBar';
@@ -112,7 +112,7 @@ export const Settings = () => {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50 pb-20">
+    <div className="min-h-screen bg-neutral-50 pb-24">
       <TopBar />
       
       {/* Header */}
@@ -137,36 +137,20 @@ export const Settings = () => {
               </div>
             </div>
 
-            {/* Role Selector */}
+            {/* Role Display */}
             <div>
-              <label className="block text-sm text-neutral-600 mb-2">Change Role</label>
+              <label className="block text-sm text-neutral-600 mb-2">Role</label>
               {currentUser.role === 'admin' ? (
                 <div className="p-3 bg-neutral-100 border border-neutral-200 rounded text-sm text-neutral-600">
-                  <Lock className="w-4 h-4 inline mr-2" />
-                  Admin users cannot change their own role
+                  Admin
+                </div>
+              ) : currentUser.role === 'assistant' ? (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
+                  Assistant
                 </div>
               ) : (
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleRoleChange('user')}
-                    className={`flex-1 px-3 py-2 rounded border text-sm ${
-                      currentUser.role === 'user'
-                        ? 'bg-neutral-900 text-white border-neutral-900'
-                        : 'bg-white border-neutral-200 hover:border-neutral-300'
-                    }`}
-                  >
-                    User
-                  </button>
-                  <button
-                    onClick={() => handleRoleChange('child')}
-                    className={`flex-1 px-3 py-2 rounded border text-sm ${
-                      currentUser.role === 'child'
-                        ? 'bg-neutral-900 text-white border-neutral-900'
-                        : 'bg-white border-neutral-200 hover:border-neutral-300'
-                    }`}
-                  >
-                    Child
-                  </button>
+                <div className="p-3 bg-neutral-100 border border-neutral-200 rounded text-sm text-neutral-600">
+                  User
                 </div>
               )}
             </div>
@@ -179,7 +163,6 @@ export const Settings = () => {
                   onClick={() => setEditingPassword(true)}
                   className="text-sm text-neutral-600 hover:text-neutral-900 flex items-center gap-2"
                 >
-                  <Lock className="w-4 h-4" />
                   Change password
                 </button>
               ) : (
@@ -250,7 +233,7 @@ export const Settings = () => {
 
               {currentUser?.role !== 'admin' && (
                 <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
-                  <Lock className="w-4 h-4 inline mr-2" />
+                  🔒
                   Only administrators can invite new users. Contact your admin to get access.
                 </div>
               )}
@@ -584,25 +567,12 @@ export const Settings = () => {
                 />
               </div>
 
-              <div>
-                <label className="flex items-center gap-2 text-sm text-neutral-600">
-                  <input
-                    type="checkbox"
-                    checked={editingLabelPrivate}
-                    onChange={(e) => setEditingLabelPrivate(e.target.checked)}
-                    className="rounded border-neutral-300"
-                  />
-                  Private label
-                </label>
-              </div>
-
               <div className="flex gap-2 pt-2">
                 <button
                   onClick={() => {
                     setEditingLabelId(null);
                     setEditingLabelName('');
                     setEditingLabelColor('');
-                    setEditingLabelPrivate(false);
                   }}
                   className="flex-1 px-4 py-2 border border-neutral-200 rounded"
                 >

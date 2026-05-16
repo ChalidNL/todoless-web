@@ -8,6 +8,43 @@
 
 routerAdd('GET', '/api/todoless/hook-health', (c) => c.json(200, { ok: true }));
 
+// ── Create invite code (server-side, bypasses PB API rules) ──
+routerAdd('POST', '/api/todoless/invites/create', (c) => {
+  try {
+    var info = c.requestInfo();
+    var auth = info && info.auth ? info.auth : null;
+    if (!auth) return c.json(401, { error: 'Unauthorized' });
+
+    // Generate 6-digit code
+    var code = '';
+    var digits = '0123456789';
+    for (var i = 0; i < 6; i++) {
+      code += digits.charAt(Math.floor(Math.random() * digits.length));
+    }
+
+    var now = new Date();
+    var expiresAt = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour
+
+    var coll = $app.findCollectionByNameOrId('invite_codes');
+    var rec = new Record(coll);
+    rec.set('code', code);
+    rec.set('expires_at', expiresAt.toISOString());
+    rec.set('used', false);
+    rec.set('user', auth.id);
+    $app.save(rec);
+
+    return c.json(201, {
+      id: rec.id,
+      code: code,
+      created_by: auth.id,
+      expires_at: expiresAt.toISOString(),
+      used: false,
+    });
+  } catch (e) {
+    return c.json(500, { error: String(e) });
+  }
+});
+
 routerAdd('GET', '/api/todoless/setup-status', (c) => {
   try {
     var u = $app.findRecordsByFilter('users', '', '-created', 1, 0);

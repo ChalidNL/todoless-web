@@ -222,7 +222,7 @@ export const NewGlobalHeader = ({
   return (
     <>
       {/* Header Bar */}
-      <div className="bg-white border-b border-neutral-200 sticky top-[49px] z-30">
+      <div className="bg-white border-b border-neutral-200 sticky top-[28px] z-30">
         <div className="max-w-lg mx-auto px-4 py-3">
           <div className="flex items-center gap-3">
             {/* Filter Icon */}

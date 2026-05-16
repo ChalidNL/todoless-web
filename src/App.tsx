@@ -229,16 +229,16 @@ function AppContent() {
         </div>
       )}
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-neutral-200 z-40"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0)' }}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 z-40"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 4px)' }}
       >
-        <div className="max-w-lg mx-auto flex justify-around">
+        <div className="max-w-lg mx-auto flex justify-around items-center">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `flex flex-col items-center justify-center gap-0.5 py-2 px-3 min-h-[48px] transition-all active:scale-95 ${
+                `flex flex-col items-center justify-center gap-0 py-1.5 px-3 min-h-[52px] transition-all active:scale-95 ${
                   isActive
                     ? 'text-neutral-900'
                     : 'text-neutral-400 hover:text-neutral-600'
