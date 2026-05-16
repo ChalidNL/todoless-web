@@ -75,6 +75,18 @@ function AppContent() {
     const checkFirstRun = async () => {
       if (loading) return;
 
+      // INVITE FLOW: if URL has invite code, go directly to register
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has('invite') || urlParams.has('code')) {
+        const inviteCode = urlParams.get('invite') || urlParams.get('code') || '';
+        if (inviteCode.trim()) {
+          // Set invite code in localStorage so Register component can pick it up
+          localStorage.setItem('pending_invite_code', inviteCode.trim());
+          setAppScreen('register');
+          return;
+        }
+      }
+
       const onboardingSeenValue = localStorage.getItem(ONBOARDING_SEEN_KEY);
       const expectedOnboardingSeenValue = getOnboardingSeenValueForUser((user as any)?.id ?? null);
       const hasCompletedOnboarding =

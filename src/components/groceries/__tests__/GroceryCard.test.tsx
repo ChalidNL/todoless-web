@@ -7,23 +7,12 @@ vi.mock('../../../context/AppContext', () => ({
   useApp: vi.fn(),
 }));
 
-// Mock LabelBadge
-vi.mock('../../shared/LabelBadge', () => ({
-  LabelBadge: ({ label }: any) => (
-    <span data-testid={`label-badge-${label.name}`}>{label.name}</span>
-  ),
-}));
-
 // Dynamic import to ensure mocks are applied first
 const { GroceryCard } = await import('../GroceryCard');
 const { useApp } = await import('../../../context/AppContext');
 
 const mockUpdateItem = vi.fn();
 const mockDeleteItem = vi.fn();
-const mockShops = [
-  { id: 's1', name: 'Albert Heijn', color: '#3b82f6' },
-  { id: 's2', name: 'Jumbo', color: '#f59e0b' },
-];
 
 const createItem = (overrides = {}) => ({
   id: 'item-1',
@@ -45,7 +34,6 @@ describe('GroceryCard Component', () => {
     (useApp as any).mockReturnValue({
       updateItem: mockUpdateItem,
       deleteItem: mockDeleteItem,
-      shops: mockShops,
     });
   });
 
@@ -54,29 +42,14 @@ describe('GroceryCard Component', () => {
     expect(screen.getByText('Milk')).toBeTruthy();
   });
 
-  it('shows In Stock status for quantity greater than 1', () => {
-    render(<GroceryCard item={createItem({ quantity: 3 })} />);
-    expect(screen.getByText('In Stock')).toBeTruthy();
-  });
-
-  it('shows Few status for quantity equal to 1', () => {
-    render(<GroceryCard item={createItem({ quantity: 1 })} />);
-    expect(screen.getByText('Few')).toBeTruthy();
-  });
-
-  it('shows Missing status for quantity equal to 0', () => {
-    render(<GroceryCard item={createItem({ quantity: 0 })} />);
-    expect(screen.getByText('Missing')).toBeTruthy();
-  });
-
-  it('shows Bought status when completed', () => {
-    render(<GroceryCard item={createItem({ completed: true, quantity: 2 })} />);
-    expect(screen.getByText('Bought')).toBeTruthy();
-  });
-
   it('displays quantity value', () => {
     render(<GroceryCard item={createItem({ quantity: 5 })} />);
     expect(screen.getByText('5')).toBeTruthy();
+  });
+
+  it('shows quantity text for completed items', () => {
+    render(<GroceryCard item={createItem({ completed: true, quantity: 3 })} />);
+    expect(screen.getByText('x3')).toBeTruthy();
   });
 
   it('increases quantity on plus button click', () => {
@@ -100,24 +73,39 @@ describe('GroceryCard Component', () => {
     expect(mockUpdateItem).toHaveBeenCalledWith('item-1', { quantity: 0 });
   });
 
-  it('toggles completed status via menu button', () => {
+  it('toggles completed status when checkbox is clicked', () => {
     render(<GroceryCard item={createItem({ completed: false })} />);
-    fireEvent.click(screen.getAllByRole('button')[0]);
-    const button = screen.getByTitle('Mark as bought');
-    fireEvent.click(button);
+    const checkbox = screen.getByLabelText('Mark as bought');
+    fireEvent.click(checkbox);
     expect(mockUpdateItem).toHaveBeenCalledWith('item-1', { completed: true });
   });
-
-  it('shows shop badge when shopId is set', () => {
-    render(<GroceryCard item={createItem({ shopId: 's1' })} />);
-    expect(screen.getByTestId('label-badge-Albert Heijn')).toBeTruthy();
-  });
-
-  // Removed: private lock and linked entity badge tests (features removed from MVP)
 
   it('applies line-through styling when completed', () => {
     render(<GroceryCard item={createItem({ completed: true })} />);
     const title = screen.getByText('Milk');
     expect(title.className).toContain('line-through');
+  });
+
+  it('shows delete action in menu', () => {
+    render(<GroceryCard item={createItem()} />);
+    // Open the menu
+    const menuButton = screen.getByLabelText('Mark as bought')
+      .nextElementSibling?.nextElementSibling?.nextElementSibling as HTMLElement;
+    // Actually, let's just find the menu button by its aria-label not being specific...
+    // The menu button is the last button. Let's use getByRole.
+    const buttons = screen.getAllByRole('button');
+    // Last button should be the menu button (hamburger)
+    const menuBtn = buttons[buttons.length - 1];
+    fireEvent.click(menuBtn);
+    expect(screen.getByText('Delete')).toBeTruthy();
+  });
+
+  it('calls deleteItem when delete is confirmed', () => {
+    render(<GroceryCard item={createItem()} />);
+    const buttons = screen.getAllByRole('button');
+    const menuBtn = buttons[buttons.length - 1];
+    fireEvent.click(menuBtn);
+    fireEvent.click(screen.getByText('Delete'));
+    expect(mockDeleteItem).toHaveBeenCalledWith('item-1');
   });
 });

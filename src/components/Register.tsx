@@ -21,13 +21,14 @@ export const Register = ({ onRegister }: RegisterProps) => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Check for invite code in URL
+  // Check for invite code in URL or localStorage
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const code = params.get('invite');
+    const code = params.get('invite') || localStorage.getItem('pending_invite_code') || '';
     if (code) {
       setInviteCode(code);
       setStep('create'); // Skip validation if code is in URL
+      localStorage.removeItem('pending_invite_code'); // Cleanup
     }
   }, []);
 
@@ -85,6 +86,9 @@ export const Register = ({ onRegister }: RegisterProps) => {
       setError(signUpError.message || 'Registration failed');
       return;
     }
+
+    // Mark onboarding as seen so the onboarding gate doesn't redirect
+    try { await api.markOnboardingSeen(false); } catch { /* ignore */ }
 
     // Complete registration
     onRegister();

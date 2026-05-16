@@ -293,17 +293,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const updateEntry = (id: string, updates: Partial<Entry>) => {
     void (async () => {
       setEntries(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
-      // Also update underlying data source
       const entry = entries.find(e => e.id === id);
       if (entry?.type === 'task') {
         const { type, completed, ...taskUpdates } = updates;
         await api.updateTask(id, taskUpdates);
-        await refreshTasks();
       } else if (entry?.type === 'item') {
         const { type, status, blocked, blockedComment, flag, ...itemUpdates } = updates;
         await api.updateItem(id, itemUpdates);
-        await refreshItems();
       }
+      await refreshEntries();
     })();
   };
 
@@ -312,12 +310,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       const entry = entries.find(e => e.id === id);
       if (entry?.type === 'task') {
         await api.deleteTask(id);
-        await refreshTasks();
       } else {
         await api.deleteItem(id);
-        await refreshItems();
       }
       setEntries(prev => prev.filter(e => e.id !== id));
+      await refreshEntries();
     })();
   };
 
@@ -402,9 +399,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     const subscribeAll = async () => {
       await Promise.all([
-        pb.collection('tasks').subscribe('*', () => void refreshTasks()),
-        pb.collection('items').subscribe('*', () => void refreshItems()),
-        pb.collection('notes').subscribe('*', () => void refreshNotes()),
+        pb.collection('tasks').subscribe('*', () => void refreshEntries()),
+        pb.collection('items').subscribe('*', () => void refreshEntries()),
         pb.collection('labels').subscribe('*', () => void refreshLabels()),
         pb.collection('shops').subscribe('*', () => void refreshShops()),
         pb.collection('invite_codes').subscribe('*', () => void refreshInvites()),
@@ -417,7 +413,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       pb.collection('tasks').unsubscribe();
       pb.collection('items').unsubscribe();
-      pb.collection('notes').unsubscribe();
       pb.collection('labels').unsubscribe();
       pb.collection('shops').unsubscribe();
       pb.collection('invite_codes').unsubscribe();

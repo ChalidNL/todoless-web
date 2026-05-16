@@ -3,41 +3,22 @@ import { useApp } from '../../context/AppContext';
 import { GroceryCard } from './GroceryCard';
 import { NewGlobalHeader } from '../shared/NewGlobalHeader';
 import { TopBar } from '../shared/TopBar';
-import { LayoutGrid, List, Filter, ChevronDown, ChevronUp } from 'lucide-react';
+import { LayoutGrid, List, ChevronDown, ChevronUp } from 'lucide-react';
 
 type ViewMode = 'grid' | 'list';
-type StockFilter = 'all' | 'missing' | 'few' | 'instock' | 'bought';
 
 export const GroceriesView = () => {
   const { items, addItem } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
-  const [stockFilter, setStockFilter] = useState<StockFilter>('all');
   const [showBought, setShowBought] = useState(false);
 
-  // Derive stock status for filtering
-  const getStockStatus = (item: typeof items[number]): StockFilter => {
-    if (item.completed) return 'bought';
-    const qty = item.quantity ?? 0;
-    if (qty === 0) return 'missing';
-    if (qty === 1) return 'few';
-    return 'instock';
-  };
-
-  const filteredItems = useMemo(() => {
+  const activeItems = useMemo(() => {
     return items.filter((item) => {
       const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase());
-      const status = getStockStatus(item);
-
-      // Bought items are shown in a separate section
-      if (status === 'bought') return false;
-
-      // Apply stock filter
-      if (stockFilter !== 'all' && status !== stockFilter) return false;
-
-      return matchesSearch;
+      return !item.completed && matchesSearch;
     });
-  }, [items, searchQuery, stockFilter]);
+  }, [items, searchQuery]);
 
   const boughtItems = useMemo(() => {
     return items.filter(
@@ -54,14 +35,6 @@ export const GroceriesView = () => {
     });
   };
 
-  // Filter bar buttons
-  const filters: { key: StockFilter; label: string }[] = [
-    { key: 'all', label: 'All' },
-    { key: 'missing', label: 'Missing' },
-    { key: 'few', label: 'Few' },
-    { key: 'instock', label: 'In Stock' },
-  ];
-
   return (
     <div className="min-h-screen bg-neutral-50 pb-20">
       <TopBar />
@@ -72,27 +45,9 @@ export const GroceriesView = () => {
         type="item"
       />
 
-      {/* Filter & view controls */}
+      {/* View controls */}
       <div className="max-w-6xl mx-auto px-4 py-3">
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Stock filter pills */}
-          <div className="flex items-center gap-1 bg-white rounded-lg border border-neutral-200 p-1">
-            <Filter className="w-3.5 h-3.5 text-neutral-400 ml-1" />
-            {filters.map((f) => (
-              <button
-                key={f.key}
-                onClick={() => setStockFilter(f.key)}
-                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-                  stockFilter === f.key
-                    ? 'bg-neutral-900 text-white'
-                    : 'text-neutral-600 hover:bg-neutral-100'
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-
+        <div className="flex items-center gap-2">
           {/* View mode toggle */}
           <div className="flex items-center gap-1 bg-white rounded-lg border border-neutral-200 p-1 ml-auto">
             <button
@@ -113,22 +68,22 @@ export const GroceriesView = () => {
         </div>
       </div>
 
-      {/* Items grid/list */}
+      {/* Active items */}
       <div className="max-w-6xl mx-auto px-4">
-        {filteredItems.length === 0 ? (
+        {activeItems.length === 0 ? (
           <div className="text-center py-12 text-neutral-500">
             <p className="text-sm">No grocery items</p>
             <p className="text-xs mt-1">Add items using the search bar above</p>
           </div>
         ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {filteredItems.map((item) => (
+            {activeItems.map((item) => (
               <GroceryCard key={item.id} item={item} />
             ))}
           </div>
         ) : (
           <div className="space-y-2 max-w-2xl">
-            {filteredItems.map((item) => (
+            {activeItems.map((item) => (
               <GroceryCard key={item.id} item={item} />
             ))}
           </div>

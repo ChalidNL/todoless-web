@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Task } from '../../types';
 import { useApp } from '../../context/AppContext';
-import { Clock, Tag, User, Flag, Trash2, Zap, Lock, Unlock, Menu, X, ToggleLeft, ToggleRight, FolderOpen, Link as LinkIcon, StickyNote, ShoppingCart, AlertCircle } from 'lucide-react';
+import { Clock, Tag, User, Trash2, Menu, X, AlertCircle } from 'lucide-react';
 import { LabelBadge } from './LabelBadge';
 import { LabelSelector } from './LabelSelector';
 import { EditableText } from './EditableText';
@@ -12,7 +12,7 @@ interface CompactTaskCardProps {
 }
 
 export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardProps) => {
-  const { updateTask, deleteTask, labels, users, sprints } = useApp();
+  const { updateTask, deleteTask, labels, users } = useApp();
   const [showMenu, setShowMenu] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showActions, setShowActions] = useState(false);
@@ -20,10 +20,6 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
   const [showDueDatePicker, setShowDueDatePicker] = useState(false);
   const [showAssigneeSelector, setShowAssigneeSelector] = useState(false);
   const [showPrioritySelector, setShowPrioritySelector] = useState(false);
-  const [showBlockerInput, setShowBlockerInput] = useState(false);
-  const [showSprintSelector, setShowSprintSelector] = useState(false);
-  const [showProjectSelector, setShowProjectSelector] = useState(false);
-  const [showLinkManager, setShowLinkManager] = useState(false);
   const [labelSearchQuery, setLabelSearchQuery] = useState('');
   const [assigneeSearchQuery, setAssigneeSearchQuery] = useState('');
 
@@ -54,10 +50,6 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
     setShowDueDatePicker(false);
     setShowAssigneeSelector(false);
     setShowPrioritySelector(false);
-    setShowBlockerInput(false);
-    setShowSprintSelector(false);
-    setShowProjectSelector(false);
-    setShowLinkManager(false);
   };
 
   const filteredLabels = labels.filter(l => 
@@ -71,8 +63,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
   return (
     <div 
       className={`rounded-lg p-2.5 hover:border-neutral-300 transition-all bg-white border-2 border-neutral-200 ${
-        task.blocked ? 'bg-red-50 border-red-300' : ''
-      } ${task.status === 'done' ? 'opacity-60' : ''}`}
+        task.status === 'done' ? 'opacity-60' : ''
+      }`}
     >
       <div className="flex items-center gap-2">
         {/* Checkbox */}
@@ -111,9 +103,6 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                 <User className="w-3 h-3" />
                 {users.find(u => u.id === task.assignedTo)?.name || 'Unknown'}
               </span>
-            )}
-            {task.isPrivate && users.length > 1 && (
-              <Lock className="w-3 h-3 text-purple-400" />
             )}
           </div>
 
@@ -166,50 +155,6 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                 title="Priority"
               >
                 <AlertCircle className={`w-4 h-4 ${showPrioritySelector ? 'text-white' : getPriorityColor()}`} />
-              </button>
-              
-              {/* Flag - Blocker (red) */}
-              <button
-                onClick={() => {
-                  if (task.blocked) {
-                    // Unblock
-                    updateTask(task.id, { blocked: false, blockedComment: undefined });
-                    setShowBlockerInput(false);
-                  } else {
-                    // Block
-                    updateTask(task.id, { blocked: true });
-                    setShowBlockerInput(true); // Show comment input
-                  }
-                }}
-                className={`p-1.5 rounded transition-colors ${showBlockerInput ? 'bg-black' : 'hover:bg-neutral-100'}`}
-                title="Blocker"
-              >
-                <Flag className={`w-4 h-4 ${showBlockerInput ? 'text-white' : task.blocked ? 'text-red-500' : 'text-neutral-400'}`} />
-              </button>
-              
-              {/* Zap - Sprint */}
-              <button
-                onClick={() => {
-                  closeAllPanels();
-                  setShowSprintSelector(!showSprintSelector);
-                }}
-                className={`p-1.5 rounded transition-colors ${showSprintSelector ? 'bg-black' : 'hover:bg-neutral-100'}`}
-                title="Sprint"
-              >
-                <Zap className={`w-4 h-4 ${showSprintSelector ? 'text-white' : task.sprintId ? 'text-green-500' : 'text-neutral-400'}`} />
-              </button>
-              
-              {/* Lock/Unlock - Privacy */}
-              <button
-                onClick={() => updateTask(task.id, { isPrivate: !task.isPrivate })}
-                className="p-1.5 rounded transition-colors hover:bg-neutral-100"
-                title={task.isPrivate ? 'Private (only you)' : 'Shared with team'}
-              >
-                {task.isPrivate ? (
-                  <Lock className="w-4 h-4 text-purple-500" />
-                ) : (
-                  <Unlock className="w-4 h-4 text-neutral-400" />
-                )}
               </button>
               
               <div className="flex-1" />
@@ -375,61 +320,6 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
               <AlertCircle className="w-3 h-3" />
               Low
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* Blocker Comment - Only show if task is blocked */}
-      {task.blocked && showBlockerInput && (
-        <div className="mt-2 pt-2 border-t border-neutral-100">
-          <div className="text-xs text-neutral-600 mb-2">Blocker Comment (optional)</div>
-          <input
-            type="text"
-            value={task.blockedComment || ''}
-            onChange={(e) => updateTask(task.id, { blockedComment: e.target.value.trim() || undefined })}
-            placeholder="Why is this blocked?"
-            className="w-full px-2 py-1 text-xs border border-neutral-200 rounded"
-          />
-        </div>
-      )}
-
-      {/* Sprint selector */}
-      {showSprintSelector && (
-        <div className="mt-2 pt-2 border-t border-neutral-100">
-          <div className="text-xs text-neutral-600 mb-2">Assign to Sprint</div>
-          <div className="space-y-1">
-            {sprints && sprints.length > 0 ? (
-              <>
-                {sprints.map((sprint) => (
-                  <button
-                    key={sprint.id}
-                    onClick={() => {
-                      updateTask(task.id, { sprintId: task.sprintId === sprint.id ? undefined : sprint.id });
-                      setShowSprintSelector(false);
-                    }}
-                    className={`w-full px-2 py-1.5 text-left text-xs rounded flex items-center gap-2 ${
-                      task.sprintId === sprint.id ? 'bg-green-100' : 'hover:bg-neutral-50'
-                    }`}
-                  >
-                    <Zap className="w-4 h-4" />
-                    {sprint.name}
-                  </button>
-                ))}
-                {task.sprintId && (
-                  <button
-                    onClick={() => {
-                      updateTask(task.id, { sprintId: undefined });
-                      setShowSprintSelector(false);
-                    }}
-                    className="w-full px-2 py-1.5 text-left text-xs rounded hover:bg-neutral-50 text-neutral-500"
-                  >
-                    Remove from sprint
-                  </button>
-                )}
-              </>
-            ) : (
-              <p className="text-xs text-neutral-400 italic">No active sprints</p>
-            )}
           </div>
         </div>
       )}
