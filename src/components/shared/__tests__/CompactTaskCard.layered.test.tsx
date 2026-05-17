@@ -12,7 +12,7 @@ const { useApp } = await import('../../../context/AppContext');
 const mockUpdateTask = vi.fn();
 const mockDeleteTask = vi.fn();
 
-const task = {
+const baseTask = {
   id: 'task-1',
   title: 'Pay bills',
   status: 'todo',
@@ -33,25 +33,54 @@ describe('CompactTaskCard layered attributes', () => {
     });
   });
 
-  it('shows only task attribute icons in layer 2', () => {
-    render(<CompactTaskCard task={task as any} />);
+  it('hides task attributes until hamburger is tapped', () => {
+    render(<CompactTaskCard task={baseTask as any} />);
+
+    expect(screen.queryByLabelText('Edit labels')).toBeNull();
+    expect(screen.queryByLabelText('Edit assignee')).toBeNull();
+    expect(screen.queryByLabelText('Edit due date and recurring')).toBeNull();
+    expect(screen.queryByLabelText('Toggle flag')).toBeNull();
+
     fireEvent.click(screen.getByLabelText('Open task menu'));
 
     expect(screen.getByLabelText('Edit labels')).toBeTruthy();
     expect(screen.getByLabelText('Edit assignee')).toBeTruthy();
     expect(screen.getByLabelText('Edit due date and recurring')).toBeTruthy();
-    expect(screen.getByLabelText('Edit flag')).toBeTruthy();
-
-    expect(screen.queryByLabelText('Edit shop')).toBeNull();
-    expect(screen.queryByLabelText('Edit quantity')).toBeNull();
+    expect(screen.getByLabelText('Toggle flag')).toBeTruthy();
   });
 
-  it('opens assignee selector from @ icon', () => {
-    render(<CompactTaskCard task={task as any} />);
+  it('opens assignee selector from @ icon and only one detail row is active', () => {
+    render(<CompactTaskCard task={baseTask as any} />);
     fireEvent.click(screen.getByLabelText('Open task menu'));
-    fireEvent.click(screen.getByLabelText('Edit assignee'));
 
-    fireEvent.click(screen.getByText('Chalid'));
-    expect(mockUpdateTask).toHaveBeenCalledWith('task-1', { assignedTo: 'u1' });
+    fireEvent.click(screen.getByLabelText('Edit assignee'));
+    expect(screen.getByText('Chalid')).toBeTruthy();
+
+    fireEvent.click(screen.getByLabelText('Edit labels'));
+    // assignee row closed when switching active editor
+    expect(screen.queryByText('Chalid')).toBeNull();
+    // label row visible
+    expect(screen.getByText('home')).toBeTruthy();
+  });
+
+  it('flag toggles blocked visual state and does not open detail row', () => {
+    const { container } = render(<CompactTaskCard task={baseTask as any} />);
+    fireEvent.click(screen.getByLabelText('Open task menu'));
+    fireEvent.click(screen.getByLabelText('Toggle flag'));
+
+    expect(mockUpdateTask).toHaveBeenCalledWith('task-1', { flag: true, blocked: true });
+    expect(screen.queryByText('Flagged')).toBeNull();
+
+    const root = container.firstChild as HTMLElement;
+    expect(root.className.includes('bg-white')).toBeTruthy();
+  });
+
+  it('renders light red tinted card when task is flagged/blocked', () => {
+    const { container } = render(
+      <CompactTaskCard task={{ ...baseTask, flag: true, blocked: true } as any} />
+    );
+    const root = container.firstChild as HTMLElement;
+    expect(root.className.includes('bg-red-50')).toBeTruthy();
+    expect(root.className.includes('border-red-200')).toBeTruthy();
   });
 });

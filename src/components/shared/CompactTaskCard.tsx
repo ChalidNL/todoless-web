@@ -9,7 +9,7 @@ interface CompactTaskCardProps {
   showCheckbox?: boolean;
 }
 
-type TaskEditor = 'labels' | 'assignee' | 'schedule' | 'flag' | null;
+type TaskEditor = 'labels' | 'assignee' | 'schedule' | null;
 
 export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardProps) => {
   const { updateTask, deleteTask, labels, users } = useApp();
@@ -27,7 +27,11 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
   const dateValue = task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 10) : '';
 
   return (
-    <div className={`rounded-lg bg-white border border-neutral-200 transition-colors ${task.status === 'done' ? 'opacity-50' : 'hover:border-neutral-300'}`}>
+    <div className={`rounded-lg border transition-colors ${
+      task.flag || task.blocked
+        ? 'bg-red-50 border-red-200'
+        : 'bg-white border-neutral-200'
+    } ${task.status === 'done' ? 'opacity-50' : 'hover:border-neutral-300'}`}>
       <div className="flex items-start gap-2 p-2.5">
         {/* Layer 1: checkbox + description + hamburger */}
         {showCheckbox && (
@@ -47,38 +51,38 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
           {/* Layer 2 */}
           {showMenu && (
             <div className="mt-2 pt-2 border-t border-neutral-100">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <button
                   onClick={() => setActiveEditor(activeEditor === 'labels' ? null : 'labels')}
-                  className={`p-1.5 rounded transition-colors ${activeEditor === 'labels' ? 'bg-neutral-900 text-white' : 'hover:bg-neutral-100 text-neutral-500'}`}
+                  className={`p-2 rounded-md transition-colors min-w-[36px] min-h-[36px] ${activeEditor === 'labels' ? 'bg-neutral-900 text-white' : 'hover:bg-neutral-100 text-neutral-600'}`}
                   title="#label"
                   aria-label="Edit labels"
                 >
-                  <Tag className="w-4 h-4" />
+                  <Tag className="w-5 h-5" />
                 </button>
                 <button
                   onClick={() => setActiveEditor(activeEditor === 'assignee' ? null : 'assignee')}
-                  className={`p-1.5 rounded transition-colors ${activeEditor === 'assignee' ? 'bg-neutral-900 text-white' : 'hover:bg-neutral-100 text-neutral-500'}`}
+                  className={`p-2 rounded-md transition-colors min-w-[36px] min-h-[36px] ${activeEditor === 'assignee' ? 'bg-neutral-900 text-white' : 'hover:bg-neutral-100 text-neutral-600'}`}
                   title="@assignee"
                   aria-label="Edit assignee"
                 >
-                  <User className="w-4 h-4" />
+                  <User className="w-5 h-5" />
                 </button>
                 <button
                   onClick={() => setActiveEditor(activeEditor === 'schedule' ? null : 'schedule')}
-                  className={`p-1.5 rounded transition-colors ${activeEditor === 'schedule' ? 'bg-neutral-900 text-white' : 'hover:bg-neutral-100 text-neutral-500'}`}
+                  className={`p-2 rounded-md transition-colors min-w-[36px] min-h-[36px] ${activeEditor === 'schedule' ? 'bg-neutral-900 text-white' : 'hover:bg-neutral-100 text-neutral-600'}`}
                   title="//due date / recurring"
                   aria-label="Edit due date and recurring"
                 >
-                  <CalendarDays className="w-4 h-4" />
+                  <CalendarDays className="w-5 h-5" />
                 </button>
                 <button
-                  onClick={() => setActiveEditor(activeEditor === 'flag' ? null : 'flag')}
-                  className={`p-1.5 rounded transition-colors ${activeEditor === 'flag' ? 'bg-neutral-900 text-white' : 'hover:bg-neutral-100 text-neutral-500'}`}
+                  onClick={() => updateTask(task.id, { flag: !task.flag, blocked: !task.flag })}
+                  className={`p-2 rounded-md transition-colors min-w-[36px] min-h-[36px] ${task.flag ? 'bg-red-200 text-red-700' : 'hover:bg-neutral-100 text-neutral-600'}`}
                   title="flag"
-                  aria-label="Edit flag"
+                  aria-label="Toggle flag"
                 >
-                  <Flag className="w-4 h-4" />
+                  <Flag className="w-5 h-5" />
                 </button>
 
                 <div className="ml-auto">
@@ -153,16 +157,6 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                 </div>
               )}
 
-              {activeEditor === 'flag' && (
-                <div className="mt-2">
-                  <button
-                    onClick={() => updateTask(task.id, { flag: !task.flag })}
-                    className={`text-xs px-2 py-1 rounded ${task.flag ? 'bg-amber-100 text-amber-700' : 'bg-neutral-100 text-neutral-700'}`}
-                  >
-                    {task.flag ? 'Flagged' : 'Set flag'}
-                  </button>
-                </div>
-              )}
             </div>
           )}
         </div>
