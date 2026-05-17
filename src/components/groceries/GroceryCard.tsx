@@ -15,7 +15,7 @@ export const GroceryCard = ({ item }: GroceryCardProps) => {
   const [showMenu, setShowMenu] = useState(false);
   const [activeEditor, setActiveEditor] = useState<GroceryEditor>(null);
 
-  const quantity = item.quantity ?? 0;
+  const quantity = item.quantity ?? 1;
   const currentShop = item.shopId ? shops.find((s) => s.id === item.shopId) : null;
 
   const handleToggle = () => {
@@ -34,10 +34,10 @@ export const GroceryCard = ({ item }: GroceryCardProps) => {
     >
       <div className="p-2.5">
         {/* Layer 1: checkbox + description + hamburger */}
-        <div className="flex items-start gap-2">
+        <div className="flex items-center gap-2">
           <button
             onClick={handleToggle}
-            className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 self-start transition-colors ${
+            className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
               item.completed
                 ? 'bg-neutral-900 border-neutral-900 text-white'
                 : 'border-neutral-300 hover:border-neutral-500'
@@ -55,13 +55,17 @@ export const GroceryCard = ({ item }: GroceryCardProps) => {
             {item.title}
           </span>
 
+          <span className="text-xs font-medium text-neutral-600 border border-neutral-200 rounded px-2 py-0.5">
+            {quantity}
+          </span>
+
           <button
             onClick={() => {
               const next = !showMenu;
               setShowMenu(next);
               setActiveEditor(next ? activeEditor : null);
             }}
-            className="p-1 hover:bg-neutral-100 rounded transition-colors flex-shrink-0 self-start"
+            className="p-1 hover:bg-neutral-100 rounded transition-colors flex-shrink-0"
             aria-label="Open item attributes"
           >
             {showMenu ? <X className="w-4 h-4 text-neutral-600" /> : <Menu className="w-4 h-4 text-neutral-400" />}

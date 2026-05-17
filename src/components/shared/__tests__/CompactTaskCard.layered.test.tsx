@@ -28,6 +28,7 @@ describe('CompactTaskCard layered attributes', () => {
     (useApp as any).mockReturnValue({
       updateTask: mockUpdateTask,
       deleteTask: mockDeleteTask,
+      addLabel: vi.fn(() => ({ id: 'new-label', name: 'new', color: '#3b82f6' })),
       labels: [{ id: 'l1', name: 'home', color: '#3b82f6' }],
       users: [{ id: 'u1', name: 'Chalid', role: 'admin' }],
     });
@@ -46,7 +47,7 @@ describe('CompactTaskCard layered attributes', () => {
     expect(screen.getByLabelText('Edit labels')).toBeTruthy();
     expect(screen.getByLabelText('Edit assignee')).toBeTruthy();
     expect(screen.getByLabelText('Edit due date and recurring')).toBeTruthy();
-    expect(screen.getByLabelText('Edit task text')).toBeTruthy();
+    expect(screen.getByLabelText('Task text input')).toBeTruthy();
     expect(screen.getByLabelText('Toggle flag')).toBeTruthy();
     expect(screen.getByLabelText('Delete task')).toBeTruthy();
   });
@@ -54,7 +55,6 @@ describe('CompactTaskCard layered attributes', () => {
   it('opens task text editor from menu and updates title on Enter', () => {
     render(<CompactTaskCard task={baseTask as any} />);
     fireEvent.click(screen.getByLabelText('Open task attributes'));
-    fireEvent.click(screen.getByLabelText('Edit task text'));
 
     const input = screen.getByLabelText('Task text input');
     fireEvent.change(input, { target: { value: 'Pay rent' } });

@@ -67,7 +67,7 @@ class ErrorBoundary extends React.Component<
 function AppContent() {
   const [appScreen, setAppScreen] = useState<'checking' | 'onboarding' | 'login' | 'register' | 'app'>('checking');
   const [onboardingMode, setOnboardingMode] = useState<OnboardingMode>('none');
-  const { completionMessage } = useApp();
+  const { completionMessage, tasks, items } = useApp();
   const { user, loading } = useAuth();
   const location = useLocation();
 
@@ -202,10 +202,14 @@ function AppContent() {
     return <Login onLogin={() => { setAppScreen('app'); }} onSwitchToRegister={() => setAppScreen('register')} />;
   }
 
-  const navItems: { to: string; label: string; icon: React.ReactNode }[] = [
-    { to: '/', label: 'Inbox', icon: <InboxIcon className="w-5 h-5" /> },
-    { to: '/tasks', label: 'Tasks', icon: <CheckSquare className="w-5 h-5" /> },
-    { to: '/groceries', label: 'Groceries', icon: <ShoppingCart className="w-5 h-5" /> },
+  const inboxCount = tasks.filter((t) => t.status !== 'done').length + items.filter((i) => !i.completed).length;
+  const tasksCount = tasks.filter((t) => t.status !== 'done').length;
+  const groceriesCount = items.filter((i) => !i.completed).length;
+
+  const navItems: { to: string; label: string; icon: React.ReactNode; count?: number }[] = [
+    { to: '/', label: 'Inbox', icon: <InboxIcon className="w-5 h-5" />, count: inboxCount },
+    { to: '/tasks', label: 'Tasks', icon: <CheckSquare className="w-5 h-5" />, count: tasksCount },
+    { to: '/groceries', label: 'Groceries', icon: <ShoppingCart className="w-5 h-5" />, count: groceriesCount },
     { to: '/settings', label: 'Settings', icon: <SettingsIcon className="w-5 h-5" /> },
   ];
 
@@ -245,7 +249,14 @@ function AppContent() {
                 }`
               }
             >
-              {item.icon}
+              <div className="relative">
+                {item.icon}
+                {item.count !== undefined && item.count > 0 && (
+                  <span className="absolute -top-2 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-neutral-900 text-white text-[9px] leading-4 text-center">
+                    {item.count}
+                  </span>
+                )}
+              </div>
               <span className="text-[10px] font-medium">{item.label}</span>
             </NavLink>
           ))}
