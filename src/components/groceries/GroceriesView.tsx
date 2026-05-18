@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { GroceryCard } from './GroceryCard';
 import { NewGlobalHeader } from '../shared/NewGlobalHeader';
 import { TopBar } from '../shared/TopBar';
-import { ChevronDown, ChevronUp, RotateCcw } from 'lucide-react';
+import { ChevronDown, ChevronUp, RotateCcw, ShoppingCart } from 'lucide-react';
 
 export const GroceriesView = () => {
   const { items, addItem, uncheckAllDoneItems, showCompletionMessage } = useApp();
@@ -46,9 +46,9 @@ export const GroceriesView = () => {
       {/* Active items */}
       <div className="max-w-6xl mx-auto px-4">
         {activeItems.length === 0 ? (
-          <div className="text-center py-12 text-neutral-500">
-            <p className="text-sm">No grocery items</p>
-            <p className="text-xs mt-1">Add items using the search bar above</p>
+          <div className="text-center py-16">
+            <ShoppingCart className="w-12 h-12 text-neutral-200 mx-auto mb-3" />
+            <p className="text-neutral-400 text-sm">No grocery items</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

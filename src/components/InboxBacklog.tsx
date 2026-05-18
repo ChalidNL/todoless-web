@@ -65,7 +65,6 @@ export const InboxBacklog = () => {
         <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold text-sm text-neutral-600 flex items-center gap-1.5">
-              <Clock className="w-4 h-4" />
               Inbox ({backlogCount})
             </h2>
           </div>
@@ -74,7 +73,6 @@ export const InboxBacklog = () => {
             <div className="text-center py-16">
               <Inbox className="w-12 h-12 text-neutral-200 mx-auto mb-3" />
               <p className="text-neutral-400 text-sm">Inbox is empty</p>
-              <p className="text-neutral-300 text-xs mt-1">Use the global search/add bar to capture ideas</p>
             </div>
           ) : (
             <div className="space-y-2">

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { ChevronDown, ChevronUp, RotateCcw } from 'lucide-react';
+import { ChevronDown, ChevronUp, RotateCcw, CheckSquare } from 'lucide-react';
 import { CompactTaskCard } from './shared/CompactTaskCard';
 import { NewGlobalHeader } from './shared/NewGlobalHeader';
 import { TopBar } from './shared/TopBar';
@@ -75,6 +75,7 @@ export const TasksView = () => {
         <div>
           {activeTasks.length === 0 && checkedOutTasks.length === 0 ? (
             <div className="text-center py-16">
+              <CheckSquare className="w-12 h-12 text-neutral-200 mx-auto mb-3" />
               <p className="text-neutral-400 text-sm">No tasks found</p>
             </div>
           ) : (
