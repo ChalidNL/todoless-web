@@ -47,7 +47,7 @@ describe('CompactTaskCard layered attributes', () => {
     expect(screen.getByLabelText('Edit labels')).toBeTruthy();
     expect(screen.getByLabelText('Edit assignee')).toBeTruthy();
     expect(screen.getByLabelText('Edit due date and recurring')).toBeTruthy();
-    expect(screen.getByLabelText('Task text input')).toBeTruthy();
+    expect(screen.getByLabelText('Edit task title')).toBeTruthy();
     expect(screen.getByLabelText('Toggle flag')).toBeTruthy();
     expect(screen.getByLabelText('Delete task')).toBeTruthy();
   });
@@ -56,7 +56,7 @@ describe('CompactTaskCard layered attributes', () => {
     render(<CompactTaskCard task={baseTask as any} />);
     fireEvent.click(screen.getByLabelText('Open task attributes'));
 
-    const input = screen.getByLabelText('Task text input');
+    const input = screen.getByLabelText('Edit task title');
     fireEvent.change(input, { target: { value: 'Pay rent' } });
     fireEvent.keyDown(input, { key: 'Enter' });
 

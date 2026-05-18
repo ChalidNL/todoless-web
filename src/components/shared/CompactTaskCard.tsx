@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Task, RepeatInterval } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { User, Trash2, Menu, X, CalendarDays, Flag, Tag } from 'lucide-react';
@@ -17,6 +17,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
   const [activeEditor, setActiveEditor] = useState<TaskEditor>(null);
   const [titleDraft, setTitleDraft] = useState(task.title);
   const [labelInput, setLabelInput] = useState('');
+  const [assigneeSearch, setAssigneeSearch] = useState('');
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   const handleToggleComplete = () => {
     if (task.status === 'done') {
@@ -33,30 +35,68 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
     setTitleDraft(task.title);
   }, [task.title]);
 
+  useEffect(() => {
+    if (showMenu && titleInputRef.current) {
+      titleInputRef.current.focus();
+      titleInputRef.current.setSelectionRange(titleDraft.length, titleDraft.length);
+    }
+  }, [showMenu]);
+
+  const commitTitle = () => {
+    const next = titleDraft.trim();
+    if (next && next !== task.title) updateTask(task.id, { title: next });
+  };
+
   const visibleLabels = labels.filter((label) =>
     label.name.toLowerCase().includes(labelInput.trim().toLowerCase())
   );
+
+  const filteredUsers = users.filter((u) =>
+    u.name.toLowerCase().includes(assigneeSearch.toLowerCase()) ||
+    u.email?.toLowerCase().includes(assigneeSearch.toLowerCase())
+  );
+
+  const assignedUser = task.assignedTo ? users.find((u) => u.id === task.assignedTo) : null;
+
   return (
     <div className={`rounded-lg border transition-colors ${
       task.flag || task.blocked
         ? 'bg-red-50 border-red-200'
         : 'bg-white border-neutral-200'
     } ${task.status === 'done' ? 'opacity-50' : 'hover:border-neutral-300'}`}>
-      <div className="flex items-center gap-2 p-2.5">
-        {/* Layer 1: checkbox + description + hamburger */}
+      <div className="flex items-start gap-2 p-2.5">
+        {/* Layer 1: checkbox + description (editable when menu open) + hamburger */}
         {showCheckbox && (
           <input
             type="checkbox"
             checked={task.status === 'done'}
             onChange={handleToggleComplete}
-            className="w-[18px] h-[18px] rounded border-neutral-300 text-blue-600 accent-blue-600 flex-shrink-0 cursor-pointer"
+            className="w-[18px] h-[18px] rounded border-neutral-300 text-blue-600 accent-blue-600 flex-shrink-0 cursor-pointer mt-1"
           />
         )}
 
         <div className="flex-1 min-w-0">
-          <span className={`text-sm leading-6 ${task.status === 'done' ? 'line-through text-neutral-400' : 'text-neutral-900'}`}>
-            {task.title}
-          </span>
+          {showMenu ? (
+            <input
+              ref={titleInputRef}
+              type="text"
+              value={titleDraft}
+              onChange={(e) => setTitleDraft(e.target.value)}
+              onBlur={commitTitle}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  commitTitle();
+                  (e.currentTarget as HTMLInputElement).blur();
+                }
+              }}
+              className="w-full text-sm leading-6 px-2.5 py-1.5 border border-neutral-400 rounded-md focus:outline-none focus:border-neutral-900"
+              aria-label="Edit task title"
+            />
+          ) : (
+            <span className={`text-sm leading-6 block ${task.status === 'done' ? 'line-through text-neutral-400' : 'text-neutral-900'}`}>
+              {task.title}
+            </span>
+          )}
           {/* Label feed — toon alle labels als badges */}
           {task.labels.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-0.5">
@@ -70,26 +110,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
           {/* Layer 2 */}
           {showMenu && (
             <div className="mt-2 pt-2 border-t border-neutral-100">
-              <input
-                type="text"
-                value={titleDraft}
-                onChange={(e) => setTitleDraft(e.target.value)}
-                onBlur={() => {
-                  const next = titleDraft.trim();
-                  if (next && next !== task.title) updateTask(task.id, { title: next });
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    const next = titleDraft.trim();
-                    if (next && next !== task.title) updateTask(task.id, { title: next });
-                    (e.currentTarget as HTMLInputElement).blur();
-                  }
-                }}
-                className="w-full text-sm leading-6 px-2.5 py-2 border border-neutral-200 rounded-md"
-                aria-label="Task text input"
-              />
 
-              <div className="mt-2 flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <button
                   onClick={() => setActiveEditor(activeEditor === 'labels' ? null : 'labels')}
                   className={`p-1.5 rounded transition-colors border border-neutral-200 ${activeEditor === 'labels' ? 'bg-neutral-900 text-white border-neutral-900' : 'hover:bg-neutral-100 text-neutral-500'}`}
@@ -99,7 +121,11 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                   <Tag className="w-4 h-4" strokeWidth={1.75} />
                 </button>
                 <button
-                  onClick={() => setActiveEditor(activeEditor === 'assignee' ? null : 'assignee')}
+                  onClick={() => {
+                    const next = activeEditor === 'assignee' ? null : 'assignee';
+                    setActiveEditor(next);
+                    if (next) setAssigneeSearch(assignedUser?.name || '');
+                  }}
                   className={`p-1.5 rounded transition-colors border border-neutral-200 ${activeEditor === 'assignee' ? 'bg-neutral-900 text-white border-neutral-900' : 'hover:bg-neutral-100 text-neutral-500'}`}
                   title="@assignee"
                   aria-label="Edit assignee"
@@ -136,8 +162,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                 </button>
               </div>
 
-              {/* Layer 3 */}
-
+              {/* Layer 3: Label editor */}
               {activeEditor === 'labels' && (
                 <div className="mt-2 space-y-2">
                   <input
@@ -179,24 +204,64 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                 </div>
               )}
 
+              {/* Layer 3: Assignee — text input filtered to users */}
               {activeEditor === 'assignee' && (
-                <div className="mt-2">
-                  <select
-                    value={task.assignedTo || ''}
-                    onChange={(e) => updateTask(task.id, { assignedTo: e.target.value || undefined })}
-                    className="w-full text-sm leading-6 px-2.5 py-2 border border-neutral-200 rounded-md"
-                    aria-label="Assignee select"
-                  >
-                    <option value="">No assignee</option>
-                    {users.map((u) => (
-                      <option key={u.id} value={u.id}>{u.name}</option>
-                    ))}
-                  </select>
+                <div className="mt-2 relative">
+                  <input
+                    type="text"
+                    value={assigneeSearch}
+                    onChange={(e) => setAssigneeSearch(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && filteredUsers.length === 1) {
+                        updateTask(task.id, { assignedTo: filteredUsers[0].id });
+                        setActiveEditor(null);
+                      }
+                      if (e.key === 'Escape') {
+                        setActiveEditor(null);
+                      }
+                    }}
+                    placeholder="Search team members..."
+                    className="w-full text-sm leading-6 px-2.5 py-2 border border-neutral-200 rounded-md focus:outline-none focus:border-neutral-500"
+                    aria-label="Search assignee"
+                  />
+                  {assigneeSearch !== undefined && filteredUsers.length > 0 && (
+                    <div className="absolute z-10 mt-1 w-full bg-white border border-neutral-200 rounded-md shadow-lg max-h-40 overflow-y-auto">
+                      {filteredUsers.map((u) => (
+                        <button
+                          key={u.id}
+                          onClick={() => {
+                            updateTask(task.id, { assignedTo: u.id });
+                            setAssigneeSearch(u.name);
+                            setActiveEditor(null);
+                          }}
+                          className={`w-full text-left px-3 py-2 text-sm hover:bg-neutral-100 flex items-center gap-2 ${
+                            task.assignedTo === u.id ? 'bg-neutral-50 font-medium' : ''
+                          }`}
+                        >
+                          <User className="w-3.5 h-3.5 text-neutral-400 flex-shrink-0" />
+                          <span>{u.name}</span>
+                          {u.role && <span className="text-xs text-neutral-400 ml-auto">{u.role}</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {task.assignedTo && (
+                    <button
+                      onClick={() => {
+                        updateTask(task.id, { assignedTo: undefined });
+                        setAssigneeSearch('');
+                      }}
+                      className="mt-1 text-xs text-neutral-400 hover:text-red-500"
+                    >
+                      Clear assignee
+                    </button>
+                  )}
                 </div>
               )}
 
+              {/* Layer 3: Schedule — date, time, repeat naast elkaar */}
               {activeEditor === 'schedule' && (
-                <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div className="mt-2 grid grid-cols-3 gap-2">
                   <input
                     type="date"
                     value={dateValue}
@@ -245,8 +310,9 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
             const next = !showMenu;
             setShowMenu(next);
             setActiveEditor(next ? activeEditor : null);
+            if (!next) commitTitle();
           }}
-          className="p-2 border border-neutral-200 hover:bg-neutral-100 rounded-md transition-colors flex-shrink-0"
+          className="p-2 border border-neutral-200 hover:bg-neutral-100 rounded-md transition-colors flex-shrink-0 mt-0.5"
           aria-label="Open task attributes"
         >
           {showMenu ? <X className="w-[18px] h-[18px] text-neutral-600" strokeWidth={1.75} /> : <Menu className="w-[18px] h-[18px] text-neutral-500" strokeWidth={1.75} />}
