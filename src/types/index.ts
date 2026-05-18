@@ -25,7 +25,7 @@ export type Horizon = 'week' | 'month' | '3months' | '6months' | 'year';
 export type TaskStatus = 'backlog' | 'todo' | 'done';
 export type SprintDuration = '1week' | '2weeks' | '3weeks' | '1month';
 export type SprintStatus = 'planned' | 'active' | 'completed';
-export type RepeatInterval = 'week' | 'month' | 'year';
+export type RepeatInterval = 'day' | 'week' | 'month' | 'year';
 export type ReminderRepeatInterval = 'hour' | 'day' | 'week' | 'month' | 'year';
 
 export type UserRole = 'admin' | 'user' | 'assistant' | 'child';

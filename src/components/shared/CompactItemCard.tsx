@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Item } from '../../types';
 import { useApp } from '../../context/AppContext';
-import { ShoppingCart, Trash2, Menu, X, RotateCcw, Plus, Minus, ToggleLeft, Lock, Unlock, User } from 'lucide-react';
+import { ShoppingCart, Trash2, Menu, X, RotateCcw, Plus, Minus, ToggleLeft, Lock, Unlock, User, CalendarDays } from 'lucide-react';
 import { AttributeChip } from './AttributeChip';
 import { LabelBadge } from './LabelBadge';
 import { entityColor } from '../../lib/entity-colors';
@@ -110,8 +110,8 @@ export const CompactItemCard = ({ item }: CompactItemCardProps) => {
             )}
           </div>
 
-          {/* Chips row — owner + assignee + shop */}
-          {(item.createdBy || (item.assignedTo && item.assignedTo !== item.createdBy) || currentShop) && (
+          {/* Chips row — owner + assignee + shop + date */}
+          {(item.createdBy || (item.assignedTo && item.assignedTo !== item.createdBy) || currentShop || item.dueDate) && (
             <div className="flex flex-wrap items-center gap-1 mb-2">
               {item.createdBy && (
                 <AttributeChip icon={<User className="w-3.5 h-3.5" />} label={users.find(u => u.id === item.createdBy)?.name || 'Unknown'} color={entityColor(item.createdBy)} />
@@ -121,6 +121,9 @@ export const CompactItemCard = ({ item }: CompactItemCardProps) => {
               )}
               {currentShop && (
                 <AttributeChip icon={<ShoppingCart className="w-3.5 h-3.5" />} label={currentShop.name} color={currentShop.color} />
+              )}
+              {item.dueDate && (
+                <AttributeChip icon={<CalendarDays className="w-3.5 h-3.5" />} label={new Date(item.dueDate).toLocaleDateString('nl-NL', { month: 'short', day: 'numeric' })} color="#6b7280" />
               )}
               {item.isPrivate && (
                 <Lock className="w-3 h-3 text-purple-400" />

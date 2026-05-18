@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Task, RepeatInterval } from '../../types';
 import { useApp } from '../../context/AppContext';
-import { Check, Menu, X, Trash2, Tag, User, CalendarDays, Flag, ToggleLeft } from 'lucide-react';
+import { Check, Menu, X, Trash2, Tag, User, CalendarDays, Flag, ToggleLeft, RotateCcw } from 'lucide-react';
 import { AttributeChip } from './AttributeChip';
 import { LabelBadge } from './LabelBadge';
 import { entityColor } from '../../lib/entity-colors';
@@ -24,6 +24,10 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
   const assignedUser = task.assignedTo ? users.find((u) => u.id === task.assignedTo) : null;
   const dateStr = task.dueDate
     ? new Date(task.dueDate).toLocaleDateString('nl-NL', { month: 'short', day: 'numeric' })
+    : null;
+
+  const repeatLabel = task.repeatInterval
+    ? { day: 'Daily', week: 'Weekly', month: 'Monthly', year: 'Yearly' }[task.repeatInterval]
     : null;
 
   const handleToggle = () => {
@@ -81,13 +85,6 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
             <Flag className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
           )}
 
-          {/* Due date badge */}
-          {dateStr && !isDone && (
-            <span className="text-[11px] text-neutral-500 border border-neutral-200 rounded px-1.5 py-0.5 flex-shrink-0">
-              {dateStr}
-            </span>
-          )}
-
           {/* Hamburger */}
           <button
             onClick={() => {
@@ -101,8 +98,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
           </button>
         </div>
 
-        {/* Line 2: chips — labels + assignee always visible */}
-        {(task.labels.length > 0 || assignedUser) && !isDone && (
+        {/* Line 2: chips — labels, assignee, date, repeat */}
+        {(task.labels.length > 0 || assignedUser || (dateStr && !isDone) || (repeatLabel && !isDone)) && !isDone && (
           <div className="flex flex-wrap items-center gap-1 mt-1.5 ml-0.5">
             {task.labels.map((labelId) => {
               const label = labels.find((l) => l.id === labelId);
@@ -112,6 +109,12 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
             })}
             {assignedUser && (
               <AttributeChip icon={<User className="w-3.5 h-3.5" />} label={assignedUser.name} color={entityColor(assignedUser.id)} />
+            )}
+            {dateStr && !isDone && (
+              <AttributeChip icon={<CalendarDays className="w-3.5 h-3.5" />} label={dateStr} color="#6b7280" />
+            )}
+            {repeatLabel && !isDone && (
+              <AttributeChip icon={<RotateCcw className="w-3.5 h-3.5" />} label={repeatLabel} color="#6b7280" />
             )}
           </div>
         )}
