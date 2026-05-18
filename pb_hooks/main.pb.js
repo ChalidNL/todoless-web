@@ -271,10 +271,17 @@ routerAdd('POST', '/api/todoless/api', (c) => {
     var auth = null;
 
     // Auth check — use info.auth (PB 0.34: c.auth is null without middleware)
-    var needsAuth = ['create','update','complete','assign','delete','list','filters','set_role'];
+    var needsAuth = ['create','update','complete','assign','delete','list','filters','set_role','set_user_block'];
     if (needsAuth.indexOf(action) >= 0) {
       auth = info.auth;
       if (!auth) return c.json(401, { error: 'Unauthorized' });
+
+      // Enforce blocked users cannot use authenticated API routes
+      var authFresh = $app.findRecordById('users', auth.id);
+      if (!authFresh) return c.json(401, { error: 'Unauthorized' });
+      var isActive = !!authFresh.get('active');
+      if (!isActive) return c.json(403, { error: 'Account is blocked' });
+      auth = authFresh;
     }
 
     // Helper for safe field access (must be inside callback for PB 0.34 scope)
@@ -387,8 +394,32 @@ routerAdd('POST', '/api/todoless/api', (c) => {
       var labels = $app.findRecordsByFilter('labels',f,'name',0,0).map(function(r){return{id:r.id,name:r.get('name'),color:r.get('color')};});
       var shops = $app.findRecordsByFilter('shops',f,'name',0,0).map(function(r){return{id:r.id,name:r.get('name'),color:r.get('color')};});
       var users = [];
-      if(fid){users=$app.findRecordsByFilter('users','family_id = "'+fid+'"','name',0,0).map(function(r){return{id:r.id,name:r.get('name')||r.email,role:r.get('role')||'user'};});}
+      if(fid){users=$app.findRecordsByFilter('users','family_id = "'+fid+'"','name',0,0).map(function(r){return{id:r.id,name:r.get('name')||String(r.get('email')||''),role:r.get('role')||'user',active:!!r.get('active')};});}
       return c.json(200,{labels:labels,shops:shops,users:users});
+    }
+
+    if (action === 'set_user_block') {
+      var blockActorRole = String(auth.get('role') || 'user');
+      if (blockActorRole !== 'admin') return c.json(403, { error: 'Admin only' });
+
+      var blockTargetId = String(gv(d,'user_id','')).trim();
+      var blockValueRaw = gv(d,'blocked',true);
+      var shouldBlock = blockValueRaw === true || String(blockValueRaw) === 'true' || String(blockValueRaw) === '1';
+      if (!blockTargetId) return c.json(400, { error: 'user_id required' });
+      if (blockTargetId === auth.id) return c.json(409, { error: 'cannot block yourself' });
+
+      var blockActorFamilyId = String(auth.get('family_id') || '');
+      var blockTarget = $app.findRecordById('users', blockTargetId);
+      if (!blockTarget) return c.json(404, { error: 'user not found' });
+      var blockTargetFamilyId = String(blockTarget.get('family_id') || '');
+      if (!blockActorFamilyId || blockActorFamilyId !== blockTargetFamilyId) return c.json(403, { error: 'cross-family block denied' });
+
+      var blockTargetRole = String(blockTarget.get('role') || 'user');
+      if (blockTargetRole === 'admin' && shouldBlock) return c.json(409, { error: 'cannot block admin account' });
+
+      blockTarget.set('active', shouldBlock ? false : true);
+      $app.save(blockTarget);
+      return c.json(200, { ok: true, user: { id: blockTarget.id, active: !!blockTarget.get('active') } });
     }
 
     if (action === 'set_role') {
