@@ -22,7 +22,7 @@ const baseTask = {
   createdAt: Date.now(),
 };
 
-describe('CompactTaskCard layered attributes', () => {
+describe('CompactTaskCard compact layout (GroceryCard style)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (useApp as any).mockReturnValue({
@@ -34,36 +34,31 @@ describe('CompactTaskCard layered attributes', () => {
     });
   });
 
-  it('hides task attributes until hamburger is tapped', () => {
+  it('shows single-line layout with title visible before hamburger tap', () => {
     render(<CompactTaskCard task={baseTask as any} />);
 
+    expect(screen.getByText('Pay bills')).toBeTruthy();
+    expect(screen.getByLabelText('Open task attributes')).toBeTruthy();
+    expect(screen.getByLabelText('Mark as done')).toBeTruthy();
+    // Attributes hidden until hamburger tap
     expect(screen.queryByLabelText('Edit labels')).toBeNull();
     expect(screen.queryByLabelText('Edit assignee')).toBeNull();
-    expect(screen.queryByLabelText('Edit due date and recurring')).toBeNull();
+    expect(screen.queryByLabelText('Edit schedule')).toBeNull();
     expect(screen.queryByLabelText('Toggle flag')).toBeNull();
+  });
 
+  it('opens all attribute buttons when hamburger is tapped', () => {
+    render(<CompactTaskCard task={baseTask as any} />);
     fireEvent.click(screen.getByLabelText('Open task attributes'));
 
     expect(screen.getByLabelText('Edit labels')).toBeTruthy();
     expect(screen.getByLabelText('Edit assignee')).toBeTruthy();
-    expect(screen.getByLabelText('Edit due date and recurring')).toBeTruthy();
-    expect(screen.getByLabelText('Edit task title')).toBeTruthy();
+    expect(screen.getByLabelText('Edit schedule')).toBeTruthy();
     expect(screen.getByLabelText('Toggle flag')).toBeTruthy();
     expect(screen.getByLabelText('Delete task')).toBeTruthy();
   });
 
-  it('opens task text editor from menu and updates title on Enter', () => {
-    render(<CompactTaskCard task={baseTask as any} />);
-    fireEvent.click(screen.getByLabelText('Open task attributes'));
-
-    const input = screen.getByLabelText('Edit task title');
-    fireEvent.change(input, { target: { value: 'Pay rent' } });
-    fireEvent.keyDown(input, { key: 'Enter' });
-
-    expect(mockUpdateTask).toHaveBeenCalledWith('task-1', { title: 'Pay rent' });
-  });
-
-  it('shows label text input in layer 3 when label icon is tapped', () => {
+  it('shows label input when label icon is tapped in menu', () => {
     render(<CompactTaskCard task={baseTask as any} />);
     fireEvent.click(screen.getByLabelText('Open task attributes'));
     fireEvent.click(screen.getByLabelText('Edit labels'));
@@ -71,16 +66,12 @@ describe('CompactTaskCard layered attributes', () => {
     expect(screen.getByLabelText('Label input')).toBeTruthy();
   });
 
-  it('flag toggles blocked visual state and does not open detail row', () => {
-    const { container } = render(<CompactTaskCard task={baseTask as any} />);
+  it('toggles flag and blocked state on flag click', () => {
+    render(<CompactTaskCard task={baseTask as any} />);
     fireEvent.click(screen.getByLabelText('Open task attributes'));
     fireEvent.click(screen.getByLabelText('Toggle flag'));
 
     expect(mockUpdateTask).toHaveBeenCalledWith('task-1', { flag: true, blocked: true });
-    expect(screen.queryByText('Flagged')).toBeNull();
-
-    const root = container.firstChild as HTMLElement;
-    expect(root.className.includes('bg-white')).toBeTruthy();
   });
 
   it('renders light red tinted card when task is flagged/blocked', () => {
@@ -90,5 +81,20 @@ describe('CompactTaskCard layered attributes', () => {
     const root = container.firstChild as HTMLElement;
     expect(root.className.includes('bg-red-50')).toBeTruthy();
     expect(root.className.includes('border-red-200')).toBeTruthy();
+  });
+
+  it('shows due date badge when task has dueDate', () => {
+    const withDate = { ...baseTask, dueDate: new Date('2026-06-01').getTime() };
+    render(<CompactTaskCard task={withDate as any} />);
+
+    expect(screen.getByText(/jun/i)).toBeTruthy();
+  });
+
+  it('shows flag icon when task is flagged', () => {
+    const flagged = { ...baseTask, flag: true };
+    const { container } = render(<CompactTaskCard task={flagged as any} />);
+
+    // Flag icon (lucide) renders as inline SVG
+    expect(container.querySelector('svg.text-red-500')).toBeTruthy();
   });
 });
