@@ -29,6 +29,7 @@ describe('CompactTaskCard compact layout (GroceryCard style)', () => {
       updateTask: mockUpdateTask,
       deleteTask: mockDeleteTask,
       addLabel: vi.fn(() => ({ id: 'new-label', name: 'new', color: '#3b82f6' })),
+      convertTaskToItem: vi.fn(),
       labels: [{ id: 'l1', name: 'home', color: '#3b82f6' }],
       users: [{ id: 'u1', name: 'Chalid', role: 'admin' }],
     });

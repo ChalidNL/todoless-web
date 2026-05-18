@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Task, RepeatInterval } from '../../types';
 import { useApp } from '../../context/AppContext';
-import { Check, Menu, X, Trash2, Tag, User, CalendarDays, Flag } from 'lucide-react';
+import { Check, Menu, X, Trash2, Tag, User, CalendarDays, Flag, ToggleLeft } from 'lucide-react';
 import { AttributeChip } from './AttributeChip';
 import { LabelBadge } from './LabelBadge';
 import { entityColor } from '../../lib/entity-colors';
@@ -14,7 +14,7 @@ interface CompactTaskCardProps {
 type TaskEditor = 'labels' | 'assignee' | 'schedule' | null;
 
 export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardProps) => {
-  const { updateTask, deleteTask, labels, users, shops, addLabel } = useApp();
+  const { updateTask, deleteTask, labels, users, shops, addLabel, convertTaskToItem } = useApp();
   const [showMenu, setShowMenu] = useState(false);
   const [activeEditor, setActiveEditor] = useState<TaskEditor>(null);
   const [assigneeSearch, setAssigneeSearch] = useState('');
@@ -156,6 +156,18 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                 aria-label="Toggle flag"
               >
                 <Flag className="w-4 h-4" strokeWidth={1.75} />
+              </button>
+              <button
+                onClick={() => {
+                  convertTaskToItem(task.id);
+                  setShowMenu(false);
+                  setActiveEditor(null);
+                }}
+                className="p-1.5 rounded transition-colors hover:bg-neutral-100 text-neutral-400"
+                title="convert to grocery"
+                aria-label="Convert to grocery item"
+              >
+                <ToggleLeft className="w-4 h-4" strokeWidth={1.75} />
               </button>
               <div className="flex-1" />
               <button
