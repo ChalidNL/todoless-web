@@ -37,6 +37,7 @@ export interface User {
   avatarUrl?: string;
   role?: UserRole;
   family_id?: string;
+  active?: boolean;
 }
 
 export interface InviteCode {

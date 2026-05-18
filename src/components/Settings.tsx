@@ -9,7 +9,7 @@ import { TopBar } from './shared/TopBar';
 import { InviteManager } from './InviteManager';
 
 export const Settings = () => {
-  const { users, appSettings, updateAppSettings, updateUser, labels, addLabel, updateLabel, deleteLabel, shops, addShop, updateShop, deleteShop, tasks, showCompletionMessage } = useApp();
+  const { users, appSettings, updateAppSettings, updateUser, deleteUser, labels, addLabel, updateLabel, deleteLabel, shops, addShop, updateShop, deleteShop, tasks, showCompletionMessage } = useApp();
   const { signOut } = useAuth();
   const appVersion = import.meta.env.VITE_APP_VERSION || 'dev';
   const appCommitRaw = import.meta.env.VITE_GIT_COMMIT || 'local';
@@ -49,6 +49,17 @@ export const Settings = () => {
   const handleRoleChange = (role: 'admin' | 'user' | 'child') => {
     if (!currentUser) return;
     updateUser(currentUser.id, { role });
+  };
+
+  const handleToggleMemberActive = (user: User) => {
+    if (!currentUser || currentUser.role !== 'admin') return;
+    updateUser(user.id, { active: !(user.active ?? true) } as Partial<User>);
+  };
+
+  const handleDeleteMember = (user: User) => {
+    if (!currentUser || currentUser.role !== 'admin') return;
+    if (!window.confirm(`Delete ${user.name}? This cannot be undone.`)) return;
+    deleteUser(user.id);
   };
 
   const handleLogout = () => {
@@ -250,6 +261,27 @@ export const Settings = () => {
                     }`}>
                       {user.role || 'user'}
                     </span>
+                    {(user.active ?? true) ? (
+                      <span className="text-[11px] px-2 py-1 rounded bg-green-100 text-green-700">active</span>
+                    ) : (
+                      <span className="text-[11px] px-2 py-1 rounded bg-red-100 text-red-700">blocked</span>
+                    )}
+                    {currentUser?.role === 'admin' && currentUser.id !== user.id && user.role !== 'admin' && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleToggleMemberActive(user)}
+                          className="text-xs px-2 py-1 rounded border border-neutral-200 hover:bg-neutral-50"
+                        >
+                          {(user.active ?? true) ? 'Block' : 'Unblock'}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteMember(user)}
+                          className="text-xs px-2 py-1 rounded border border-red-200 text-red-600 hover:bg-red-50"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

@@ -25,6 +25,7 @@ const normalizeUser = (record: any): User => ({
   avatarUrl: record.avatar,
   role: (record.role || 'user') as User['role'],
   family_id: record.family_id || undefined,
+  active: typeof record.active === 'boolean' ? record.active : true,
 });
 
 const normalizeTask = (record: any): Task => ({

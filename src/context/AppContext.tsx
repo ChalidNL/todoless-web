@@ -119,6 +119,7 @@ interface AppContextType {
   updateCalendarEvent: (id: string, updates: Partial<CalendarEvent>) => void;
   updateAppSettings: (settings: Partial<AppSettings>) => void;
   updateUser: (id: string, updates: Partial<User>) => void;
+  deleteUser: (id: string) => void;
   deleteItem: (id: string) => void;
   deleteTask: (id: string) => void;
   deleteNote: (id: string) => void;
@@ -568,6 +569,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     })();
   };
 
+  const deleteUser = (id: string) => {
+    void (async () => {
+      await api.deleteUser(id);
+      await Promise.all([refreshUsers(), refreshTasks(), refreshItems(), refreshNotes()]);
+    })();
+  };
+
   const deleteItem = (id: string) => {
     void (async () => {
       await api.deleteItem(id);
@@ -957,6 +965,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       updateCalendarEvent,
       updateAppSettings,
       updateUser,
+      deleteUser,
       deleteItem,
       deleteTask,
       deleteNote,
