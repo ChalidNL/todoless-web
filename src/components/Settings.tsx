@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from './AuthProvider';
 import { User, ApiToken, userDisplayName } from '../types';
-import { ChevronDown, ChevronUp, Plus, Edit2, Trash2, X, LogOut, Eye, EyeOff, Copy, Key, Check } from 'lucide-react';
+import { ChevronDown, ChevronUp, Plus, Edit2, Trash2, X, LogOut, Eye, EyeOff, Copy, Check } from 'lucide-react';
 import { NewGlobalHeader } from './shared/NewGlobalHeader';
 import { LabelBadge } from './shared/LabelBadge';
 import { TopBar } from './shared/TopBar';
