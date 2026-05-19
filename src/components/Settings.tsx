@@ -279,26 +279,32 @@ export const Settings = () => {
               <h3 className="text-sm font-semibold mb-3">Team Members</h3>
               <div className="space-y-3">
                 {users.map(user => (
-                  <div key={user.id} className="flex items-center gap-3 p-3 border border-neutral-200 rounded">
-                    <div className="w-10 h-10 rounded-full bg-neutral-200 flex items-center justify-center text-sm font-semibold">
-                      {user.name.charAt(0)}
+                  <div key={user.id} className="p-3 border border-neutral-200 rounded">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-full bg-neutral-200 flex items-center justify-center text-sm font-semibold shrink-0">
+                        {user.name.charAt(0)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm truncate">{user.name}</p>
+                        <p className="text-xs text-neutral-600 truncate">{user.email}</p>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{user.name}</p>
-                      <p className="text-xs text-neutral-600">{user.email}</p>
+
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <span className={`text-xs px-2 py-1 rounded capitalize ${
+                        user.role === 'admin' ? 'bg-neutral-900 text-white' : user.role === 'assistant' ? 'bg-blue-100 text-blue-700' : 'bg-neutral-100'
+                      }`}>
+                        {user.role || 'user'}
+                      </span>
+                      {(user.active ?? true) ? (
+                        <span className="text-[11px] px-2 py-1 rounded bg-green-100 text-green-700">active</span>
+                      ) : (
+                        <span className="text-[11px] px-2 py-1 rounded bg-red-100 text-red-700">blocked</span>
+                      )}
                     </div>
-                    <span className={`text-xs px-2 py-1 rounded capitalize ${
-                      user.role === 'admin' ? 'bg-neutral-900 text-white' : user.role === 'assistant' ? 'bg-blue-100 text-blue-700' : 'bg-neutral-100'
-                    }`}>
-                      {user.role || 'user'}
-                    </span>
-                    {(user.active ?? true) ? (
-                      <span className="text-[11px] px-2 py-1 rounded bg-green-100 text-green-700">active</span>
-                    ) : (
-                      <span className="text-[11px] px-2 py-1 rounded bg-red-100 text-red-700">blocked</span>
-                    )}
+
                     {currentUser?.role === 'admin' && currentUser.id !== user.id && user.role !== 'admin' && (
-                      <div className="flex items-center gap-2">
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
                         <button
                           onClick={() => handleToggleMemberActive(user)}
                           className="text-xs px-2 py-1 rounded border border-neutral-200 hover:bg-neutral-50"
