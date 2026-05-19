@@ -3,7 +3,7 @@
 // Swagger UI HTML page for interactive API exploration
 // Served at: GET /api/todoless/docs
 
-routerAdd('GET', '/api/todoless/docs', (c) => {
+function swaggerHtmlHandler(c) {
   var html = '<!DOCTYPE html>\n'
   html += '<html lang="en">\n'
   html += '<head>\n'
@@ -58,4 +58,8 @@ routerAdd('GET', '/api/todoless/docs', (c) => {
   html += '</html>'
 
   return c.html(200, html);
-});
+}
+
+// Register both /docs and /swagger endpoints
+routerAdd('GET', '/api/todoless/docs', swaggerHtmlHandler);
+routerAdd('GET', '/api/todoless/swagger', swaggerHtmlHandler);
