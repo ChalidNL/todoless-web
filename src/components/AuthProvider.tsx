@@ -7,7 +7,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, name: string, inviteCode: string) => Promise<{ error: Error | null; user: User | null }>;
+  signUp: (email: string, password: string, firstName: string, lastName: string, inviteCode: string) => Promise<{ error: Error | null; user: User | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -37,6 +37,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             id: record.id,
             email: record.email,
             name: record.name,
+            firstName: record.first_name,
+            lastName: record.last_name,
+            displayName: record.display_name,
             role: record.role,
             avatarUrl: record.avatar,
           });
@@ -57,6 +60,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: record.id,
           email: record.email,
           name: record.name,
+          firstName: record.first_name,
+          lastName: record.last_name,
+          displayName: record.display_name,
           role: record.role,
           avatarUrl: record.avatar,
         });
@@ -80,9 +86,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signUp = async (email: string, password: string, name: string, inviteCode: string) => {
+  const signUp = async (email: string, password: string, firstName: string, lastName: string, inviteCode: string) => {
     try {
-      const data = await api.register(email, password, name, inviteCode);
+      const data = await api.register(email, password, (firstName + ' ' + lastName).trim(), inviteCode, 'family_member', firstName, lastName);
       setUser(data.user);
       return { error: null, user: data.user };
     } catch (error) {

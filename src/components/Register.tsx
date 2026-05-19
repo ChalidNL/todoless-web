@@ -12,7 +12,8 @@ export const Register = ({ onRegister }: RegisterProps) => {
   const { signUp } = useAuth();
   const [step, setStep] = useState<'validate' | 'create'>('validate');
   const [inviteCode, setInviteCode] = useState('');
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -53,7 +54,11 @@ export const Register = ({ onRegister }: RegisterProps) => {
 
   const handleCreateAccount = async () => {
     // Validation
-    if (!name || !email || !password || !confirmPassword) {
+    if (!firstName.trim()) {
+      setError('First name is required');
+      return;
+    }
+    if (!email || !password || !confirmPassword) {
       setError('All fields are required');
       return;
     }
@@ -78,7 +83,7 @@ export const Register = ({ onRegister }: RegisterProps) => {
     setIsLoading(true);
     setError('');
 
-    const { error: signUpError } = await signUp(email, password, name, inviteCode);
+    const { error: signUpError } = await signUp(email, password, firstName, lastName, inviteCode);
 
     setIsLoading(false);
 
@@ -166,13 +171,24 @@ export const Register = ({ onRegister }: RegisterProps) => {
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm text-neutral-600 mb-1">Full Name</label>
+            <label className="block text-sm text-neutral-600 mb-1">First Name</label>
             <input
               type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
               className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
-              placeholder="John Doe"
+              placeholder="John"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-neutral-600 mb-1">Last Name</label>
+            <input
+              type="text"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+              placeholder="Doe"
             />
           </div>
 

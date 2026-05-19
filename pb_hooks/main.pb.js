@@ -42,6 +42,45 @@ routerAdd('GET', '/api/todoless/openapi.json', (c) => {
         }
       },
       // ── Agent API Endpoints ──
+      // ── API Token Management Endpoints ──
+      '/api/todoless/api-tokens': {
+        get: {
+          tags:['auth'],
+          summary:'List API tokens',
+          description:'List all API tokens for the authenticated user (admin sees all).',
+          security:[{ bearerAuth: [] }],
+          responses:{ '200':{description:'Token list'}, '401':{description:'Unauthorized'} }
+        },
+        post: {
+          tags:['auth'],
+          summary:'Create API token',
+          description:'Create a new API token with specific permissions. The raw token is returned once.',
+          security:[{ bearerAuth: [] }],
+          requestBody:{ required:true, content:{ 'application/json': { schema:{ type:'object', properties:{ name:{type:'string'}, permissions:{type:'array',items:{type:'string'}}, expires_at:{type:'string'} }, required:['name','permissions'] } } } },
+          responses:{ '201':{description:'Token created'}, '400':{description:'Validation error'}, '401':{description:'Unauthorized'} }
+        }
+      },
+      '/api/todoless/api-tokens/{id}': {
+        delete: {
+          tags:['auth'],
+          summary:'Revoke API token',
+          description:'Delete/revoke an API token.',
+          security:[{ bearerAuth: [] }],
+          parameters:[{name:'id',in:'path',required:true,schema:{type:'string'}}],
+          responses:{ '200':{description:'Token revoked'}, '401':{description:'Unauthorized'}, '403':{description:'Forbidden'} }
+        }
+      },
+      '/api/todoless/api-tokens/{id}/toggle': {
+        patch: {
+          tags:['auth'],
+          summary:'Toggle API token enabled/disabled',
+          description:'Enable or disable an API token without deleting it.',
+          security:[{ bearerAuth: [] }],
+          parameters:[{name:'id',in:'path',required:true,schema:{type:'string'}}],
+          requestBody:{ required:true, content:{ 'application/json': { schema:{ type:'object', properties:{ enabled:{type:'boolean'} }, required:['enabled'] } } } },
+          responses:{ '200':{description:'Token toggled'}, '401':{description:'Unauthorized'}, '403':{description:'Forbidden'} }
+        }
+      },
       '/api/todoless/agent/auth-test': {
         get: {
           tags:['agent'],

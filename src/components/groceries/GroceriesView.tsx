@@ -125,7 +125,7 @@ export const GroceriesView = () => {
           </div>
         )}
 
-        {/* Bought items (collapsed by default) */}
+        {/* In stock items (collapsed by default) */}
         {boughtItems.length > 0 && (
           <div className="mt-6 border-t border-neutral-200 pt-4">
             <div className="flex items-center justify-between">
@@ -134,13 +134,13 @@ export const GroceriesView = () => {
                 className="flex items-center gap-2 text-sm font-medium text-neutral-600 hover:text-neutral-900"
               >
                 {showBought ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                Bought ({boughtItems.length})
+                In stock ({boughtItems.length})
               </button>
               {boughtItems.length > 0 && (
                 <button
                   onClick={() => {
                     uncheckAllDoneItems();
-                    showCompletionMessage('All groceries unchecked');
+                    showCompletionMessage('All groceries reset to in stock');
                   }}
                   className="flex items-center gap-1 px-2 py-1 text-xs text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 rounded transition-colors"
                   title="Uncheck all"

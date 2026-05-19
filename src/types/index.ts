@@ -34,10 +34,19 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  firstName?: string;
+  lastName?: string;
+  displayName?: string;
   avatarUrl?: string;
   role?: UserRole;
   family_id?: string;
   active?: boolean;
+}
+
+/** Get the display name for a user: firstName > name > email */
+export function userDisplayName(user?: Pick<User, 'firstName' | 'name' | 'email'> | null): string {
+  if (!user) return '';
+  return user.firstName || user.name || user.email?.split('@')[0] || '';
 }
 
 export interface InviteCode {
@@ -269,4 +278,15 @@ export interface Entry {
   quantity?: number;
   category?: string;
   location?: string;
+}
+
+export interface ApiToken {
+  id: string;
+  name: string;
+  permissions: string[];
+  expires_at?: string;
+  enabled: boolean;
+  user: string;
+  created: string;
+  token?: string; // Only present on creation response
 }

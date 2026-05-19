@@ -826,7 +826,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const uncheckAllDoneItems = () => {
-    effectiveItems.filter((item) => item.completed).forEach((item) => updateItem(item.id, { completed: false }));
+    effectiveItems.filter((item) => item.completed).forEach((item) => updateItem(item.id, { completed: false, quantity: 1 }));
   };
 
   const addReward = (reward: Omit<Reward, 'id'>) => {

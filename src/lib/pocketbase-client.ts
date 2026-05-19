@@ -784,6 +784,9 @@ class PocketBaseClient {
     // Self profile/password updates still use SDK directly.
     return pb.collection('users').update(id, {
       name: updates.name,
+      firstName: updates.firstName,
+      lastName: updates.lastName,
+      displayName: updates.displayName,
       password: updates.password,
       passwordConfirm: updates.password,
     });
@@ -1005,6 +1008,55 @@ class PocketBaseClient {
 
   async updateUserFamily(userId: string, familyId: string): Promise<void> {
     await pb.collection('users').update(userId, { family_id: familyId });
+  }
+
+  // ─── API Tokens ───────────────────────────────────────────────────────
+  async getApiTokens(): Promise<any[]> {
+    const response = await fetch('/api/todoless/api-tokens', {
+      headers: { Authorization: `Bearer ${pb.authStore.token}` },
+    });
+    if (!response.ok) return [];
+    return response.json();
+  }
+
+  async createApiToken(name: string, permissions: string[], expiresAt?: string): Promise<any> {
+    const response = await fetch('/api/todoless/api-tokens', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${pb.authStore.token}`,
+      },
+      body: JSON.stringify({ name, permissions, expires_at: expiresAt || null }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to create token');
+    return data;
+  }
+
+  async deleteApiToken(tokenId: string): Promise<void> {
+    const response = await fetch(`/api/todoless/api-tokens/${tokenId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${pb.authStore.token}` },
+    });
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || 'Failed to delete token');
+    }
+  }
+
+  async toggleApiToken(tokenId: string, enabled: boolean): Promise<void> {
+    const response = await fetch(`/api/todoless/api-tokens/${tokenId}/toggle`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${pb.authStore.token}`,
+      },
+      body: JSON.stringify({ enabled }),
+    });
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || 'Failed to toggle token');
+    }
   }
 }
 
