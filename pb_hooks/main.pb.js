@@ -754,3 +754,32 @@ routerAdd('POST', '/api/todoless/api', (c) => {
     return c.json(400, { error: 'Unknown action: ' + action });
   } catch(e) { return c.json(400, { error: String(e) }); }
 });
+
+// Load all route modules
+try { require(__hooks + '/routes/openapi.js'); } catch(e) { console.log('openapi:', String(e)); }
+try { require(__hooks + '/routes/agent-keys.js'); } catch(e) { console.log('agent-keys:', String(e)); }
+try { require(__hooks + '/routes/paperless.js'); } catch(e) { console.log('paperless:', String(e)); }
+try { require(__hooks + '/routes/docs.js'); } catch(e) { console.log('docs:', String(e)); }
+try { require(__hooks + '/routes/tasks.js'); } catch(e) { console.log('tasks:', String(e)); }
+try { require(__hooks + '/routes/items.js'); } catch(e) { console.log('items:', String(e)); }
+try { require(__hooks + '/routes/reminders.js'); } catch(e) { console.log('reminders:', String(e)); }
+try { require(__hooks + '/routes/notes.js'); } catch(e) { console.log('notes:', String(e)); }
+try { require(__hooks + '/routes/labels.js'); } catch(e) { console.log('labels:', String(e)); }
+try { require(__hooks + '/routes/shops.js'); } catch(e) { console.log('shops:', String(e)); }
+try { require(__hooks + '/routes/sprints.js'); } catch(e) { console.log('sprints:', String(e)); }
+try { require(__hooks + '/routes/calendar.js'); } catch(e) { console.log('calendar:', String(e)); }
+try { require(__hooks + '/routes/goals.js'); } catch(e) { console.log('goals:', String(e)); }
+try { require(__hooks + '/routes/rewards.js'); } catch(e) { console.log('rewards:', String(e)); }
+try { require(__hooks + '/routes/projects.js'); } catch(e) { console.log('projects:', String(e)); }
+try { require(__hooks + '/routes/invites.js'); } catch(e) { console.log('invites:', String(e)); }
+try { require(__hooks + '/routes/families.js'); } catch(e) { console.log('families:', String(e)); }
+try { require(__hooks + '/routes/settings.js'); } catch(e) { console.log('settings:', String(e)); }
+try { require(__hooks + '/routes/users.js'); } catch(e) { console.log('users:', String(e)); }
+try { require(__hooks + '/routes/ai.js'); } catch(e) { console.log('ai:', String(e)); }
+try { require(__hooks + '/routes/agents.js'); } catch(e) { console.log('agents:', String(e)); }
+try { require(__hooks + '/routes/task-actions.js'); } catch(e) { console.log('task-actions:', String(e)); }
+try { require(__hooks + '/routes/shared.js'); } catch(e) { console.log('shared:', String(e)); }
+try { require(__hooks + '/routes/api-tokens.js'); } catch(e) { console.log('api-tokens:', String(e)); }
+try { require(__hooks + '/routes/invite-registration.js'); } catch(e) { console.log('invite-registration:', String(e)); }
+try { require(__hooks + '/routes/daily-briefing.js'); } catch(e) { console.log('daily-briefing:', String(e)); }
+try { require(__hooks + '/01_api_token_auth.js'); } catch(e) { console.log('api-token-auth:', String(e)); }
