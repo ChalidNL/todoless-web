@@ -11,6 +11,7 @@ const { useApp } = await import('../../../context/AppContext');
 
 const mockUpdateItem = vi.fn();
 const mockDeleteItem = vi.fn();
+const mockAddShop = vi.fn();
 
 const createItem = (overrides = {}) => ({
   id: 'item-1',
@@ -32,6 +33,7 @@ describe('GroceryCard layered attributes', () => {
     (useApp as any).mockReturnValue({
       updateItem: mockUpdateItem,
       deleteItem: mockDeleteItem,
+      addShop: mockAddShop,
       shops: [
         { id: 'shop-1', name: 'AH', color: '#3b82f6' },
         { id: 'shop-2', name: 'Jumbo', color: '#10b981' },
@@ -76,8 +78,21 @@ describe('GroceryCard layered attributes', () => {
     fireEvent.click(screen.getByLabelText('Open item attributes'));
     fireEvent.click(screen.getByLabelText('Edit shop'));
 
+    expect(screen.getByLabelText('Shop input')).toBeTruthy();
     fireEvent.click(screen.getByText('AH'));
     expect(mockUpdateItem).toHaveBeenCalledWith('item-1', { shopId: 'shop-1' });
+  });
+
+  it('creates shop from input like label flow', () => {
+    render(<GroceryCard item={createItem()} />);
+    fireEvent.click(screen.getByLabelText('Open item attributes'));
+    fireEvent.click(screen.getByLabelText('Edit shop'));
+
+    const input = screen.getByLabelText('Shop input');
+    fireEvent.change(input, { target: { value: 'Lidl' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(mockAddShop).toHaveBeenCalledWith({ name: 'Lidl', color: '#10b981' });
   });
 
   it('deletes from attribute delete button', () => {

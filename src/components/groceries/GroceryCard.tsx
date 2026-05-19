@@ -33,9 +33,10 @@ const DeleteConfirm = ({ onConfirm, onCancel }: { onConfirm: () => void; onCance
 );
 
 export const GroceryCard = ({ item }: GroceryCardProps) => {
-  const { updateItem, deleteItem, shops, isChipFilterActive } = useApp();
+  const { updateItem, deleteItem, shops, addShop, isChipFilterActive } = useApp();
   const [showMenu, setShowMenu] = useState(false);
   const [activeEditor, setActiveEditor] = useState<GroceryEditor>(null);
+  const [shopInput, setShopInput] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const quantity = item.quantity ?? 1;
@@ -57,6 +58,7 @@ export const GroceryCard = ({ item }: GroceryCardProps) => {
   };
 
   const hasShop = !!item.shopId;
+  const visibleShops = shops.filter((shop) => shop.name.toLowerCase().includes(shopInput.toLowerCase()));
   const isShopFiltered = (id?: string) => id ? isChipFilterActive('shop', id) : false;
 
   return (
@@ -140,7 +142,11 @@ export const GroceryCard = ({ item }: GroceryCardProps) => {
             <div className="mt-2 pt-2 border-t border-neutral-100">
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setActiveEditor(activeEditor === 'shop' ? null : 'shop')}
+                  onClick={() => {
+                    const next = activeEditor === 'shop' ? null : 'shop';
+                    setActiveEditor(next);
+                    if (next) setShopInput('');
+                  }}
                   className={`p-1.5 rounded transition-colors ${
                     hasShop || activeEditor === 'shop'
                       ? 'bg-green-100 text-green-700'
@@ -163,9 +169,42 @@ export const GroceryCard = ({ item }: GroceryCardProps) => {
 
               {/* Shop editor */}
               {activeEditor === 'shop' && (
-                <div className="mt-2">
+                <div className="mt-2 space-y-2">
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="text"
+                      value={shopInput}
+                      onChange={(e) => setShopInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          const name = shopInput.trim();
+                          if (!name) return;
+                          const existing = shops.find((s) => s.name.toLowerCase() === name.toLowerCase());
+                          if (existing) {
+                            updateItem(item.id, { shopId: existing.id });
+                          } else {
+                            addShop({ name, color: '#10b981' });
+                          }
+                          setShopInput('');
+                        }
+                      }}
+                      placeholder="Type shop + Enter..."
+                      className="flex-1 text-sm px-2 py-1.5 border border-neutral-200 rounded"
+                      aria-label="Shop input"
+                    />
+                    {hasShop && (
+                      <button
+                        onClick={() => updateItem(item.id, { shopId: null })}
+                        className="p-1.5 text-red-500 hover:bg-red-50 rounded text-sm"
+                        aria-label="Clear shop"
+                        title="Clear shop"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                   <div className="flex flex-wrap items-center gap-1">
-                    {shops.map((shop) => (
+                    {visibleShops.map((shop) => (
                       <button
                         key={shop.id}
                         onClick={() => updateItem(item.id, { shopId: item.shopId === shop.id ? null : shop.id })}
@@ -185,19 +224,10 @@ export const GroceryCard = ({ item }: GroceryCardProps) => {
                         </span>
                       </button>
                     ))}
-                    {shops.length === 0 && (
-                      <p className="text-xs text-neutral-400 italic">No shops — add in Settings</p>
+                    {visibleShops.length === 0 && (
+                      <p className="text-xs text-neutral-400 italic">No shops found</p>
                     )}
                   </div>
-                  {hasShop && currentShop && (
-                    <button
-                      onClick={() => updateItem(item.id, { shopId: null })}
-                      className="mt-2 text-xs text-red-500 hover:bg-red-50 px-2 py-1 rounded flex items-center gap-1"
-                      aria-label="Clear shop"
-                    >
-                      <X className="w-3 h-3" /> Clear shop
-                    </button>
-                  )}
                 </div>
               )}
 
