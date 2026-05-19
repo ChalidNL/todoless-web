@@ -25,6 +25,8 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
   const item = !isTask ? (entity as Item) : null;
 
   const isDone = isTask ? task!.status === 'done' : item!.completed;
+  const isTaskFlagged = isTask && task!.flag && !isDone;
+  const isOverdue = !!entity.dueDate && entity.dueDate < Date.now() && !isDone;
   const quantity = item?.quantity ?? 1;
   const currentShop = item?.shopId ? shops.find(s => s.id === item.shopId) : null;
   const assignedUser = entity.assignedTo ? users.find(u => u.id === entity.assignedTo) : null;
@@ -65,8 +67,10 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
   const visibleShops = shops.filter((shop) => shop.name.toLowerCase().includes(shopInput.toLowerCase()));
 
   return (
-    <div className={`rounded-lg border bg-white transition-colors ${
+    <div className={`rounded-lg border transition-colors ${""}
       isDone ? 'border-neutral-200 opacity-75' : 'border-neutral-200 hover:border-neutral-300'
+    } ${""}
+      isTaskFlagged ? '!bg-red-50' : isOverdue ? '!bg-orange-50' : 'bg-white'
     }`}>
       <div className="p-2.5">
         {/* Line 1: checkbox + title + badge(s) + hamburger */}

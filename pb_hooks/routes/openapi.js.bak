@@ -1,0 +1,19 @@
+/// <reference path="../../pb_data/types.d.ts" />
+
+// OpenAPI 3.0.3 specification for the Todoless API
+// Served at: GET /api/todoless/openapi.json
+//
+// The actual spec is loaded from a static JSON file at startup
+// to avoid Goja JS engine issues with the large object literal.
+
+routerAdd('GET', '/api/todoless/openapi.json', (c) => {
+  var data = $os.readFile('/pb_hooks/routes/openapi-spec.json');
+  if (!data) {
+    return c.json(500, { error: 'OpenAPI spec file not found' });
+  }
+  try {
+    return c.json(200, JSON.parse(data));
+  } catch (e) {
+    return c.json(500, { error: 'Failed to parse OpenAPI spec: ' + String(e) });
+  }
+});

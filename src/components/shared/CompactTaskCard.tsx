@@ -70,6 +70,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
   const isDone = task.status === 'done';
   const assignedUser = task.assignedTo ? users.find((u) => u.id === task.assignedTo) : null;
   const isFlagged = task.flag && !isDone;
+  const isOverdue = !!task.dueDate && task.dueDate < Date.now() && !isDone;
   const dateStr = task.dueDate
     ? new Date(task.dueDate).toLocaleDateString('nl-NL', { month: 'short', day: 'numeric' })
     : null;
@@ -154,7 +155,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
       <div className={`rounded-lg border transition-colors ${
         isDone ? 'border-neutral-200 opacity-75' : 'border-neutral-200 hover:border-neutral-300'
       } ${
-        isFlagged ? 'border-red-300 !bg-red-50' : 'bg-white'
+        isFlagged ? 'border-red-300 !bg-red-50' : isOverdue ? '!bg-orange-50' : 'bg-white'
       }`}>
         <div className="p-2.5">
           {/* Line 1: checkbox + title + hamburger */}

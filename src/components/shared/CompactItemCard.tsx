@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Item } from '../../types';
+import { Item, userDisplayName } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { ShoppingCart, Trash2, Menu, X, RotateCcw, Plus, Minus, ToggleLeft, Lock, Unlock, User, CalendarDays } from 'lucide-react';
 import { AttributeChip } from './AttributeChip';
@@ -52,7 +52,7 @@ export const CompactItemCard = ({ item }: CompactItemCardProps) => {
   );
 
   const filteredUsers = users.filter(u => 
-    u.name.toLowerCase().includes(assigneeSearchQuery.toLowerCase())
+    u.name && userDisplayName(u).toLowerCase().includes(assigneeSearchQuery.toLowerCase())
   );
 
   const handleCreateShop = () => {
@@ -114,10 +114,10 @@ export const CompactItemCard = ({ item }: CompactItemCardProps) => {
           {(item.createdBy || (item.assignedTo && item.assignedTo !== item.createdBy) || currentShop || item.dueDate) && (
             <div className="flex flex-wrap items-center gap-1 mb-2">
               {item.createdBy && (
-                <AttributeChip icon={<User className="w-3.5 h-3.5" />} label={users.find(u => u.id === item.createdBy)?.name || 'Unknown'} color={entityColor(item.createdBy)} />
+                <AttributeChip icon={<User className="w-3.5 h-3.5" />} label={userDisplayName(users.find(u => u.id === item.createdBy)) || 'Unknown'} color={entityColor(item.createdBy)} />
               )}
               {item.assignedTo && item.assignedTo !== item.createdBy && (
-                <AttributeChip icon={<User className="w-3.5 h-3.5" />} label={users.find(u => u.id === item.assignedTo)?.name || 'Unknown'} color={entityColor(item.assignedTo)} />
+                <AttributeChip icon={<User className="w-3.5 h-3.5" />} label={userDisplayName(users.find(u => u.id === item.assignedTo)) || 'Unknown'} color={entityColor(item.assignedTo)} />
               )}
               {currentShop && (
                 <AttributeChip icon={<ShoppingCart className="w-3.5 h-3.5" />} label={currentShop.name} color={currentShop.color} />

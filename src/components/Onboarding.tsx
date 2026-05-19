@@ -18,7 +18,8 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [familyName, setFamilyName] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -95,6 +96,10 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
         return;
       }
       setError('');
+      // Pre-fill lastName with family name when proceeding to admin form
+      if (!lastName.trim()) {
+        setLastName(familyName.trim());
+      }
     }
 
     if (currentStep < steps.length - 1) {
@@ -112,8 +117,8 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
 
   const handleCreateAdmin = async () => {
     // Validate all fields upfront with clear messages
-    if (!name.trim()) {
-      setError('Vul je volledige naam in');
+    if (!firstName.trim()) {
+      setError('Vul je voornaam in');
       return;
     }
     if (!email.trim()) {
@@ -145,7 +150,8 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
     setIsSubmitting(true);
 
     try {
-      const result = await api.registerAdmin(email, password, name, familyName.trim());
+      const fullName = [firstName.trim(), lastName.trim()].filter(Boolean).join(' ');
+      const result = await api.registerAdmin(email, password, fullName, familyName.trim());
       await api.markOnboardingSeen(true);
       updateAppSettings({ hasCompletedOnboarding: true, setupComplete: true });
       onComplete();
@@ -210,14 +216,27 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
 
             <div className="space-y-4 bg-white p-6 rounded-lg shadow-sm">
               <div>
-                <label className="block text-sm text-neutral-600 mb-1">Volledige naam</label>
+                <label className="block text-sm text-neutral-600 mb-1">Voornaam *</label>
                 <input
                   type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
                   className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
-                  placeholder="Jan Jansen"
+                  placeholder="Jan"
+                  autoFocus
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm text-neutral-600 mb-1">Achternaam</label>
+                <input
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                  placeholder={familyName || 'Jansen'}
+                />
+                <p className="text-xs text-neutral-500 mt-1">Vooraf ingevuld met je familienaam, maar je kunt het aanpassen</p>
               </div>
 
               <div>

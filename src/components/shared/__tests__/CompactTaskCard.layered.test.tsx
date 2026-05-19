@@ -210,4 +210,34 @@ describe('CompactTaskCard compact layout (GroceryCard style)', () => {
     expect(mockUpdateTask).not.toHaveBeenCalled();
     expect(input.value).toBe('Pay bills');
   });
+
+  it('renders light orange background when task is overdue', () => {
+    const overdue = { ...baseTask, dueDate: Date.now() - 86400000 }; // 1 day ago
+    const { container } = render(<CompactTaskCard task={overdue as any} />);
+    const root = container.firstChild as HTMLElement;
+    expect(root.className.includes('!bg-orange-50')).toBeTruthy();
+  });
+
+  it('does NOT show orange background for completed overdue task', () => {
+    const completedOverdue = { ...baseTask, status: 'done', dueDate: Date.now() - 86400000 };
+    const { container } = render(<CompactTaskCard task={completedOverdue as any} />);
+    const root = container.firstChild as HTMLElement;
+    expect(root.className.includes('!bg-orange-50')).toBeFalsy();
+  });
+
+  it('shows red (flagged) background instead of orange when task is both flagged and overdue', () => {
+    const flaggedAndOverdue = { ...baseTask, flag: true, blocked: true, dueDate: Date.now() - 86400000 };
+    const { container } = render(<CompactTaskCard task={flaggedAndOverdue as any} />);
+    const root = container.firstChild as HTMLElement;
+    expect(root.className.includes('!bg-red-50')).toBeTruthy();
+    expect(root.className.includes('!bg-orange-50')).toBeFalsy();
+  });
+
+  it('shows white background for non-overdue, non-flagged task', () => {
+    const { container } = render(<CompactTaskCard task={baseTask as any} />);
+    const root = container.firstChild as HTMLElement;
+    expect(root.className.includes('!bg-orange-50')).toBeFalsy();
+    expect(root.className.includes('!bg-red-50')).toBeFalsy();
+    expect(root.className.includes('bg-white')).toBeTruthy();
+  });
 });

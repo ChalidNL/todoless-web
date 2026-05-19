@@ -22,6 +22,9 @@ const normalizeUser = (record: any): User => ({
   id: record.id,
   email: record.email,
   name: record.name || record.email,
+  firstName: record.first_name || undefined,
+  lastName: record.last_name || undefined,
+  displayName: record.displayName || undefined,
   avatarUrl: record.avatar,
   role: (record.role || 'user') as User['role'],
   family_id: record.family_id || undefined,
@@ -247,6 +250,8 @@ class PocketBaseClient {
   }
 
   async registerAdmin(email: string, password: string, name: string, familyName?: string) {
+    const firstName = name.trim().split(' ')[0];
+    const lastName = name.trim().includes(' ') ? name.trim().substring(name.trim().indexOf(' ') + 1) : familyName || '';
     const response = await fetch('/api/todoless/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -254,6 +259,8 @@ class PocketBaseClient {
         email,
         password,
         passwordConfirm: password,
+        firstName,
+        lastName: lastName || familyName || '',
         name,
         family_name: familyName || 'My Family',
         user_type: 'family_member',
@@ -273,10 +280,14 @@ class PocketBaseClient {
   }
 
   async register(email: string, password: string, name: string, inviteCode?: string, userType: string = 'family_member') {
+    const firstName = name.trim().split(' ')[0];
+    const lastName = name.trim().includes(' ') ? name.trim().substring(name.trim().indexOf(' ') + 1) : '';
     const body: Record<string, any> = {
       email,
       password,
       passwordConfirm: password,
+      firstName,
+      lastName,
       name,
       user_type: userType,
     };

@@ -568,7 +568,6 @@ export const Settings = () => {
               className="flex items-center justify-between w-full mb-3"
             >
               <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Key className="w-5 h-5" />
                 API Tokens
               </h2>
               {showApiTokens ? (
@@ -657,6 +656,16 @@ export const Settings = () => {
                     ))}
                   </div>
                 )}
+                <div className="mt-4 pt-4 border-t border-neutral-200">
+                  <a
+                    href="/api/todoless/swagger"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 underline underline-offset-2 text-sm"
+                  >
+                    Swagger Docs
+                  </a>
+                </div>
               </>
             )}
           </div>
@@ -678,17 +687,7 @@ export const Settings = () => {
           <div className="text-sm text-neutral-600">
             <p><span className="font-medium text-neutral-800">Version:</span> <code>{appVersion}</code></p>
             <p><span className="font-medium text-neutral-800">Commit:</span> <code>{appCommit}</code></p>
-            <p>
-              <span className="font-medium text-neutral-800">API:</span>{' '}
-              <a
-                href="/api/todoless/swagger"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:text-blue-800 underline underline-offset-2"
-              >
-                Swagger Docs
-              </a>
-            </p>
+
           </div>
         </div>
 
