@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from './AuthProvider';
-import { User } from '../types';
-import { ChevronDown, ChevronUp, Plus, Edit2, Trash2, X, LogOut, Eye, EyeOff, Copy } from 'lucide-react';
+import { User, ApiToken, userDisplayName } from '../types';
+import { ChevronDown, ChevronUp, Plus, Edit2, Trash2, X, LogOut, Eye, EyeOff, Copy, Key, Check } from 'lucide-react';
 import { NewGlobalHeader } from './shared/NewGlobalHeader';
 import { LabelBadge } from './shared/LabelBadge';
 import { TopBar } from './shared/TopBar';
 import { InviteManager } from './InviteManager';
+import { api } from '../lib/pocketbase-client';
 
 export const Settings = () => {
   const { users, appSettings, updateAppSettings, updateUser, deleteUser, labels, addLabel, updateLabel, deleteLabel, shops, addShop, updateShop, deleteShop, tasks, showCompletionMessage } = useApp();
@@ -25,6 +26,13 @@ export const Settings = () => {
   const [newLabelColor, setNewLabelColor] = useState('#3b82f6');
   const [newShopName, setNewShopName] = useState('');
   const [newShopColor, setNewShopColor] = useState('#3b82f6');
+  const [showApiTokens, setShowApiTokens] = useState(false);
+  const [apiTokens, setApiTokens] = useState<ApiToken[]>([]);
+  const [showAddTokenModal, setShowAddTokenModal] = useState(false);
+  const [newTokenName, setNewTokenName] = useState('');
+  const [newTokenPermissions, setNewTokenPermissions] = useState<string[]>([]);
+  const [newTokenExpiry, setNewTokenExpiry] = useState('');
+  const [createdToken, setCreatedToken] = useState<string | null>(null);
   const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
   const [editingLabelName, setEditingLabelName] = useState('');
   const [editingLabelColor, setEditingLabelColor] = useState('');
@@ -35,6 +43,10 @@ export const Settings = () => {
   const [showAddLabelModal, setShowAddLabelModal] = useState(false);
   const [showAddShopModal, setShowAddShopModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [editFirstName, setEditFirstName] = useState('');
+  const [editLastName, setEditLastName] = useState('');
+  const [editDisplayName, setEditDisplayName] = useState('');
 
   const currentUser = users.find(u => u.id === appSettings.currentUserId);
 
@@ -44,6 +56,33 @@ export const Settings = () => {
     setNewPassword('');
     setEditingPassword(false);
     setShowPassword(false);
+  };
+
+  const handleProfileEdit = () => {
+    if (!currentUser) return;
+    setEditFirstName(currentUser.firstName || '');
+    setEditLastName(currentUser.lastName || '');
+    setEditDisplayName(currentUser.displayName || '');
+    setEditingProfile(true);
+  };
+
+  const handleProfileSave = async () => {
+    if (!currentUser) return;
+    const fullName = [editFirstName.trim(), editLastName.trim()].filter(Boolean).join(' ');
+    await updateUser(currentUser.id, {
+      name: fullName || currentUser.name,
+      firstName: editFirstName.trim() || undefined,
+      lastName: editLastName.trim() || undefined,
+      displayName: editDisplayName.trim() || undefined,
+    } as Partial<User>);
+    setEditingProfile(false);
+    showCompletionMessage('Profiel opgeslagen');
+    // Force refresh to show updated data
+    window.location.reload();
+  };
+
+  const handleCancelProfileEdit = () => {
+    setEditingProfile(false);
   };
 
   const handleRoleChange = (role: 'admin' | 'user' | 'child') => {
@@ -139,6 +178,80 @@ export const Settings = () => {
 
   const handleDeleteShop = (id: string) => {
     deleteShop(id);
+  };
+
+  const loadApiTokens = async () => {
+    const tokens = await api.getApiTokens();
+    setApiTokens(tokens);
+  };
+
+  const toggleApiTokenSection = async () => {
+    const next = !showApiTokens;
+    setShowApiTokens(next);
+    if (next && apiTokens.length === 0) {
+      await loadApiTokens();
+    }
+  };
+
+  const handleCreateToken = async () => {
+    if (!newTokenName || newTokenPermissions.length === 0) return;
+    try {
+      const result = await api.createApiToken(newTokenName, newTokenPermissions, newTokenExpiry || undefined);
+      setCreatedToken(result.token);
+      setNewTokenName('');
+      setNewTokenPermissions([]);
+      setNewTokenExpiry('');
+      await loadApiTokens();
+    } catch (err: any) {
+      showCompletionMessage(err.message || 'Failed to create token');
+    }
+  };
+
+  const handleDeleteToken = async (tokenId: string) => {
+    if (!window.confirm('Revoke this API token? This cannot be undone.')) return;
+    try {
+      await api.deleteApiToken(tokenId);
+      await loadApiTokens();
+      showCompletionMessage('Token revoked');
+    } catch (err: any) {
+      showCompletionMessage(err.message || 'Failed to revoke token');
+    }
+  };
+
+  const handleToggleToken = async (tokenId: string, enabled: boolean) => {
+    try {
+      await api.toggleApiToken(tokenId, enabled);
+      await loadApiTokens();
+    } catch (err: any) {
+      showCompletionMessage(err.message || 'Failed to toggle token');
+    }
+  };
+
+  const togglePermission = (perm: string) => {
+    setNewTokenPermissions(prev =>
+      prev.includes(perm) ? prev.filter(p => p !== perm) : [...prev, perm]
+    );
+  };
+
+  const handleCopyToken = async (token: string) => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(token);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = token;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.top = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      showCompletionMessage('Token copied to clipboard');
+    } catch {
+      showCompletionMessage('Copy failed');
+    }
   };
 
   if (!currentUser) {
@@ -447,6 +560,108 @@ export const Settings = () => {
           )}
         </div>
 
+        {/* API Tokens Section */}
+        {currentUser?.role === 'admin' && (
+          <div className="mb-6 border-b border-neutral-200 pb-6">
+            <button
+              onClick={toggleApiTokenSection}
+              className="flex items-center justify-between w-full mb-3"
+            >
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <Key className="w-5 h-5" />
+                API Tokens
+              </h2>
+              {showApiTokens ? (
+                <ChevronUp className="w-5 h-5 text-neutral-500" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-neutral-500" />
+              )}
+            </button>
+
+            {showApiTokens && (
+              <>
+                <button
+                  onClick={() => setShowAddTokenModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 mb-4"
+                >
+                  <Plus className="w-4 h-4" />
+                  Create API Token
+                </button>
+
+                {/* Created token display */}
+                {createdToken && (
+                  <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm font-semibold text-blue-800 mb-2">
+                      Token created — copy it now. It will not be shown again.
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 text-xs bg-white border border-blue-200 rounded p-2 break-all select-all">
+                        {createdToken}
+                      </code>
+                      <button
+                        onClick={() => handleCopyToken(createdToken!)}
+                        className="p-2 bg-blue-600 text-white rounded hover:bg-blue-700 shrink-0"
+                        title="Copy token"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <button
+                      onClick={() => setCreatedToken(null)}
+                      className="mt-2 text-xs text-blue-600 hover:text-blue-800"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                )}
+
+                {apiTokens.length === 0 ? (
+                  <p className="text-sm text-neutral-600">No API tokens yet.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {apiTokens.map(token => (
+                      <div key={token.id} className="p-3 border border-neutral-200 rounded">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-sm truncate">{token.name}</p>
+                            <p className="text-xs text-neutral-500 mt-0.5">
+                              {token.permissions?.join(', ') || 'No permissions'}
+                            </p>
+                            {token.expires_at && (
+                              <p className="text-xs text-neutral-400 mt-0.5">
+                                Expires: {new Date(token.expires_at).toLocaleDateString()}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button
+                              onClick={() => handleToggleToken(token.id, !token.enabled)}
+                              className={`text-xs px-2 py-1 rounded ${
+                                token.enabled
+                                  ? 'bg-green-100 text-green-700'
+                                  : 'bg-neutral-100 text-neutral-500'
+                              }`}
+                            >
+                              {token.enabled ? 'Enabled' : 'Disabled'}
+                            </button>
+                            <button
+                              onClick={() => handleDeleteToken(token.id)}
+                              className="p-1 hover:bg-red-50 rounded text-red-500"
+                              title="Revoke token"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
         {/* App Info */}
         <div className="bg-white rounded-lg border border-neutral-200 p-4 space-y-2" data-testid="app-info">
           <div className="flex items-center justify-between gap-3">
@@ -463,6 +678,17 @@ export const Settings = () => {
           <div className="text-sm text-neutral-600">
             <p><span className="font-medium text-neutral-800">Version:</span> <code>{appVersion}</code></p>
             <p><span className="font-medium text-neutral-800">Commit:</span> <code>{appCommit}</code></p>
+            <p>
+              <span className="font-medium text-neutral-800">API:</span>{' '}
+              <a
+                href="/api/todoless/swagger"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-800 underline underline-offset-2"
+              >
+                Swagger Docs
+              </a>
+            </p>
           </div>
         </div>
 
@@ -663,6 +889,97 @@ export const Settings = () => {
                   className="flex-1 px-4 py-2 bg-neutral-900 text-white rounded"
                 >
                   Save
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create API Token Modal */}
+      {showAddTokenModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Create API Token</h3>
+              <button onClick={() => setShowAddTokenModal(false)} className="p-1 hover:bg-neutral-100 rounded">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-neutral-600 mb-1">Name</label>
+                <input
+                  type="text"
+                  value={newTokenName}
+                  onChange={(e) => setNewTokenName(e.target.value)}
+                  placeholder="My Agent Token"
+                  className="w-full px-3 py-2 border border-neutral-200 rounded"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-neutral-600 mb-2">Permissions</label>
+                <div className="space-y-2">
+                  {[
+                    { id: 'tasks:read', label: 'Tasks: Read' },
+                    { id: 'tasks:write', label: 'Tasks: Write' },
+                    { id: 'groceries:read', label: 'Groceries: Read' },
+                    { id: 'groceries:write', label: 'Groceries: Write' },
+                    { id: 'notes:read', label: 'Notes: Read' },
+                    { id: 'notes:write', label: 'Notes: Write' },
+                    { id: '*', label: 'Full Access (all)' },
+                  ].map((perm) => (
+                    <label
+                      key={perm.id}
+                      className="flex items-center gap-3 p-2 border border-neutral-200 rounded cursor-pointer hover:bg-neutral-50"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={newTokenPermissions.includes(perm.id)}
+                        onChange={() => togglePermission(perm.id)}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm">{perm.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm text-neutral-600 mb-1">
+                  Expiry <span className="text-neutral-400">(optional)</span>
+                </label>
+                <input
+                  type="date"
+                  value={newTokenExpiry}
+                  onChange={(e) => setNewTokenExpiry(e.target.value)}
+                  className="w-full px-3 py-2 border border-neutral-200 rounded"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={() => {
+                    setShowAddTokenModal(false);
+                    setNewTokenName('');
+                    setNewTokenPermissions([]);
+                    setNewTokenExpiry('');
+                  }}
+                  className="flex-1 px-4 py-2 border border-neutral-200 rounded"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    handleCreateToken();
+                    setShowAddTokenModal(false);
+                  }}
+                  disabled={!newTokenName || newTokenPermissions.length === 0}
+                  className="flex-1 px-4 py-2 bg-neutral-900 text-white rounded disabled:opacity-50"
+                >
+                  Create
                 </button>
               </div>
             </div>
