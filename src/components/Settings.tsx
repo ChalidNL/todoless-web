@@ -925,22 +925,201 @@ export const Settings = () => {
                     ))}
                   </div>
                 )}
-                <div className="mt-4 pt-4 border-t border-neutral-200">
-                  <a
-                    href="/api/todoless/swagger"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-800 underline underline-offset-2 text-sm"
-                  >
-                    Swagger Docs
-                  </a>
-                </div>
               </>
             )}
           </div>
         )}
 
-        {/* App Info */}
+        {/* Integrations Section - Admin only */}
+        {currentUser?.role === 'admin' && (
+          <div className="mb-6 border-b border-neutral-200 pb-6">
+            <button
+              onClick={toggleIntegrationsSection}
+              className="flex items-center justify-between w-full mb-3"
+            >
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <Plug className="w-5 h-5" />
+                Integrations
+              </h2>
+              {showIntegrations ? (
+                <ChevronUp className="w-5 h-5 text-neutral-500" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-neutral-500" />
+              )}
+            </button>
+
+            {showIntegrations && (
+              <div className="space-y-4">
+                <div className="p-4 bg-white border border-neutral-200 rounded-lg space-y-3">
+                  <h3 className="text-sm font-semibold">API Documentation</h3>
+                  <p className="text-xs text-neutral-600">Explore the API endpoints, request/response schemas, and authentication details.</p>
+                  <a
+                    href="/api/todoless/swagger"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800 text-sm"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Open Swagger Docs
+                  </a>
+                </div>
+
+                <div className="p-4 bg-white border border-neutral-200 rounded-lg space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Bot className="w-4 h-4 text-neutral-600" />
+                    <h3 className="text-sm font-semibold">Agent Status</h3>
+                  </div>
+                  <p className="text-xs text-neutral-600">Connect external AI agents to interact with your tasks and groceries.</p>
+                  <div className="flex items-center gap-4 text-sm">
+                    <span className="text-orange-600 font-medium">
+                      {pendingAgents.length} pending
+                    </span>
+                    <span className="text-green-600 font-medium">
+                      {approvedAgentsCount} approved
+                    </span>
+                  </div>
+                  <button
+                    onClick={toggleAgentApprovalSection}
+                    className="text-xs text-blue-600 hover:text-blue-800"
+                  >
+                    Manage agents →
+                  </button>
+                </div>
+
+                <div className="p-4 bg-white border border-neutral-200 rounded-lg space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Plug className="w-4 h-4 text-neutral-600" />
+                    <h3 className="text-sm font-semibold">Connect External App</h3>
+                  </div>
+                  <p className="text-xs text-neutral-600">
+                    To connect an external application, create an API token with the required permissions.
+                    The app will use this token to authenticate API requests.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setShowAddTokenModal(true);
+                    }}
+                    className="text-xs text-blue-600 hover:text-blue-800"
+                  >
+                    Create API token →
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Agent Approval Section - Admin only */}
+        {currentUser?.role === 'admin' && (
+          <div className="mb-6 border-b border-neutral-200 pb-6">
+            <button
+              onClick={toggleAgentApprovalSection}
+              className="flex items-center justify-between w-full mb-3"
+            >
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                Agent Approval
+                {pendingAgents.length > 0 && (
+                  <span className="bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded-full">
+                    {pendingAgents.length}
+                  </span>
+                )}
+              </h2>
+              {showAgentApproval ? (
+                <ChevronUp className="w-5 h-5 text-neutral-500" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-neutral-500" />
+              )}
+            </button>
+
+            {showAgentApproval && (
+              <>
+                {loadingAgents ? (
+                  <p className="text-sm text-neutral-600 py-4 text-center">Loading...</p>
+                ) : pendingAgents.length === 0 ? (
+                  <p className="text-sm text-neutral-600 py-4 text-center">No pending agents.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {pendingAgents.map(agent => (
+                      <div key={agent.id} className="p-4 border border-neutral-200 rounded-lg">
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-sm font-semibold text-orange-700 shrink-0">
+                            {agent.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{agent.name || 'Unnamed'}</p>
+                            <p className="text-xs text-neutral-600 truncate">{agent.email}</p>
+                            <p className="text-xs text-neutral-400 mt-0.5">
+                              Requested: {new Date(agent.created).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 flex gap-2">
+                          <button
+                            onClick={() => handleApproveAgent(agent.id)}
+                            disabled={approvingAgentId === agent.id || rejectingAgentId === agent.id}
+                            className="flex-1 px-3 py-1.5 bg-green-600 text-white rounded text-sm hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-1.5"
+                          >
+                            {approvingAgentId === agent.id ? (
+                              <span>Approving...</span>
+                            ) : (
+                              <>
+                                <Check className="w-4 h-4" />
+                                Approve
+                              </>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => handleRejectAgent(agent.id)}
+                            disabled={approvingAgentId === agent.id || rejectingAgentId === agent.id}
+                            className="flex-1 px-3 py-1.5 border border-red-200 text-red-600 rounded text-sm hover:bg-red-50 disabled:opacity-50 flex items-center justify-center gap-1.5"
+                          >
+                            {rejectingAgentId === agent.id ? (
+                              <span>Rejecting...</span>
+                            ) : (
+                              <>
+                                <X className="w-4 h-4" />
+                                Reject
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Approved token display - shown once after approval */}
+                {approvedToken && (
+                  <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-sm font-semibold text-green-800 mb-2">
+                      Agent approved — copy the token now. It will not be shown again.
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 text-xs bg-white border border-green-200 rounded p-2 break-all select-all">
+                        {approvedToken.token}
+                      </code>
+                      <button
+                        onClick={() => handleCopyApprovedToken(approvedToken.token)}
+                        className="p-2 bg-green-600 text-white rounded hover:bg-green-700 shrink-0"
+                        title="Copy token"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <button
+                      onClick={() => setApprovedToken(null)}
+                      className="mt-2 text-xs text-green-600 hover:text-green-800"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
         <div className="bg-white rounded-lg border border-neutral-200 p-4 space-y-2" data-testid="app-info">
           <div className="flex items-center justify-between gap-3">
             <h3 className="text-sm font-semibold text-neutral-900">App Info</h3>
