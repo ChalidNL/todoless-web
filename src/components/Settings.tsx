@@ -8,6 +8,7 @@ import { LabelBadge } from './shared/LabelBadge';
 import { TopBar } from './shared/TopBar';
 import { InviteManager } from './InviteManager';
 import { api } from '../lib/pocketbase-client';
+import { pb } from '../lib/pocketbase';
 
 export const Settings = () => {
   const { users, appSettings, updateAppSettings, updateUser, deleteUser, labels, addLabel, updateLabel, deleteLabel, shops, addShop, updateShop, deleteShop, tasks, showCompletionMessage } = useApp();
@@ -51,6 +52,12 @@ export const Settings = () => {
   const [editFirstName, setEditFirstName] = useState('');
   const [editLastName, setEditLastName] = useState('');
   const [editDisplayName, setEditDisplayName] = useState('');
+  const [showAgentApproval, setShowAgentApproval] = useState(false);
+  const [pendingAgents, setPendingAgents] = useState<{id: string; email: string; name: string; created: string}[]>([]);
+  const [loadingAgents, setLoadingAgents] = useState(false);
+  const [approvingAgentId, setApprovingAgentId] = useState<string | null>(null);
+  const [rejectingAgentId, setRejectingAgentId] = useState<string | null>(null);
+  const [approvedToken, setApprovedToken] = useState<{agentId: string; token: string} | null>(null);
 
   const currentUser = users.find(u => u.id === appSettings.currentUserId);
 
@@ -297,6 +304,79 @@ export const Settings = () => {
     } catch {
       showCompletionMessage('Copy failed');
     }
+  };
+
+  const loadPendingAgents = async () => {
+    setLoadingAgents(true);
+    try {
+      const response = await fetch('/api/todoless/agent/pending', {
+        headers: { Authorization: `Bearer ${pb.authStore.token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setPendingAgents(data.agents || []);
+      }
+    } catch {
+      showCompletionMessage('Failed to load pending agents');
+    } finally {
+      setLoadingAgents(false);
+    }
+  };
+
+  const toggleAgentApprovalSection = async () => {
+    const next = !showAgentApproval;
+    setShowAgentApproval(next);
+    if (next && pendingAgents.length === 0) {
+      await loadPendingAgents();
+    }
+  };
+
+  const handleApproveAgent = async (agentId: string) => {
+    setApprovingAgentId(agentId);
+    try {
+      const response = await fetch(`/api/todoless/agent/approve/${agentId}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${pb.authStore.token}` },
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setPendingAgents(prev => prev.filter(a => a.id !== agentId));
+        setApprovedToken({ agentId, token: data.token });
+        showCompletionMessage('Agent approved');
+      } else {
+        showCompletionMessage(data.error || 'Failed to approve agent');
+      }
+    } catch {
+      showCompletionMessage('Failed to approve agent');
+    } finally {
+      setApprovingAgentId(null);
+    }
+  };
+
+  const handleRejectAgent = async (agentId: string) => {
+    if (!window.confirm('Reject this agent? This cannot be undone.')) return;
+    setRejectingAgentId(agentId);
+    try {
+      const response = await fetch(`/api/todoless/agent/reject/${agentId}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${pb.authStore.token}` },
+      });
+      if (response.ok) {
+        setPendingAgents(prev => prev.filter(a => a.id !== agentId));
+        showCompletionMessage('Agent rejected');
+      } else {
+        const data = await response.json();
+        showCompletionMessage(data.error || 'Failed to reject agent');
+      }
+    } catch {
+      showCompletionMessage('Failed to reject agent');
+    } finally {
+      setRejectingAgentId(null);
+    }
+  };
+
+  const handleCopyAgentToken = async (token: string) => {
+    await handleCopyToken(token);
   };
 
   if (!currentUser) {
@@ -824,6 +904,117 @@ export const Settings = () => {
                     Swagger Docs
                   </a>
                 </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Agent Approval Section - Admin only */}
+        {currentUser?.role === 'admin' && (
+          <div className="mb-6 border-b border-neutral-200 pb-6">
+            <button
+              onClick={toggleAgentApprovalSection}
+              className="flex items-center justify-between w-full mb-3"
+            >
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                Agent Approval
+                {pendingAgents.length > 0 && (
+                  <span className="bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded-full">
+                    {pendingAgents.length}
+                  </span>
+                )}
+              </h2>
+              {showAgentApproval ? (
+                <ChevronUp className="w-5 h-5 text-neutral-500" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-neutral-500" />
+              )}
+            </button>
+
+            {showAgentApproval && (
+              <>
+                {loadingAgents ? (
+                  <p className="text-sm text-neutral-600 py-4 text-center">Loading...</p>
+                ) : pendingAgents.length === 0 ? (
+                  <p className="text-sm text-neutral-600 py-4 text-center">No pending agents.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {pendingAgents.map(agent => (
+                      <div key={agent.id} className="p-4 border border-neutral-200 rounded-lg">
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-sm font-semibold text-orange-700 shrink-0">
+                            {agent.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{agent.name || 'Unnamed'}</p>
+                            <p className="text-xs text-neutral-600 truncate">{agent.email}</p>
+                            <p className="text-xs text-neutral-400 mt-0.5">
+                              Requested: {new Date(agent.created).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 flex gap-2">
+                          <button
+                            onClick={() => handleApproveAgent(agent.id)}
+                            disabled={approvingAgentId === agent.id || rejectingAgentId === agent.id}
+                            className="flex-1 px-3 py-1.5 bg-green-600 text-white rounded text-sm hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-1.5"
+                          >
+                            {approvingAgentId === agent.id ? (
+                              <span>Approving...</span>
+                            ) : (
+                              <>
+                                <Check className="w-4 h-4" />
+                                Approve
+                              </>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => handleRejectAgent(agent.id)}
+                            disabled={approvingAgentId === agent.id || rejectingAgentId === agent.id}
+                            className="flex-1 px-3 py-1.5 border border-red-200 text-red-600 rounded text-sm hover:bg-red-50 disabled:opacity-50 flex items-center justify-center gap-1.5"
+                          >
+                            {rejectingAgentId === agent.id ? (
+                              <span>Rejecting...</span>
+                            ) : (
+                              <>
+                                <X className="w-4 h-4" />
+                                Reject
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Approved token display - shown once after approval */}
+                {approvedToken && (
+                  <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-sm font-semibold text-green-800 mb-2">
+                      Agent approved — copy the token now. It will not be shown again.
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 text-xs bg-white border border-green-200 rounded p-2 break-all select-all">
+                        {approvedToken.token}
+                      </code>
+                      <button
+                        onClick={() => handleCopyAgentToken(approvedToken!.token)}
+                        className="p-2 bg-green-600 text-white rounded hover:bg-green-700 shrink-0"
+                        title="Copy token"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <button
+                      onClick={() => setApprovedToken(null)}
+                      className="mt-2 text-xs text-green-600 hover:text-green-800"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                )}
               </>
             )}
           </div>
