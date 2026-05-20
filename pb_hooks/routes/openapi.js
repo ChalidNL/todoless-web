@@ -39,6 +39,7 @@ routerAdd('GET', '/api/todoless/openapi.json', (c) => {
       { name: "Users", description: "User management" },
       { name: "AI", description: "AI assistant integration" },
       { name: "External References", description: "External system link management (Paperless, Home Assistant, Gmail, custom)" },
+      { name: "Agents", description: "Agent API tokens and scoped permissions for external AI agents" },
     ],
     paths: {
       // ── System ──
@@ -299,6 +300,14 @@ routerAdd('GET', '/api/todoless/openapi.json', (c) => {
         get: getExternalRefSchema(),
         patch: updateExternalRefSchema(),
         delete: deleteExternalRefSchema(),
+      },
+
+      // ── Agent Token & Permissions ──
+      "/todoless/agent/token": {
+        post: createAgentTokenSchema(),
+      },
+      "/todoless/agent/permissions": {
+        get: listAgentPermissionsSchema(),
       },
     },
     components: {
@@ -1071,4 +1080,52 @@ function updateExternalRefSchema() { return { tags: ["External References"], sum
   sync_status: { type: "string", enum: ["synced", "pending", "error", "orphaned"] },
   last_synced_at: sn(), external_url: sn(), entity_type: sn(), entity_id: sn(),
 } } } } }, security: authRequired(), responses: { "200": { description: "External reference updated" } } }; }
+
+// ── Agent Token & Permissions ──
+
+function createAgentTokenSchema() {
+  return {
+    tags: ["Agents"],
+    summary: "Create agent API token",
+    description: "Creates a scoped API token for an external AI agent. Tokens grant specific permissions (tasks:read, tasks:write, groceries:read, etc.) and optionally link to a specific agent user. The raw token is only returned once — save it immediately.",
+    operationId: "createAgentToken",
+    requestBody: {
+      required: true,
+      content: { "application/json": { schema: {
+        type: "object",
+        required: ["name", "permissions"],
+        properties: {
+          name: { type: "string", example: "henry-assistant", description: "Human-readable token name" },
+          permissions: { type: "array", items: { type: "string", enum: ["tasks:read", "tasks:write", "tasks:delete", "groceries:read", "groceries:write", "groceries:delete", "calendar:read", "calendar:write", "tasks:*", "groceries:*", "calendar:*", "*"] }, example: ["tasks:read", "tasks:write", "groceries:read"], description: "Permission scopes to grant" },
+          expires_at: { type: "string", format: "date-time", nullable: true, example: "2025-12-31T23:59:59Z", description: "Optional expiry timestamp" },
+          agent_id: { type: "string", nullable: true, example: "abc123", description: "Optional agent user ID to associate this token with" },
+        },
+      } } },
+    },
+    security: authRequired(),
+    responses: {
+      "201": { description: "Token created", content: { "application/json": { schema: { type: "object", properties: { id: st(), name: st(), token: st(), permissions: sa({ type: "string" }), enabled: sb(), expires_at: sn(), user: st(), role: st(), created: st(), message: st() } } } } },
+      "400": { description: "Validation error", content: { "application/json": { schema: { "$ref": "#/components/schemas/Error" } } } },
+      "401": { description: "Unauthorized" },
+    },
+  };
+}
+
+function listAgentPermissionsSchema() {
+  return {
+    tags: ["Agents"],
+    summary: "List available agent permissions",
+    description: "Returns the list of all available permission scopes that can be granted to an agent API token. Public endpoint — no authentication required.",
+    operationId: "listAgentPermissions",
+    security: [],
+    responses: {
+      "200": { description: "Available permissions", content: { "application/json": { schema: { type: "object", properties: {
+        permissions: { type: "array", items: { type: "string" }, description: "Flat list of all available permission keys" },
+        categories: { type: "object", description: "Permissions grouped by resource category with labels and descriptions" },
+        wildcards: { type: "array", items: { type: "object", properties: { key: st(), label: st(), description: st() } } },
+        description: { type: "string" },
+      } } } } },
+    },
+  };
+}
 function deleteExternalRefSchema() { return { tags: ["External References"], summary: "Delete external reference", operationId: "deleteExternalRef", parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }], security: authRequired(), responses: { "200": { description: "Deleted" } } } };
