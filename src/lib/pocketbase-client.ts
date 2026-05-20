@@ -711,6 +711,7 @@ class PocketBaseClient {
       archive_retention_days: updates.archiveRetention,
       auto_cleanup: updates.autoCleanup,
       theme: updates.theme,
+      briefing_enabled: updates.briefingEnabled,
     };
     if (updates.setupComplete !== undefined) {
       payload.setup_complete = updates.setupComplete;
@@ -1074,6 +1075,29 @@ class PocketBaseClient {
       const data = await response.json();
       throw new Error(data.error || 'Failed to toggle token');
     }
+  }
+
+  // ─── Daily Briefing ─────────────────────────────────────────────────────
+  async getBriefing(): Promise<any> {
+    const response = await fetch('/api/todoless/briefing', {
+      headers: { Authorization: `Bearer ${pb.authStore.token}` },
+    });
+    if (!response.ok) {
+      if (response.status === 404) return null;
+      const data = await response.json();
+      throw new Error(data.error || 'Failed to fetch briefing');
+    }
+    return response.json();
+  }
+
+  async generateBriefing(): Promise<any> {
+    const response = await fetch('/api/todoless/briefing/generate', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${pb.authStore.token}` },
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to generate briefing');
+    return data;
   }
 }
 

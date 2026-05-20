@@ -179,6 +179,7 @@ export interface AppSettings {
   notificationPush?: boolean;
   taskReminders?: boolean;
   reminderMinutes?: number;
+  briefingEnabled?: boolean;
 }
 
 export interface ProgressStats {
