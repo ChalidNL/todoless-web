@@ -509,3 +509,35 @@ routerAdd('POST', '/api/todoless/api', (c) => {
     return c.json(400, { error: 'Unknown action: ' + action });
   } catch(e) { return c.json(400, { error: String(e) }); }
 });
+
+// ── Load route files from pb_hooks/routes/ ──
+// PB 0.34 only auto-loads *.pb.js from pb_hooks/ root.
+// Subdirectory route files must be explicitly required.
+require('pb_hooks/routes/openapi.js');
+require('pb_hooks/routes/docs.js');
+require('pb_hooks/routes/api-tokens.js');
+require('pb_hooks/routes/agent.js');
+require('pb_hooks/routes/agents.js');
+require('pb_hooks/routes/agent-tasks.js');
+require('pb_hooks/routes/tasks.js');
+require('pb_hooks/routes/task-actions.js');
+require('pb_hooks/routes/items.js');
+require('pb_hooks/routes/labels.js');
+require('pb_hooks/routes/shops.js');
+require('pb_hooks/routes/users.js');
+require('pb_hooks/routes/invites.js');
+require('pb_hooks/routes/invite-registration.js');
+require('pb_hooks/routes/families.js');
+require('pb_hooks/routes/notes.js');
+require('pb_hooks/routes/calendar.js');
+require('pb_hooks/routes/projects.js');
+require('pb_hooks/routes/sprints.js');
+require('pb_hooks/routes/goals.js');
+require('pb_hooks/routes/rewards.js');
+require('pb_hooks/routes/reminders.js');
+require('pb_hooks/routes/settings.js');
+require('pb_hooks/routes/shared.js');
+require('pb_hooks/routes/ai.js');
+require('pb_hooks/routes/external-references.js');
+require('pb_hooks/routes/paperless.js');
+require('pb_hooks/routes/briefing.js');

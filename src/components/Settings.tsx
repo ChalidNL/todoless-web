@@ -857,15 +857,15 @@ export const Settings = () => {
         </div>
 
 
-        {/* Integrations Section - Admin only */}
+        {/* Integration Section - Admin only */}
         {currentUser?.role === 'admin' && (
           <div className="mb-6 border-b border-neutral-200 pb-6">
             <button
               onClick={toggleIntegrationsSection}
               className="flex items-center justify-between w-full mb-3"
             >
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                Integrations
+              <h2 className="text-lg font-semibold">
+                Integration
               </h2>
               {showIntegrations ? (
                 <ChevronUp className="w-5 h-5 text-neutral-500" />
@@ -876,9 +876,9 @@ export const Settings = () => {
 
             {showIntegrations && (
               <div className="space-y-4">
-                <div className="p-4 bg-white border border-neutral-200 rounded-lg space-y-3">
-                  <h3 className="text-sm font-semibold">API Documentation</h3>
-                  <p className="text-xs text-neutral-600">Explore the API endpoints, request/response schemas, and authentication details.</p>
+                {/* API Documentation */}
+                <div>
+                  <h3 className="text-sm font-semibold mb-2">API Documentation</h3>
                   <a
                     href="/api/todoless/swagger"
                     target="_blank"
@@ -890,57 +890,32 @@ export const Settings = () => {
                   </a>
                 </div>
 
-                <div className="p-4 bg-white border border-neutral-200 rounded-lg space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Bot className="w-4 h-4 text-neutral-600" />
-                    <h3 className="text-sm font-semibold">Agent Status</h3>
-                  </div>
-                  <p className="text-xs text-neutral-600">Connect external AI agents to interact with your tasks and groceries.</p>
-                  <div className="flex items-center gap-4 text-sm">
-                    <span className="text-orange-600 font-medium">
-                      {pendingAgents.length} pending
-                    </span>
-                    <span className="text-green-600 font-medium">
-                      {approvedAgentsCount} approved
-                    </span>
-                  </div>
-                  <button
-                    onClick={toggleAgentApprovalSection}
-                    className="text-xs text-blue-600 hover:text-blue-800"
-                  >
-                    Manage agents →
-                  </button>
-                </div>
+                {/* Agent Pending Summary + API Tokens + Agents inline */}
 
-                <div className="p-4 bg-white border border-neutral-200 rounded-lg space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Plug className="w-4 h-4 text-neutral-600" />
-                    <h3 className="text-sm font-semibold">Connect External App</h3>
+                {/* Agent Status Summary */}
+                {approvedAgentsCount > 0 || pendingAgents.length > 0 ? (
+                  <div className="flex items-center gap-3 text-sm">
+                    {pendingAgents.length > 0 && (
+                      <span className="text-orange-600 font-medium">{pendingAgents.length} pending</span>
+                    )}
+                    {approvedAgentsCount > 0 && (
+                      <span className="text-green-600 font-medium">{approvedAgentsCount} approved</span>
+                    )}
                   </div>
-                  <p className="text-xs text-neutral-600">
-                    To connect an external application, create an API token with the required permissions.
-                    The app will use this token to authenticate API requests.
-                  </p>
-                  <button
-                    onClick={() => {
-                      setShowAddTokenModal(true);
-                    }}
-                    className="text-xs text-blue-600 hover:text-blue-800"
-                  >
-                    Create API token →
-                  </button>
-                </div>
+                ) : null}
 
                 {/* API Tokens */}
                 <div>
-                  <h3 className="text-sm font-semibold mb-3">API Tokens</h3>
-                  <button
-                    onClick={() => setShowAddTokenModal(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 mb-4"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Create API Token
-                  </button>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-semibold">API Tokens</h3>
+                    <button
+                      onClick={() => setShowAddTokenModal(true)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-900 text-white rounded-lg text-xs hover:bg-neutral-800"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Create
+                    </button>
+                  </div>
 
                   {/* Created token display */}
                   {createdToken && (
