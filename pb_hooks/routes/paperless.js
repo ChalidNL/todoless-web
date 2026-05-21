@@ -1,7 +1,8 @@
 // pb_hooks/routes/paperless.js
 // Paperless-ngx integration: webhook handler and task auto-creation
 //
-// Flow: Paperless scans doc -> webhook hits Todoless -> checks 'todo' tag -> creates task
+// Flow: Paperless scans doc -> webhook hits Todoless -> checks configured tag
+// (default 'todoist') + inbox exclusion -> creates task (simple or parent+subtasks).
 // Supports both webhook push (instant) and polling (fallback).
 
 // ---------------------------------------------------------------------------
@@ -70,7 +71,7 @@ routerAdd(
     }
 
     // Fetch unprocessed docs from Paperless
-    const docs = fetchPaperlessDocsWithTag(config, config.todoTag || 'todo')
+    const docs = fetchPaperlessDocsWithTag(config, config.todoTag)
 
     return c.json(200, { documents: docs })
   },
@@ -108,7 +109,7 @@ routerAdd(
 
       const tags = resp.json()
       const todoTag = (tags.results || []).find(function(t) {
-        return (t.name || '').toLowerCase() === 'todo'
+        return (t.name || '').toLowerCase() === config.todoTag.toLowerCase()
       })
 
       return c.json(200, {
@@ -144,7 +145,7 @@ routerAdd(
     const body = $request.body()
     const api_url = body.get('api_url') || ''
     const api_key = body.get('api_key') || ''
-    const todoTag = body.get('todo_tag') || 'todo'
+    const todoTag = body.get('todo_tag') || 'todoist'
     const enabled = body.get('enabled') !== 'false' && body.get('enabled') !== false
 
     if (!api_url || !api_key) {
@@ -196,7 +197,7 @@ routerAdd(
       return c.json(503, { error: 'Paperless not configured or disabled' })
     }
 
-    const docs = fetchPaperlessDocsWithTag(config, config.todoTag || 'todo')
+    const docs = fetchPaperlessDocsWithTag(config, config.todoTag)
     var results = []
 
     for (var i = 0; i < docs.length; i++) {
@@ -236,7 +237,7 @@ function getPaperlessConfig(userId) {
     record: rec,
     api_url: rec.get('api_url') || '',
     api_key: rec.get('api_key') || '',
-    todoTag: configData.todo_tag || 'todo',
+    todoTag: configData.todo_tag || 'todoist',
     enabled: rec.get('enabled') === true,
   }
 }
@@ -248,7 +249,7 @@ function paperlessConfigToJSON(rec) {
 
   return {
     api_url: rec.get('api_url'),
-    todo_tag: configData.todo_tag || 'todo',
+    todo_tag: configData.todo_tag || 'todoist',
     enabled: rec.get('enabled'),
     last_sync: rec.get('last_sync'),
   }
@@ -378,7 +379,7 @@ function processPaperlessDocument(docId) {
   var config = {
     api_url: configRec.get('api_url'),
     api_key: configRec.get('api_key'),
-    todoTag: configData.todo_tag || 'todo',
+    todoTag: configData.todo_tag || 'todoist',
     userId: configRec.get('user'),
   }
 
@@ -400,37 +401,45 @@ function processPaperlessDocument(docId) {
   var docTitle = doc.title || 'Untitled'
   var docTags = doc.tags || []
 
-  // Check if document has the todo tag
-  var hasTodoTag = false
-  var tagIdsToCheck = []
+  // Resolve document tag names into an array for checking
+  var resolvedTagNames = []
 
-  // If tags are IDs, fetch tag details to check names
   if (docTags.length > 0 && typeof docTags[0] === 'number') {
-    // Tags are stored as IDs — need to check if any match the todo tag
+    // Tags are IDs — fetch tag details to resolve names
     var tagResp = paperlessFetch(config, '/tags/?id__in=' + docTags.join(','))
     if (tagResp.statusCode === 200) {
       var tagData = tagResp.json()
       var tagResults = tagData.results || []
       for (var i = 0; i < tagResults.length; i++) {
-        if ((tagResults[i].name || '').toLowerCase() === config.todoTag.toLowerCase()) {
-          hasTodoTag = true
-          break
+        if (tagResults[i].name) {
+          resolvedTagNames.push(tagResults[i].name.toLowerCase())
         }
       }
     }
   } else if (docTags.length > 0 && typeof docTags[0] === 'object') {
     // Tags are objects with name property
     for (var j = 0; j < docTags.length; j++) {
-      if ((docTags[j].name || '').toLowerCase() === config.todoTag.toLowerCase()) {
-        hasTodoTag = true
-        break
+      if (docTags[j].name) {
+        resolvedTagNames.push(docTags[j].name.toLowerCase())
       }
     }
   }
 
+  // Check if document has the configured trigger tag
+  var hasTodoTag = resolvedTagNames.indexOf(config.todoTag.toLowerCase()) !== -1
+
   if (!hasTodoTag) {
-    recordProcessed(docId, docTitle, null, 'skipped', 'No todo tag', config.userId)
-    return { skipped: true, document_id: docId, title: docTitle, reason: 'No todo tag found' }
+    recordProcessed(docId, docTitle, null, 'skipped', 'No ' + config.todoTag + ' tag', config.userId)
+    return { skipped: true, document_id: docId, title: docTitle, reason: 'No ' + config.todoTag + ' tag found' }
+  }
+
+  // When using 'todoist' tag, also ensure document doesn't have 'inbox' tag
+  if (config.todoTag.toLowerCase() === 'todoist') {
+    var hasInboxTag = resolvedTagNames.indexOf('inbox') !== -1
+    if (hasInboxTag) {
+      recordProcessed(docId, docTitle, null, 'skipped', 'Has inbox tag', config.userId)
+      return { skipped: true, document_id: docId, title: docTitle, reason: 'Has inbox tag, skipping' }
+    }
   }
 
   // Create task in Todoless
@@ -438,34 +447,91 @@ function processPaperlessDocument(docId) {
   var taskRecord = new Record(taskCollection)
   var taskForm = new RecordUpsertAction($app, taskRecord)
 
-  var taskTitle = docTitle
-  // Extract text content snippet if available
-  var content = doc.content || ''
-  if (content && content.length > 200) {
-    content = content.substring(0, 200) + '...'
-  }
+  if (config.todoTag.toLowerCase() === 'todoist') {
+    // 'todoist' mode: create parent task with 3 subtasks
+    var parentTitle = 'Document: ' + docTitle
 
-  taskForm.set('title', taskTitle)
-  taskForm.set('status', 'todo')
-  taskForm.set('blocked', false)
-  taskForm.set('labels', ['paperless', 'scan'])
-  taskForm.set('is_private', false)
-  taskForm.set('archived', false)
-  taskForm.set('user', config.userId)
-  taskForm.submit()
+    taskForm.set('title', parentTitle)
+    taskForm.set('status', 'todo')
+    taskForm.set('blocked', false)
+    taskForm.set('labels', ['paperless', 'scan'])
+    taskForm.set('is_private', false)
+    taskForm.set('archived', false)
+    taskForm.set('user', config.userId)
+    taskForm.submit()
 
-  // Update integration last_sync timestamp
-  configRec.set('last_sync', $now)
-  $app.dao().saveRecord(configRec)
+    // Create 3 subtasks
+    var subtaskTitles = [
+      'Controleren',
+      'Verwerken / actie ondernemen',
+      'Archiveren',
+    ]
+    var subtaskIds = []
 
-  // Track as synced — creates both paperless_sync and external_references records
-  recordProcessed(docId, docTitle, taskRecord.id, 'synced', null, config.userId)
+    for (var si = 0; si < subtaskTitles.length; si++) {
+      var subRecord = new Record(taskCollection)
+      var subForm = new RecordUpsertAction($app, subRecord)
+      subForm.set('title', subtaskTitles[si])
+      subForm.set('status', 'todo')
+      subForm.set('blocked', false)
+      subForm.set('labels', ['paperless', 'scan'])
+      subForm.set('is_private', false)
+      subForm.set('archived', false)
+      subForm.set('user', config.userId)
+      subForm.submit()
+      subtaskIds.push(subRecord.id)
+    }
 
-  return {
-    created: true,
-    task_id: taskRecord.id,
-    task_title: taskRecord.get('title'),
-    document_id: docId,
-    paperless_title: docTitle,
+    // Attach subtasks to parent via subtask_ids JSON field
+    taskRecord.set('subtask_ids', subtaskIds)
+    $app.dao().saveRecord(taskRecord)
+
+    // Update integration last_sync timestamp
+    configRec.set('last_sync', $now)
+    $app.dao().saveRecord(configRec)
+
+    // Track as synced
+    recordProcessed(docId, docTitle, taskRecord.id, 'synced', null, config.userId)
+
+    return {
+      created: true,
+      task_id: taskRecord.id,
+      task_title: taskRecord.get('title'),
+      document_id: docId,
+      paperless_title: docTitle,
+      subtasks: subtaskIds,
+    }
+  } else {
+    // Legacy 'todo' tag mode — create simple task
+    var taskTitle = docTitle
+    // Extract text content snippet if available
+    var content = doc.content || ''
+    if (content && content.length > 200) {
+      content = content.substring(0, 200) + '...'
+    }
+
+    taskForm.set('title', taskTitle)
+    taskForm.set('status', 'todo')
+    taskForm.set('blocked', false)
+    taskForm.set('labels', ['paperless', 'scan'])
+    taskForm.set('is_private', false)
+    taskForm.set('archived', false)
+    taskForm.set('user', config.userId)
+    taskForm.submit()
+
+    // Update integration last_sync timestamp
+    configRec.set('last_sync', $now)
+    $app.dao().saveRecord(configRec)
+
+    // Track as synced — creates both paperless_sync and external_references records
+    recordProcessed(docId, docTitle, taskRecord.id, 'synced', null, config.userId)
+
+    return {
+      created: true,
+      task_id: taskRecord.id,
+      task_title: taskRecord.get('title'),
+      document_id: docId,
+      paperless_title: docTitle,
+    }
   }
 }
