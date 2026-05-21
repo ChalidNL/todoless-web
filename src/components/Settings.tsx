@@ -517,7 +517,7 @@ export const Settings = () => {
                     Role: {currentUser.role || 'user'}
                   </p>
                 </div>
-
+              </div>
 
               {/* Password Change */}
               <div>
