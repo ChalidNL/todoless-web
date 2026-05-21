@@ -122,7 +122,7 @@ routerAdd('POST', '/api/todoless/agent/token', function(c) {
   } catch (e) {
     return c.json(500, { error: String(e) });
   }
-}, $apis.requireRecordAuth());
+});
 
 // ─── GET /api/todoless/agent/permissions ───────────────────────────────────
 // Returns the list of available permission scopes for agents.

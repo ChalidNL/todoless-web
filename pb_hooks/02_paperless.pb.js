@@ -60,12 +60,11 @@ routerAdd(
   'GET',
   '/api/integrations/paperless/poll',
   (c) => {
-    const authRecord = c.get('authRecord')
-    if (!authRecord) {
-      return c.json(401, { error: 'Unauthorized' })
-    }
+    var info = c.requestInfo();
+    var auth = info && info.auth ? info.auth : null;
+    if (!auth) return c.json(401, { error: 'Unauthorized' });
 
-    const config = getPaperlessConfig(authRecord.id)
+    const config = getPaperlessConfig(auth.id)
     if (!config || !config.enabled) {
       return c.json(503, { error: 'Paperless not configured or disabled' })
     }
@@ -74,8 +73,7 @@ routerAdd(
     const docs = fetchPaperlessDocsWithTag(config, config.todoTag)
 
     return c.json(200, { documents: docs })
-  },
-  $apis.requireRecordAuth('users')
+  }
 )
 
 // ---------------------------------------------------------------------------
@@ -86,12 +84,11 @@ routerAdd(
   'GET',
   '/api/integrations/paperless/test',
   (c) => {
-    const authRecord = c.get('authRecord')
-    if (!authRecord) {
-      return c.json(401, { error: 'Unauthorized' })
-    }
+    var info = c.requestInfo();
+    var auth = info && info.auth ? info.auth : null;
+    if (!auth) return c.json(401, { error: 'Unauthorized' });
 
-    const config = getPaperlessConfig(authRecord.id)
+    const config = getPaperlessConfig(auth.id)
     if (!config) {
       return c.json(503, { error: 'Paperless not configured', configured: false })
     }
@@ -125,8 +122,7 @@ routerAdd(
         configured: true,
       })
     }
-  },
-  $apis.requireRecordAuth('users')
+  }
 )
 
 // ---------------------------------------------------------------------------
@@ -137,10 +133,9 @@ routerAdd(
   'POST',
   '/api/integrations/paperless/config',
   (c) => {
-    const authRecord = c.get('authRecord')
-    if (!authRecord) {
-      return c.json(401, { error: 'Unauthorized' })
-    }
+    var info = c.requestInfo();
+    var auth = info && info.auth ? info.auth : null;
+    if (!auth) return c.json(401, { error: 'Unauthorized' });
 
     const body = $request.body()
     const api_url = body.get('api_url') || ''
@@ -152,7 +147,7 @@ routerAdd(
       return c.json(400, { error: 'api_url and api_key are required' })
     }
 
-    const existing = getPaperlessConfig(authRecord.id)
+    const existing = getPaperlessConfig(auth.id)
 
     if (existing) {
       existing.set('api_url', api_url)
@@ -171,12 +166,11 @@ routerAdd(
     form.set('api_key', api_key)
     form.set('config_data', { todo_tag: todoTag, enabled: enabled })
     form.set('enabled', enabled)
-    form.set('user', authRecord.id)
+    form.set('user', auth.id)
     form.submit()
 
     return c.json(201, { message: 'Created', config: paperlessConfigToJSON(record) })
-  },
-  $apis.requireRecordAuth('users')
+  }
 )
 
 // ---------------------------------------------------------------------------
@@ -187,12 +181,11 @@ routerAdd(
   'POST',
   '/api/integrations/paperless/sync',
   (c) => {
-    const authRecord = c.get('authRecord')
-    if (!authRecord) {
-      return c.json(401, { error: 'Unauthorized' })
-    }
+    var info = c.requestInfo();
+    var auth = info && info.auth ? info.auth : null;
+    if (!auth) return c.json(401, { error: 'Unauthorized' });
 
-    const config = getPaperlessConfig(authRecord.id)
+    const config = getPaperlessConfig(auth.id)
     if (!config || !config.enabled) {
       return c.json(503, { error: 'Paperless not configured or disabled' })
     }
@@ -207,8 +200,7 @@ routerAdd(
     }
 
     return c.json(200, { synced: results.length, results: results })
-  },
-  $apis.requireRecordAuth('users')
+  }
 )
 
 // ===================================================================

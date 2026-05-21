@@ -156,7 +156,7 @@ routerAdd('POST', '/api/todoless/agent/keys', function(c) {
   } catch (e) {
     return c.json(500, { error: String(e) });
   }
-}, $apis.requireRecordAuth());
+});
 
 // List API keys: GET /api/todoless/agent/keys
 routerAdd('GET', '/api/todoless/agent/keys', function(c) {
@@ -193,7 +193,7 @@ routerAdd('GET', '/api/todoless/agent/keys', function(c) {
   } catch (e) {
     return c.json(500, { error: String(e) });
   }
-}, $apis.requireRecordAuth());
+});
 
 // Revoke an API key: POST /api/todoless/agent/keys/:id/revoke
 routerAdd('POST', '/api/todoless/agent/keys/:id/revoke', function(c) {
@@ -221,7 +221,7 @@ routerAdd('POST', '/api/todoless/agent/keys/:id/revoke', function(c) {
   } catch (e) {
     return c.json(500, { error: String(e) });
   }
-}, $apis.requireRecordAuth());
+});
 
 // ─── Agent Dispatch: POST /api/todoless/agent/dispatch ──────────────────────
 // Authenticated by agent API key in Authorization header
@@ -693,4 +693,4 @@ routerAdd('GET', '/api/todoless/agent/audit-log', function(c) {
   } catch (e) {
     return c.json(500, { error: String(e) });
   }
-}, $apis.requireRecordAuth());
+});
