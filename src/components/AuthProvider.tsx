@@ -88,7 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, password: string, firstName: string, lastName: string, inviteCode: string) => {
     try {
-      const data = await api.register(email, password, (firstName + ' ' + lastName).trim(), inviteCode, 'family_member', firstName, lastName);
+      const data = await api.register(email, password, (firstName + ' ' + lastName).trim(), inviteCode, 'family_member');
       setUser(data.user);
       return { error: null, user: data.user };
     } catch (error) {

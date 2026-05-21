@@ -6,7 +6,7 @@ import { TopBar } from './shared/TopBar';
 import { Inbox, Clock, AlertTriangle, X as XIcon, Save } from 'lucide-react';
 
 export const InboxBacklog = () => {
-  const { tasks, addTask, activeChipFilters, toggleChipFilter, clearChipFilters } = useApp();
+  const { tasks, addTask, activeChipFilters, toggleChipFilter, clearChipFilters, showCompletionMessage } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
 
   // Derive counts
