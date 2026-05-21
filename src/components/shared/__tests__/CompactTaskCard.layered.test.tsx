@@ -109,38 +109,74 @@ describe('CompactTaskCard compact layout (GroceryCard style)', () => {
     expect(screen.getByLabelText('Toggle flag')).toBeTruthy();
   });
 
-  // When hamburger is CLOSED, clicking chip opens the editor
-  it('opens label editor when label chip is clicked (hamburger closed)', () => {
+  // When hamburger is CLOSED, clicking chip applies filter (not opens editor)
+  it('applies label filter when label chip is clicked (hamburger closed)', () => {
+    const mockToggleChipFilter = vi.fn();
+    (useApp as any).mockReturnValue({
+      updateTask: mockUpdateTask,
+      deleteTask: mockDeleteTask,
+      addLabel: vi.fn(() => ({ id: 'new-label', name: 'new', color: '#3b82f6' })),
+      labels: [{ id: 'l1', name: 'home', color: '#3b82f6' }],
+      users: [{ id: 'u1', firstName: 'Chalid', role: 'admin' }],
+      toggleChipFilter: mockToggleChipFilter,
+      isChipFilterActive: vi.fn(() => false),
+      clearChipFilters: vi.fn(),
+      activeChipFilters: [],
+    });
     const withLabels = { ...baseTask, labels: ['l1'] };
     render(<CompactTaskCard task={withLabels as any} />);
 
     fireEvent.click(screen.getByText('home'));
-    expect(screen.getByLabelText('Label input')).toBeTruthy();
+    expect(mockToggleChipFilter).toHaveBeenCalledWith('label', 'l1', 'home', '#3b82f6');
   });
 
-  it('opens assignee editor when assignee chip is clicked', () => {
+  it('applies assignee filter when assignee chip is clicked', () => {
+    const mockToggleChipFilter = vi.fn();
+    (useApp as any).mockReturnValue({
+      updateTask: mockUpdateTask,
+      deleteTask: mockDeleteTask,
+      labels: [],
+      users: [{ id: 'u1', firstName: 'Chalid', role: 'admin' }],
+      toggleChipFilter: mockToggleChipFilter,
+      isChipFilterActive: vi.fn(() => false),
+      clearChipFilters: vi.fn(),
+      activeChipFilters: [],
+    });
     const withAssignee = { ...baseTask, assignedTo: 'u1' };
     render(<CompactTaskCard task={withAssignee as any} />);
 
     fireEvent.click(screen.getByText('Chalid'));
-    expect(screen.getByLabelText('Search assignee')).toBeTruthy();
+    expect(mockToggleChipFilter).toHaveBeenCalledWith('assignee', 'u1', 'Chalid', '#10b981');
   });
 
-  it('opens schedule editor when date chip is clicked', () => {
+  it('applies date filter when date chip is clicked', () => {
+    const mockToggleChipFilter = vi.fn();
+    (useApp as any).mockReturnValue({
+      updateTask: mockUpdateTask,
+      deleteTask: mockDeleteTask,
+      labels: [],
+      users: [],
+      toggleChipFilter: mockToggleChipFilter,
+      isChipFilterActive: vi.fn(() => false),
+      clearChipFilters: vi.fn(),
+      activeChipFilters: [],
+    });
     const withDate = { ...baseTask, dueDate: new Date('2026-06-01').getTime() };
     render(<CompactTaskCard task={withDate as any} />);
 
     // Click the date chip (e.g. "jun 1")
     fireEvent.click(screen.getByText(/jun/i));
-    expect(screen.getByLabelText('Due date')).toBeTruthy();
+    const dateStr = new Date('2026-06-01').toLocaleDateString('nl-NL', { month: 'short', day: 'numeric' });
+    expect(mockToggleChipFilter).toHaveBeenCalledWith('date', dateStr);
   });
 
-  it('opens schedule editor when repeat chip is clicked', () => {
+  it('removes schedule when repeat chip is clicked in edit mode', () => {
     const withRepeat = { ...baseTask, repeatInterval: 'week' as const, dueDate: Date.now() };
     render(<CompactTaskCard task={withRepeat as any} />);
-
+    // Open hamburger first — chips now show remove behavior in edit mode
+    fireEvent.click(screen.getByLabelText('Open task attributes'));
     fireEvent.click(screen.getByText('Weekly'));
-    expect(screen.getByLabelText('Due date')).toBeTruthy();
+    expect(mockUpdateTask).toHaveBeenCalledWith('task-1', { dueDate: null, repeatInterval: null });
   });
 
   it('shows clear labels button when labels exist', () => {
