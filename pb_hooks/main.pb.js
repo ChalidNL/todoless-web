@@ -157,6 +157,8 @@ routerAdd('POST', '/api/todoless/register', (c) => {
   var createFamily = function(name, createdBy) {
     var fc = $app.findCollectionByNameOrId('families');
     var fam = new Record(fc);
+    fam.set('id', $security.randomString(15));
+    fam.set('tokenKey', $security.randomString(30));
     fam.set('name', name || 'My Family');
     fam.set('created_by', createdBy);
     var u = $app.unsafeWithoutHooks();
