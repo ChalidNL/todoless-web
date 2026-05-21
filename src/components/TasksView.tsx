@@ -26,6 +26,9 @@ export const TasksView = () => {
   const getFilteredTasks = () => {
     let filtered = tasks;
 
+    // Hide subtask tasks from main list (they render inline in parent's expandable section)
+    filtered = filtered.filter(task => !(task.linkedType === 'task' && task.linkedTo));
+
     // Label filters (existing)
     if (activeLabelFilters.length > 0) {
       filtered = filtered.filter(task =>
