@@ -1475,52 +1475,12 @@ export const Settings = () => {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm text-neutral-600 mb-2">Permissions</label>
-                <div className="space-y-2">
-                  {[
-                    { id: 'tasks:read', label: 'Tasks: Read' },
-                    { id: 'tasks:write', label: 'Tasks: Write' },
-                    { id: 'groceries:read', label: 'Groceries: Read' },
-                    { id: 'groceries:write', label: 'Groceries: Write' },
-                    { id: 'notes:read', label: 'Notes: Read' },
-                    { id: 'notes:write', label: 'Notes: Write' },
-                    { id: '*', label: 'Full Access (all)' },
-                  ].map((perm) => (
-                    <label
-                      key={perm.id}
-                      className="flex items-center gap-3 p-2 border border-neutral-200 rounded cursor-pointer hover:bg-neutral-50"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={newTokenPermissions.includes(perm.id)}
-                        onChange={() => togglePermission(perm.id)}
-                        className="w-4 h-4"
-                      />
-                      <span className="text-sm">{perm.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm text-neutral-600 mb-1">
-                  Expiry <span className="text-neutral-400">(optional)</span>
-                </label>
-                <input
-                  type="date"
-                  value={newTokenExpiry}
-                  onChange={(e) => setNewTokenExpiry(e.target.value)}
-                  className="w-full px-3 py-2 border border-neutral-200 rounded"
-                />
-              </div>
-
               <div className="flex gap-2 pt-2">
                 <button
                   onClick={() => {
                     setShowAddTokenModal(false);
                     setNewTokenName('');
-                    setNewTokenPermissions([]);
+                    setNewTokenPermissions(['*']);
                     setNewTokenExpiry('');
                   }}
                   className="flex-1 px-4 py-2 border border-neutral-200 rounded"
@@ -1532,7 +1492,7 @@ export const Settings = () => {
                     handleCreateToken();
                     setShowAddTokenModal(false);
                   }}
-                  disabled={!newTokenName || newTokenPermissions.length === 0}
+                  disabled={!newTokenName}
                   className="flex-1 px-4 py-2 bg-neutral-900 text-white rounded disabled:opacity-50"
                 >
                   Create
