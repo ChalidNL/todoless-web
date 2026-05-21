@@ -11,7 +11,7 @@ interface CompactItemCardProps {
 }
 
 export const CompactItemCard = ({ item }: CompactItemCardProps) => {
-  const { updateItem, deleteItem, convertItemToTask, shops, createShop, users } = useApp();
+  const { updateItem, deleteItem, convertItemToTask, shops, createShop, users, toggleChipFilter, isChipFilterActive } = useApp();
   const [showMenu, setShowMenu] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showActions, setShowActions] = useState(false);
@@ -117,13 +117,13 @@ export const CompactItemCard = ({ item }: CompactItemCardProps) => {
                 <AttributeChip icon={<User className="w-3.5 h-3.5" />} label={users.find(u => u.id === item.createdBy)?.firstName || 'Unknown'} color={entityColor(item.createdBy)} />
               )}
               {item.assignedTo && item.assignedTo !== item.createdBy && (
-                <AttributeChip icon={<User className="w-3.5 h-3.5" />} label={users.find(u => u.id === item.assignedTo)?.firstName || 'Unknown'} color={entityColor(item.assignedTo)} />
+                <AttributeChip icon={<User className="w-3.5 h-3.5" />} label={users.find(u => u.id === item.assignedTo)?.firstName || 'Unknown'} color={entityColor(item.assignedTo)} onClick={() => toggleChipFilter('assignee', item.assignedTo!, users.find(u => u.id === item.assignedTo)?.firstName || '', entityColor(item.assignedTo!))} active={isChipFilterActive('assignee', item.assignedTo!)} />
               )}
               {currentShop && (
-                <AttributeChip icon={<ShoppingCart className="w-3.5 h-3.5" />} label={currentShop.name} color={currentShop.color} />
+                <AttributeChip icon={<ShoppingCart className="w-3.5 h-3.5" />} label={currentShop.name} color={currentShop.color} onClick={() => toggleChipFilter('shop', currentShop.id, currentShop.name, currentShop.color)} active={isChipFilterActive('shop', currentShop.id)} />
               )}
               {item.dueDate && (
-                <AttributeChip icon={<CalendarDays className="w-3.5 h-3.5" />} label={new Date(item.dueDate).toLocaleDateString('nl-NL', { month: 'short', day: 'numeric' })} color="#6b7280" />
+                <AttributeChip icon={<CalendarDays className="w-3.5 h-3.5" />} label={new Date(item.dueDate).toLocaleDateString('nl-NL', { month: 'short', day: 'numeric' })} color="#6b7280" onClick={() => { const ds = new Date(item.dueDate!).toLocaleDateString('nl-NL', { month: 'short', day: 'numeric' }); toggleChipFilter('date', ds); }} active={isChipFilterActive('date', new Date(item.dueDate!).toLocaleDateString('nl-NL', { month: 'short', day: 'numeric' }))} />
               )}
               {item.isPrivate && (
                 <Lock className="w-3 h-3 text-purple-400" />

@@ -18,7 +18,14 @@ routerAdd(
       return c.json(404, { 'error': 'Task not found' })
     }
 
-    if (record.get('user') !== authRecord.id) {
+    const recordUserId = String(record.get('user') || '')
+    const authFamilyId = authRecord.get('family_id')
+    const recordFamilyId = record.get('family_id')
+    const isFamilyMember = recordFamilyId && authFamilyId && String(recordFamilyId) === String(authFamilyId)
+    const isPrivate = record.get('is_private') === true
+
+    // Allow owner or family members (only non-private)
+    if (recordUserId !== authRecord.id && (isPrivate || !isFamilyMember)) {
       return c.json(403, { 'error': 'Forbidden' })
     }
 
@@ -97,7 +104,14 @@ routerAdd(
       return c.json(404, { 'error': 'Task not found' })
     }
 
-    if (task.get('user') !== authRecord.id) {
+    const recordUserId = String(task.get('user') || '')
+    const authFamilyId = authRecord.get('family_id')
+    const recordFamilyId = task.get('family_id')
+    const isFamilyMember = recordFamilyId && authFamilyId && String(recordFamilyId) === String(authFamilyId)
+    const isPrivate = task.get('is_private') === true
+
+    // Allow owner or family members (only non-private)
+    if (recordUserId !== authRecord.id && (isPrivate || !isFamilyMember)) {
       return c.json(403, { 'error': 'Forbidden' })
     }
 
@@ -140,7 +154,14 @@ routerAdd(
       return c.json(404, { 'error': 'Item not found' })
     }
 
-    if (item.get('user') !== authRecord.id) {
+    const recordUserId = String(item.get('user') || '')
+    const authFamilyId = authRecord.get('family_id')
+    const recordFamilyId = item.get('family_id')
+    const isFamilyMember = recordFamilyId && authFamilyId && String(recordFamilyId) === String(authFamilyId)
+    const isPrivate = item.get('is_private') === true
+
+    // Allow owner or family members (only non-private)
+    if (recordUserId !== authRecord.id && (isPrivate || !isFamilyMember)) {
       return c.json(403, { 'error': 'Forbidden' })
     }
 
@@ -239,7 +260,14 @@ routerAdd(
       return c.json(404, { 'error': 'Task not found' })
     }
 
-    if (record.get('user') !== authRecord.id) {
+    const recordUserId = String(record.get('user') || '')
+    const authFamilyId = authRecord.get('family_id')
+    const recordFamilyId = record.get('family_id')
+    const isFamilyMember = recordFamilyId && authFamilyId && String(recordFamilyId) === String(authFamilyId)
+    const isPrivate = record.get('is_private') === true
+
+    // Allow owner or family members (only non-private)
+    if (recordUserId !== authRecord.id && (isPrivate || !isFamilyMember)) {
       return c.json(403, { 'error': 'Forbidden' })
     }
 
