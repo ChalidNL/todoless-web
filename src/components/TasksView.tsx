@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { ChevronDown, ChevronUp, RotateCcw, CheckSquare, X as XIcon, Save } from 'lucide-react';
+import { ChevronDown, ChevronUp, RotateCcw, CheckSquare, X as XIcon, Save, AlertTriangle } from 'lucide-react';
 import { CompactTaskCard } from './shared/CompactTaskCard';
 import { NewGlobalHeader } from './shared/NewGlobalHeader';
 import { TopBar } from './shared/TopBar';
@@ -75,8 +75,9 @@ export const TasksView = () => {
 
   const filteredTasks = getFilteredTasks();
 
-  // Separate active and checked out tasks
-  const activeTasks = filteredTasks.filter(task => task.status !== 'done');
+  // Separate into sections: active (todo, not blocked), blocked, checked out
+  const activeTasks = filteredTasks.filter(task => task.status === 'todo' && !task.blocked);
+  const blockedTasks = filteredTasks.filter(task => task.status === 'todo' && task.blocked);
   const checkedOutTasks = filteredTasks.filter(task => task.status === 'done');
 
   // Sort active tasks by priority, then alphabetically by title
@@ -174,6 +175,23 @@ export const TasksView = () => {
             </div>
           )}
         </div>
+
+        {/* Blocked Tasks */}
+        {blockedTasks.length > 0 && (
+          <div className="border-t border-neutral-200 pt-4">
+            <div className="flex items-center justify-between mb-3 px-1">
+              <h2 className="text-sm font-semibold text-neutral-600 flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4 text-red-500" />
+                Blocked ({blockedTasks.length})
+              </h2>
+            </div>
+            <div className="space-y-2">
+              {blockedTasks.map((task) => (
+                <CompactTaskCard key={task.id} task={task} showCheckbox={true} />
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Checked Out Tasks */}
         {checkedOutTasks.length > 0 && (
