@@ -54,7 +54,7 @@ export const GroceriesView = () => {
   const hasAnyFilter = activeChipFilters.length > 0;
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex-1 min-h-0 flex flex-col">
       <div className="flex-shrink-0">
         <NewGlobalHeader
           onSearch={setSearchQuery}

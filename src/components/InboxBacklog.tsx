@@ -141,7 +141,7 @@ export const InboxBacklog = () => {
   };
 
   return (
-    <div className="h-full flex flex-col bg-neutral-50">
+    <div className="flex-1 min-h-0 flex flex-col bg-neutral-50">
       <div className="flex-shrink-0">
         <NewGlobalHeader
           onAdd={handleAddTaskWithValue}
