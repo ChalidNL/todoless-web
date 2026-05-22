@@ -249,8 +249,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
             </button>
           </div>
 
-          {/* Line 2: chips — labels, assignee, date, repeat, subtasks (always visible, filter on click when menu closed) */}
-          {!isDone && (hasLabels || assignedUser || (dateStr && !isDone) || (repeatLabel && !isDone) || subtaskCount > 0) && (
+          {/* Line 2: chips — labels, assignee, date, repeat, subtasks (always visible) */}
+          {!isDone && (hasLabels || assignedUser || (dateStr && !isDone) || (repeatLabel && !isDone) || true) && (
             <div className="flex flex-wrap items-center gap-1 mt-1.5 ml-0.5">
               {task.labels.map((labelId) => {
                 const label = labels.find((l) => l.id === labelId);
@@ -292,7 +292,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                   onClick={showMenu ? clearAllSchedule : undefined}
                 />
               )}
-              {subtaskCount > 0 && (
+              {true && ( // subtask chip always visible
                 <AttributeChip
                   icon={<ListChecks className="w-3.5 h-3.5" />}
                   label={`${subtaskCount}`}

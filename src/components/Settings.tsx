@@ -688,6 +688,14 @@ export const Settings = () => {
               )}
 
               <h3 className="text-sm font-semibold mb-3">Team Members</h3>
+
+              {/* Admin max-1 warning */}
+              {users.filter(u => u.role === 'admin').length > 1 && currentUser?.role === 'admin' && (
+                <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+                  ⚠️ Er zijn {users.filter(u => u.role === 'admin').length} admins. Maximaal 1 admin toegestaan. Demote de extra admins naar user.
+                </div>
+              )}
+
               <div className="space-y-3">
                 {users.map(user => (
                   <div key={user.id} className="p-3 border border-neutral-200 rounded">
@@ -727,6 +735,23 @@ export const Settings = () => {
                           className="text-xs px-2 py-1 rounded border border-red-200 text-red-600 hover:bg-red-50"
                         >
                           Delete
+                        </button>
+                      </div>
+                    )}
+                    {currentUser?.role === 'admin' && currentUser.id !== user.id && user.role === 'admin' && users.filter(u => u.role === 'admin').length > 1 && (
+                      <div className="mt-2">
+                        <button
+                          onClick={async () => {
+                            try {
+                              await updateUser(user.id, { role: 'user' });
+                              showCompletionMessage(`${user.name} gedemote naar user`);
+                            } catch (e: any) {
+                              showCompletionMessage(String(e.message || e));
+                            }
+                          }}
+                          className="text-xs px-2 py-1 rounded border border-orange-200 text-orange-600 hover:bg-orange-50"
+                        >
+                          Demote to user
                         </button>
                       </div>
                     )}

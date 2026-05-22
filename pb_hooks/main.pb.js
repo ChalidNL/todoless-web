@@ -504,6 +504,43 @@ routerAdd('POST', '/api/todoless/api', (c) => {
       return c.json(200,{labels:labels,shops:shops,users:users});
     }
 
+    // ── Admin: set_role (max 1 admin) ──
+    if (action === 'set_role') {
+      if (!auth) return c.json(401, { error: 'Unauthorized' });
+      if (String(auth.get('role') || '') !== 'admin') return c.json(403, { error: 'Admin only' });
+      var targetId = String(gv(d, 'user_id', '')).trim();
+      var newRole = String(gv(d, 'role', '')).trim();
+      if (!targetId || !newRole) return c.json(400, { error: 'user_id and role required' });
+      if (['admin','user','child','assistant'].indexOf(newRole) === -1) return c.json(400, { error: 'Invalid role' });
+
+      // Max 1 admin: demote current admin before promoting another
+      if (newRole === 'admin') {
+        var existingAdmins = $app.findRecordsByFilter('users', 'role = "admin"', '', 0, 0);
+        var filtered = [];
+        for (var i = 0; i < existingAdmins.length; i++) {
+          if (existingAdmins[i].id !== targetId) filtered.push(existingAdmins[i]);
+        }
+        if (filtered.length > 0) return c.json(400, { error: 'There can be only one admin. Demote the current admin first.' });
+      }
+
+      // Prevent current user from demoting themselves from admin if no other admin exists
+      if (newRole !== 'admin' && auth.id === targetId) {
+        var remainingAdmins = $app.findRecordsByFilter('users', 'role = "admin"', '', 0, 0);
+        var otherAdmins = [];
+        for (var i = 0; i < remainingAdmins.length; i++) {
+          if (remainingAdmins[i].id !== targetId) otherAdmins.push(remainingAdmins[i]);
+        }
+        if (otherAdmins.length === 0) return c.json(400, { error: 'You are the only admin. Promote someone else first.' });
+      }
+
+      var target = $app.findRecordById('users', targetId);
+      if (!target) return c.json(404, { error: 'User not found' });
+      var u = $app.unsafeWithoutHooks();
+      target.set('role', newRole);
+      u.save(target);
+      return c.json(200, { success: true, user_id: targetId, role: newRole });
+    }
+
     return c.json(400, { error: 'Unknown action: ' + action });
   } catch(e) { return c.json(400, { error: String(e) }); }
 });
