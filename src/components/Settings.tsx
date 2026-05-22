@@ -884,8 +884,7 @@ export const Settings = () => {
         </div>
 
 
-        {/* Integration Section - Admin only */}
-        {currentUser?.role === 'admin' && (
+        {/* Integration Section */}
           <div className="mb-6 border-b border-neutral-200 pb-6">
             <button
               onClick={toggleIntegrationsSection}
@@ -1015,7 +1014,7 @@ export const Settings = () => {
                   )}
                 </div>
 
-                {/* Agent Approval */}
+                {currentUser?.role === 'admin' && (
                 <div>
                   <h3 className="text-sm font-semibold mb-3">Agent Approval</h3>
                   {loadingAgents ? (
@@ -1101,8 +1100,8 @@ export const Settings = () => {
                     </div>
                   )}
                 </div>
-
-                {/* Agents */}
+              )}
+                {currentUser?.role === 'admin' && (
                 <div>
                   <h3 className="text-sm font-semibold mb-3">Agents</h3>
                   {loadingAllAgents ? (
@@ -1163,13 +1162,12 @@ export const Settings = () => {
                     </div>
                   )}
                 </div>
+              )}{/* end admin */}
               </div>
             )}
           </div>
-        )}
 
-
-
+        {/* App Info */}
         <div className="bg-white rounded-lg border border-neutral-200 p-4 space-y-2" data-testid="app-info">
           <div className="flex items-center justify-between gap-3">
             <h3 className="text-sm font-semibold text-neutral-900">App Info</h3>
