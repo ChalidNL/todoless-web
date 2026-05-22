@@ -29,6 +29,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
   const [titleDraft, setTitleDraft] = useState('');
   const [shopInput, setShopInput] = useState('');
   const [subtaskTitle, setSubtaskTitle] = useState('');
+  const [subtaskPanelOpen, setSubtaskPanelOpen] = useState(false);
 
   // Edit mode inactivity timeout (60s)
   const lastInteractionRef = useRef(Date.now());
@@ -257,8 +258,8 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
           </div>
         )}
 
-        {/* Subtasks section + add input (tasks only) — visible in edit mode */}
-        {isTask && showMenu && (
+        {/* Subtasks section + add input (tasks only) */}
+        {isTask && subtaskPanelOpen && (
           <div className="mt-2 pt-2 border-t border-neutral-100 space-y-1.5">
             <div className="px-1">
               <span className="text-xs font-medium text-neutral-500">Subtasks ({subtaskCount})</span>
@@ -300,6 +301,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                     try {
                       await api.createSubtask(title, task!.id);
                       setSubtaskTitle('');
+                      setSubtaskPanelOpen(true);
                       await refreshEntries();
                       showCompletionMessage('Subtask added');
                     } catch (err: any) {
@@ -318,6 +320,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                   try {
                     await api.createSubtask(title, task!.id);
                     setSubtaskTitle('');
+                    setSubtaskPanelOpen(true);
                     await refreshEntries();
                     showCompletionMessage('Subtask added');
                   } catch (err: any) {
@@ -366,6 +369,20 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                   aria-label="Edit schedule"
                 >
                   <CalendarDays className="w-4 h-4" strokeWidth={1.75} />
+                </button>
+              )}
+              {isTask && (
+                <button
+                  onClick={() => setSubtaskPanelOpen(!subtaskPanelOpen)}
+                  className={`p-1.5 rounded transition-colors ${
+                    subtaskCount > 0 || subtaskPanelOpen
+                      ? 'bg-purple-100 text-purple-700'
+                      : 'hover:bg-neutral-100 text-neutral-500'
+                  }`}
+                  title="subtasks"
+                  aria-label="Toggle subtasks"
+                >
+                  <SubtaskIcon className="w-4 h-4" />
                 </button>
               )}
               {isTask && (

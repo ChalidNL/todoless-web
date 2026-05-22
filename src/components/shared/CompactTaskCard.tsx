@@ -75,6 +75,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
   const [subtaskTitle, setSubtaskTitle] = useState('');
+  const [subtaskPanelOpen, setSubtaskPanelOpen] = useState(false);
 
   // Edit mode inactivity timeout (60s)
   const lastInteractionRef = useRef(Date.now());
@@ -310,8 +311,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
             </div>
           )}
 
-          {/* Subtasks section + add input — visible in edit mode */}
-          {showMenu && (
+          {/* Subtasks section — visible when subtask toggle is on */}
+          {subtaskPanelOpen && (
             <div className="mt-2 pt-2 border-t border-neutral-100 space-y-1.5">
               <div className="px-1">
                 <span className="text-xs font-medium text-neutral-500">Subtasks ({subtaskCount})</span>
@@ -353,6 +354,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                       try {
                         await api.createSubtask(title, task.id);
                         setSubtaskTitle('');
+                        setSubtaskPanelOpen(true);
                         await refreshEntries();
                         showCompletionMessage('Subtask added');
                       } catch (err: any) {
@@ -371,6 +373,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                     try {
                       await api.createSubtask(title, task.id);
                       setSubtaskTitle('');
+                      setSubtaskPanelOpen(true);
                       await refreshEntries();
                       showCompletionMessage('Subtask added');
                     } catch (err: any) {
@@ -386,7 +389,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
             </div>
           )}
 
-          {/* Line 3: attributes behind hamburger — only when showMenu */}
+          {/* Line 3: attributes behind expander — only when showMenu */}
           {showMenu && (
             <div className="mt-2 pt-2 border-t border-neutral-100">
               <div>
@@ -431,6 +434,18 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                   aria-label="Edit schedule"
                 >
                   <CalendarDays className="w-4 h-4" strokeWidth={1.75} />
+                </button>
+                <button
+                  onClick={() => setSubtaskPanelOpen(!subtaskPanelOpen)}
+                  className={`p-1.5 rounded transition-colors ${
+                    subtaskCount > 0 || subtaskPanelOpen
+                      ? 'bg-purple-100 text-purple-700'
+                      : 'hover:bg-neutral-100 text-neutral-500'
+                  }`}
+                  title="subtasks"
+                  aria-label="Toggle subtasks"
+                >
+                  <SubtaskIcon className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => updateTask(task.id, { flag: !task.flag, blocked: !task.flag })}
