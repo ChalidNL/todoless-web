@@ -1055,9 +1055,13 @@ class PocketBaseClient {
   }
 
   async deleteApiToken(tokenId: string): Promise<void> {
-    const response = await fetch(`/api/todoless/api-tokens/${tokenId}`, {
+    const response = await fetch(`/api/todoless/api-tokens/delete`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${pb.authStore.token}` },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${pb.authStore.token}`,
+      },
+      body: JSON.stringify({ id: tokenId }),
     });
     if (!response.ok) {
       const data = await response.json();
@@ -1066,13 +1070,13 @@ class PocketBaseClient {
   }
 
   async toggleApiToken(tokenId: string, enabled: boolean): Promise<void> {
-    const response = await fetch(`/api/todoless/api-tokens/${tokenId}/toggle`, {
+    const response = await fetch(`/api/todoless/api-tokens/toggle`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${pb.authStore.token}`,
       },
-      body: JSON.stringify({ enabled }),
+      body: JSON.stringify({ id: tokenId, enabled }),
     });
     if (!response.ok) {
       const data = await response.json();

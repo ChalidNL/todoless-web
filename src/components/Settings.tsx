@@ -348,9 +348,10 @@ export const Settings = () => {
   const handleApproveAgent = async (agentId: string) => {
     setApprovingAgentId(agentId);
     try {
-      const response = await fetch(`/api/todoless/agent/approve/${agentId}`, {
+      const response = await fetch(`/api/todoless/agent/approve`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${pb.authStore.token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${pb.authStore.token}` },
+        body: JSON.stringify({ id: agentId }),
       });
       const data = await response.json();
       if (response.ok) {
@@ -371,9 +372,10 @@ export const Settings = () => {
     if (!window.confirm('Reject this agent? This cannot be undone.')) return;
     setRejectingAgentId(agentId);
     try {
-      const response = await fetch(`/api/todoless/agent/reject/${agentId}`, {
+      const response = await fetch(`/api/todoless/agent/reject`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${pb.authStore.token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${pb.authStore.token}` },
+        body: JSON.stringify({ id: agentId }),
       });
       if (response.ok) {
         setPendingAgents(prev => prev.filter(a => a.id !== agentId));
