@@ -105,6 +105,7 @@ const entryToTask = (entry: Entry): Task => ({
   labels: entry.labels,
   linkedItemIds: entry.linkedItemIds,
   linkedNoteIds: entry.linkedNoteIds,
+  subtaskIds: entry.subtaskIds,
   linkedTo: entry.linkedTo,
   linkedType: entry.linkedType,
   flag: entry.flag ?? false,
