@@ -79,17 +79,8 @@ export const TasksView = () => {
   const activeTasks = filteredTasks.filter(task => task.status === 'todo');
   const checkedOutTasks = filteredTasks.filter(task => task.status === 'done');
 
-  // Sort active tasks: blocked first, then by priority, then alphabetically
+  // Sort active tasks alphabetically A-Z (case-insensitive)
   const sortedActiveTasks = [...activeTasks].sort((a, b) => {
-    // Blocked tasks first
-    if (a.blocked && !b.blocked) return -1;
-    if (!a.blocked && b.blocked) return 1;
-    const priorityOrder = { urgent: 0, normal: 1, low: 2, undefined: 3 };
-    const aPriority = a.priority || 'undefined';
-    const bPriority = b.priority || 'undefined';
-    const priorityDiff = priorityOrder[aPriority] - priorityOrder[bPriority];
-    if (priorityDiff !== 0) return priorityDiff;
-    // Secondary sort: alphabetical A-Z (case-insensitive)
     return a.title.toLowerCase().localeCompare(b.title.toLowerCase());
   });
 

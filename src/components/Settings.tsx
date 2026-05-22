@@ -5,7 +5,6 @@ import { User, ApiToken, userDisplayName, Agent } from '../types';
 import { ChevronDown, ChevronUp, Plus, Edit2, Trash2, X, LogOut, Eye, EyeOff, Copy, Check, Lock, ExternalLink, Plug, Bot } from 'lucide-react';
 import { NewGlobalHeader } from './shared/NewGlobalHeader';
 import { LabelBadge } from './shared/LabelBadge';
-import { TopBar } from './shared/TopBar';
 import { InviteManager } from './InviteManager';
 import { api } from '../lib/pocketbase-client';
 import { pb } from '../lib/pocketbase';
@@ -477,13 +476,15 @@ export const Settings = () => {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50 pb-[calc(env(safe-area-inset-bottom,0px)+112px)]">
-      <TopBar />
+    <div className="h-full flex flex-col bg-neutral-50">
       
       {/* Header */}
-      <NewGlobalHeader />
+      <div className="flex-shrink-0">
+        <NewGlobalHeader />
+      </div>
 
-      <div className="max-w-2xl mx-auto px-4 pt-6 pb-10 space-y-6">
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-2xl mx-auto px-4 pt-6 pb-10 space-y-6">
         {/* User Profile */}
         <div className="bg-white rounded-lg border border-neutral-200 p-6">
           <h2 className="text-lg font-semibold mb-4">Your Profile</h2>
@@ -1443,6 +1444,7 @@ export const Settings = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };
