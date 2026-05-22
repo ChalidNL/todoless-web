@@ -3,11 +3,13 @@ import { useApp } from '../context/AppContext';
 import { CompactTaskCard } from './shared/CompactTaskCard';
 import { NewGlobalHeader } from './shared/NewGlobalHeader';
 import { TopBar } from './shared/TopBar';
-import { Inbox, Clock, AlertTriangle, X as XIcon, Save } from 'lucide-react';
+import { Inbox, Clock, AlertTriangle, X as XIcon, Save, Check, ArrowRight } from 'lucide-react';
 
 export const InboxBacklog = () => {
-  const { tasks, addTask, activeChipFilters, toggleChipFilter, clearChipFilters, showCompletionMessage } = useApp();
+  const { tasks, updateTask, addTask, activeChipFilters, toggleChipFilter, clearChipFilters, showCompletionMessage } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Derive counts
   const backlogTasks = tasks
@@ -69,6 +71,30 @@ export const InboxBacklog = () => {
       assignedTo: metadata?.assignee,
       dueDate: metadata?.dueDate,
     } as any);
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const enterSelectMode = () => {
+    setIsSelecting(true);
+    setSelectedIds(new Set());
+  };
+
+  const exitSelectMode = () => {
+    setIsSelecting(false);
+    setSelectedIds(new Set());
+  };
+
+  const pushSelected = () => {
+    selectedIds.forEach((id) => updateTask(id, { status: 'todo' }));
+    exitSelectMode();
   };
 
   return (
@@ -185,6 +211,22 @@ export const InboxBacklog = () => {
                 <h2 className="font-semibold text-sm text-neutral-600 flex items-center gap-1.5">
                   Inbox ({backlogCount})
                 </h2>
+                {backlogCount > 0 && !isSelecting && (
+                  <button
+                    onClick={enterSelectMode}
+                    className="text-xs font-medium text-neutral-500 hover:text-neutral-900 px-2 py-1 rounded hover:bg-neutral-100 transition-colors"
+                  >
+                    Select
+                  </button>
+                )}
+                {isSelecting && (
+                  <button
+                    onClick={exitSelectMode}
+                    className="text-xs font-medium text-neutral-500 hover:text-neutral-900 px-2 py-1 rounded hover:bg-neutral-100 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                )}
               </div>
               {backlogTasks.length === 0 ? (
                 <div className="text-center py-16">
@@ -192,9 +234,26 @@ export const InboxBacklog = () => {
                   <p className="text-neutral-400 text-sm">Inbox is empty</p>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-1">
                   {backlogTasks.map((task) => (
-                    <CompactTaskCard key={task.id} task={task} showCheckbox={true} />
+                    <div key={task.id} className="flex items-center gap-2">
+                      {isSelecting && (
+                        <button
+                          onClick={() => toggleSelect(task.id)}
+                          className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                            selectedIds.has(task.id)
+                              ? 'bg-neutral-900 border-neutral-900 text-white'
+                              : 'border-neutral-300 hover:border-neutral-500'
+                          }`}
+                          aria-label={selectedIds.has(task.id) ? 'Deselect' : 'Select'}
+                        >
+                          {selectedIds.has(task.id) && <Check className="w-3 h-3" />}
+                        </button>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <CompactTaskCard task={task} showCheckbox={!isSelecting} />
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}
@@ -202,6 +261,24 @@ export const InboxBacklog = () => {
           )}
         </div>
       </div>
+
+      {/* Floating bottom bar — batch push */}
+      {isSelecting && selectedIds.size > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-neutral-200 shadow-lg pb-[env(safe-area-inset-bottom,0px)]">
+          <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
+            <span className="text-sm font-medium text-neutral-600">
+              {selectedIds.size} selected
+            </span>
+            <button
+              onClick={pushSelected}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-neutral-900 text-white text-sm font-medium hover:bg-neutral-800 transition-colors active:scale-95"
+            >
+              <ArrowRight className="w-4 h-4" />
+              Push
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

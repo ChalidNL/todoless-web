@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Task, RepeatInterval, userDisplayName } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../lib/pocketbase-client';
-import { Check, Menu, X, Trash2, Tag, User, CalendarDays, Flag, ArrowLeftRight, RotateCcw, ListChecks, ChevronUp, ArrowRight } from 'lucide-react';
+import { Check, Menu, X, Trash2, Tag, User, CalendarDays, Flag, ArrowLeftRight, RotateCcw, ListChecks, ChevronUp } from 'lucide-react';
 import { AttributeChip } from './AttributeChip';
 import { entityColor } from '../../lib/entity-colors';
 
@@ -250,7 +250,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
           </div>
 
           {/* Line 2: chips — labels, assignee, date, repeat, subtasks (always visible, filter on click when menu closed) */}
-          {!isDone && (hasLabels || assignedUser || (dateStr && !isDone) || (repeatLabel && !isDone) || subtaskCount > 0 || task.status === 'backlog') && (
+          {!isDone && (hasLabels || assignedUser || (dateStr && !isDone) || (repeatLabel && !isDone) || subtaskCount > 0) && (
             <div className="flex flex-wrap items-center gap-1 mt-1.5 ml-0.5">
               {task.labels.map((labelId) => {
                 const label = labels.find((l) => l.id === labelId);
@@ -299,17 +299,6 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                   color="#8b5cf6"
                   onClick={() => setSubtasksExpanded(!subtasksExpanded)}
                 />
-              )}
-              {task.status === 'backlog' && (
-                <button
-                  onClick={() => updateTask(task.id, { status: 'todo' })}
-                  className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors border border-amber-200"
-                  title="Move to tasks"
-                  aria-label="Push to tasks"
-                >
-                  <ArrowRight className="w-3 h-3" />
-                  Push to tasks
-                </button>
               )}
             </div>
           )}
