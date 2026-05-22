@@ -75,7 +75,6 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
   const [subtaskTitle, setSubtaskTitle] = useState('');
-  const [subtaskPanelOpen, setSubtaskPanelOpen] = useState(false);
 
   // Edit mode inactivity timeout (60s)
   const lastInteractionRef = useRef(Date.now());
@@ -258,8 +257,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
             </button>
           </div>
 
-          {/* Line 2: chips — labels, assignee, date, repeat (always visible) */}
-          {!isDone && (hasLabels || assignedUser || (dateStr && !isDone) || (repeatLabel && !isDone)) && (
+          {/* Line 2: chips — labels, assignee, date, repeat, subtask progress (always visible) */}
+          {!isDone && (hasLabels || assignedUser || (dateStr && !isDone) || (repeatLabel && !isDone) || subtaskCount > 0) && (
             <div className="flex flex-wrap items-center gap-1 mt-1.5 ml-0.5">
               {task.labels.map((labelId) => {
                 const label = labels.find((l) => l.id === labelId);
@@ -311,8 +310,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
             </div>
           )}
 
-          {/* Subtasks section — visible when subtask toggle is on */}
-          {subtaskPanelOpen && (
+          {/* Subtasks list — visible when card is expanded */}{showMenu && subtaskCount > 0 && (
             <div className="mt-2 pt-2 border-t border-neutral-100 space-y-1.5">
               <div className="px-1">
                 <span className="text-xs font-medium text-neutral-500">Subtasks ({subtaskCount})</span>
@@ -341,7 +339,11 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                   </span>
                 </div>
               ))}
-              {/* Add subtask input */}
+            </div>
+          )}
+          {/* Add subtask input — only when card is expanded */}
+          {showMenu && (
+            <div className={`${subtaskCount > 0 ? 'mt-2' : 'mt-2 pt-2 border-t border-neutral-100'}`}>
               <div className="flex items-center gap-1.5 pl-2">
                 <input
                   type="text"
@@ -354,7 +356,6 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                       try {
                         await api.createSubtask(title, task.id);
                         setSubtaskTitle('');
-                        setSubtaskPanelOpen(true);
                         await refreshEntries();
                         showCompletionMessage('Subtask added');
                       } catch (err: any) {
@@ -373,7 +374,6 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                     try {
                       await api.createSubtask(title, task.id);
                       setSubtaskTitle('');
-                      setSubtaskPanelOpen(true);
                       await refreshEntries();
                       showCompletionMessage('Subtask added');
                     } catch (err: any) {
@@ -436,14 +436,14 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                   <CalendarDays className="w-4 h-4" strokeWidth={1.75} />
                 </button>
                 <button
-                  onClick={() => setSubtaskPanelOpen(!subtaskPanelOpen)}
+                  onClick={() => setShowMenu(true)}
                   className={`p-1.5 rounded transition-colors ${
-                    subtaskCount > 0 || subtaskPanelOpen
+                    subtaskCount > 0 || showMenu
                       ? 'bg-purple-100 text-purple-700'
                       : 'hover:bg-neutral-100 text-neutral-500'
                   }`}
                   title="subtasks"
-                  aria-label="Toggle subtasks"
+                  aria-label="View subtasks"
                 >
                   <SubtaskIcon className="w-4 h-4" />
                 </button>

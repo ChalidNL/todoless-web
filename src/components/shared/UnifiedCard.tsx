@@ -29,7 +29,6 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
   const [titleDraft, setTitleDraft] = useState('');
   const [shopInput, setShopInput] = useState('');
   const [subtaskTitle, setSubtaskTitle] = useState('');
-  const [subtaskPanelOpen, setSubtaskPanelOpen] = useState(false);
 
   // Edit mode inactivity timeout (60s)
   const lastInteractionRef = useRef(Date.now());
@@ -208,7 +207,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
         {/* Chip row — labels + assignee + shop + date (only when not done) */}
         {/* Tasks: chips visible in both collapsed and edit mode (labels+assignee always visible) */}
         {/* Items: chips always visible */}
-        {!isDone && (showMenu || !isTask || hasLabels || assignedUser) && (hasLabels || assignedUser || hasShop || dateStr) && (
+        {!isDone && (showMenu || !isTask || hasLabels || assignedUser) && (hasLabels || assignedUser || hasShop || dateStr || subtaskCount > 0) && (
           <div className="flex flex-wrap items-center gap-1 mt-1.5 ml-0.5">
             {isTask && entity.labels.map(labelId => {
               const label = labels.find(l => l.id === labelId);
@@ -258,8 +257,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
           </div>
         )}
 
-        {/* Subtasks section + add input (tasks only) */}
-        {isTask && subtaskPanelOpen && (
+        {/* Subtasks list (tasks only) — visible when card is expanded */}{isTask && showMenu && subtaskCount > 0 && (
           <div className="mt-2 pt-2 border-t border-neutral-100 space-y-1.5">
             <div className="px-1">
               <span className="text-xs font-medium text-neutral-500">Subtasks ({subtaskCount})</span>
@@ -288,7 +286,11 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                 </span>
               </div>
             ))}
-            {/* Add subtask input */}
+          </div>
+        )}
+        {/* Add subtask input (tasks only) — only when card is expanded */}
+        {isTask && showMenu && (
+          <div className={`${subtaskCount > 0 ? 'mt-2' : 'mt-2 pt-2 border-t border-neutral-100'}`}>
             <div className="flex items-center gap-1.5 pl-2">
               <input
                 type="text"
@@ -301,7 +303,6 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                     try {
                       await api.createSubtask(title, task!.id);
                       setSubtaskTitle('');
-                      setSubtaskPanelOpen(true);
                       await refreshEntries();
                       showCompletionMessage('Subtask added');
                     } catch (err: any) {
@@ -320,7 +321,6 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                   try {
                     await api.createSubtask(title, task!.id);
                     setSubtaskTitle('');
-                    setSubtaskPanelOpen(true);
                     await refreshEntries();
                     showCompletionMessage('Subtask added');
                   } catch (err: any) {
@@ -373,14 +373,14 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
               )}
               {isTask && (
                 <button
-                  onClick={() => setSubtaskPanelOpen(!subtaskPanelOpen)}
+                  onClick={() => setShowMenu(true)}
                   className={`p-1.5 rounded transition-colors ${
-                    subtaskCount > 0 || subtaskPanelOpen
+                    subtaskCount > 0 || showMenu
                       ? 'bg-purple-100 text-purple-700'
                       : 'hover:bg-neutral-100 text-neutral-500'
                   }`}
                   title="subtasks"
-                  aria-label="Toggle subtasks"
+                  aria-label="View subtasks"
                 >
                   <SubtaskIcon className="w-4 h-4" />
                 </button>
