@@ -287,6 +287,8 @@ routerAdd('POST', '/api/todoless/agent/register', (c) => {
 // ── Agent: LIST pending agents (admin only) ──
 routerAdd('GET', '/api/todoless/agent/pending', (c) => {
   try {
+    var ba = bearerAuthMiddleware(c);
+    if (ba) return ba;
     var info = c.requestInfo();
     var auth = info && info.auth ? info.auth : null;
     if (!auth) return c.json(401, { error: 'Unauthorized' });
@@ -304,6 +306,8 @@ routerAdd('GET', '/api/todoless/agent/pending', (c) => {
 // ── Agent: APPROVE an agent (admin only) ──
 routerAdd('POST', '/api/todoless/agent/approve/:id', (c) => {
   try {
+    var ba = bearerAuthMiddleware(c);
+    if (ba) return ba;
     var info = c.requestInfo();
     var auth = info && info.auth ? info.auth : null;
     if (!auth) return c.json(401, { error: 'Unauthorized' });
@@ -335,6 +339,8 @@ routerAdd('POST', '/api/todoless/agent/approve/:id', (c) => {
 // ── Agent: REJECT an agent (admin only) ──
 routerAdd('POST', '/api/todoless/agent/reject/:id', (c) => {
   try {
+    var ba = bearerAuthMiddleware(c);
+    if (ba) return ba;
     var info = c.requestInfo();
     var auth = info && info.auth ? info.auth : null;
     if (!auth) return c.json(401, { error: 'Unauthorized' });
@@ -356,6 +362,8 @@ routerAdd('POST', '/api/todoless/agent/reject/:id', (c) => {
 // ── Entries: LIST (GET) ──
 routerAdd('GET', '/api/todoless/entries', (c) => {
   try {
+    var ba = bearerAuthMiddleware(c);
+    if (ba) return ba;
     var info = c.requestInfo();
     var auth = info && info.auth ? info.auth : null;
     if (!auth) return c.json(401, { error: 'Unauthorized' });
@@ -383,6 +391,8 @@ routerAdd('GET', '/api/todoless/entries', (c) => {
 // ── API v2: POST /api/todoless/api (unified action dispatcher) ──
 routerAdd('POST', '/api/todoless/api', (c) => {
   try {
+    var ba = bearerAuthMiddleware(c);
+    if (ba) return ba;
     var info = c.requestInfo();
     var body = info.body || {};
     var d = body;
