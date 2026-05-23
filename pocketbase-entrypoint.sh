@@ -27,7 +27,7 @@ seed_dir() {
 }
 
 seed_dir /pb_migrations_bundled /pb_migrations migration
-# seed_dir /pb_hooks_bundled /pb_hooks hook  # disabled — volume mount has latest
+seed_dir /pb_hooks_bundled /pb_hooks hook
 
 # Remove duplicate migration prefixes that collide with newer files.
 for old in 019_fix_security_p10.js 033_add_firstname_lastname.js; do

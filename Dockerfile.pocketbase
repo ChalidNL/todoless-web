@@ -1,11 +1,14 @@
 FROM ghcr.io/muchobien/pocketbase:0.35.1
 
+# Install curl for healthcheck (wget not available in this image)
+RUN apk add --no-cache curl
+
 # Copy migration and hook files into the image so they are always present,
 # even on a fresh install with empty runtime volumes.
 COPY pb_migrations/ /pb_migrations_bundled/
 COPY pb_hooks/ /pb_hooks_bundled/
 
-# Entrypoint: seed pb_migrations from bundled files if the volume is empty,
+# Entrypoint: seed pb_migrations/hooks from bundled files on first run or update,
 # then hand off to the real PocketBase binary.
 COPY pocketbase-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
