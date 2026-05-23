@@ -163,7 +163,7 @@ export const InboxBacklog = () => {
                 {activeChipFilters.map((f) => (
                   <span
                     key={`${f.type}-${f.id}`}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border"
+                    className="inline-flex items-center gap-1.5 px-2 h-7 rounded-full text-xs font-normal leading-none border select-none"
                     style={{
                       backgroundColor: f.color ? `${f.color}20` : undefined,
                       color: f.color ? f.color : undefined,
