@@ -11,7 +11,7 @@ export const GroceriesView = () => {
   const [showBought, setShowBought] = useState(false);
   const [showSavedFilters, setShowSavedFilters] = useState(false);
 
-  const itemFilters = useMemo(() => filters.filter(f => f.type === 'item' || f.type === 'both'), [filters]);
+  const itemFilters = useMemo(() => filters.filter(f => f.type === 'item'), [filters]);
 
   const applySavedFilter = (f: typeof filters[0]) => {
     clearChipFilters();
@@ -148,9 +148,9 @@ export const GroceriesView = () => {
                 try {
                   const name = window.prompt('Filter name:', '');
                   if (!name || !name.trim()) return;
-                  const typeRaw = window.prompt('Type: task, item, or both', 'item');
+                  const typeRaw = window.prompt('Filter type: shop of task?', 'item');
                   const ftype = (typeRaw || 'item').trim().toLowerCase();
-                  const validType = ftype === 'task' || ftype === 'item' ? ftype : 'both';
+                  const validType = ftype === 'task' ? 'task' : 'item';
                   addFilter({
                     name: name.trim(),
                     labelIds: [],

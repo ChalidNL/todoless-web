@@ -901,13 +901,18 @@ export const Settings = () => {
           {showFilters && (
             <>
               {filters.length === 0 ? (
-                <p className="text-sm text-neutral-500">No saved filters yet. Go to Tasks and click the save icon to create one.</p>
+                <p className="text-sm text-neutral-500">No saved filters yet. Go to Tasks or Groceries and click the save icon to create one.</p>
               ) : (
                 <div className="space-y-2">
                   {filters.map(f => (
                     <div key={f.id} className="flex items-center justify-between p-3 border border-neutral-200 rounded">
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{f.name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-sm truncate">{f.name}</p>
+                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase ${f.type === 'task' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
+                            {f.type === 'task' ? 'Tasks' : 'Groceries'}
+                          </span>
+                        </div>
                         <p className="text-xs text-neutral-500 mt-0.5">
                           {f.chipFilters?.length || f.labelIds.length || 0} condition{f.chipFilters?.length !== 1 ? 's' : ''}
                           {f.chipFilters?.map(cf => (

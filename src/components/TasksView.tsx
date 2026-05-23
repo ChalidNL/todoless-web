@@ -12,7 +12,7 @@ export const TasksView = () => {
   const [showCheckedOut, setShowCheckedOut] = useState(false);
   const [showSavedFilters, setShowSavedFilters] = useState(false);
 
-  const taskFilters = useMemo(() => filters.filter(f => f.type === 'task' || f.type === 'both'), [filters]);
+  const taskFilters = useMemo(() => filters.filter(f => f.type === 'task'), [filters]);
 
   const handleAddTaskWithValue = (value: string, metadata?: { assignee?: string; labels?: string[]; dueDate?: number }) => {
     addTask({
@@ -180,9 +180,9 @@ export const TasksView = () => {
                 try {
                   const name = window.prompt('Filter name:', '');
                   if (!name || !name.trim()) return;
-                  const typeRaw = window.prompt('Type: task, item, or both', 'both');
-                  const ftype = (typeRaw || 'both').trim().toLowerCase();
-                  const validType = ftype === 'task' || ftype === 'item' ? ftype : 'both';
+                  const typeRaw = window.prompt('Filter type: task of shop?', 'task');
+                  const ftype = (typeRaw || 'task').trim().toLowerCase();
+                  const validType = ftype === 'item' ? 'item' : 'task';
                   addFilter({
                     name: name.trim(),
                     labelIds: activeLabelFilters,
