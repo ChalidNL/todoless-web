@@ -4,7 +4,10 @@
 //
 // Expected: from (email), subject (title), body (desc, optional)
 // Auth: Bearer MAIL_WEBHOOK_SECRET env var (optional if unset)
-// PB 0.35: $app.methods() replaces $app.dao().method()
+//
+// PB 0.35 patterns:
+// - new Record(collection) instead of $app.findRecordById(randomId)
+// - c.requestInfo() called ONCE per handler (PB 0.34 compat)
 
 routerAdd('POST', '/api/integrations/mail/webhook', function(c) {
   function checkAuth() {
@@ -44,13 +47,15 @@ routerAdd('POST', '/api/integrations/mail/webhook', function(c) {
     var user = users[0];
     if (!familyId) familyId = String(user.get('family_id') || '').trim();
     if (!familyId) return c.json(400, {error: 'User has no family'});
-    var task = $app.findRecordById('tasks', $security.randomString(15).toLowerCase());
+    // Create task record (PB 0.35: use new Record, not findRecordById)
+    var coll = $app.findCollectionByNameOrId('tasks');
+    var task = new Record(coll);
     task.set('title', subject);
-    if (bodyText) task.set('description', bodyText);
-    task.set('status', 'open');
+    if (bodyText) task.set('blocked_comment', bodyText);
+    task.set('status', 'todo');
     task.set('user', user.id);
     task.set('family_id', familyId);
     $app.save(task);
-    return c.json(201, {id: task.id, title: subject, status: 'open', family_id: familyId, source: 'email'});
+    return c.json(201, {id: task.id, title: subject, status: 'todo', family_id: familyId, source: 'email'});
   } catch(e) { return c.json(500, {error: String(e)}); }
 });
