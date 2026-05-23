@@ -58,6 +58,8 @@ export interface InviteCode {
   used?: boolean;
   usedBy?: string;
   usedAt?: number;
+  type?: 'user' | 'agent';
+  token?: string; // Only present on creation for agent invites
 }
 
 export type ItemLinkedType = 'task' | 'item';

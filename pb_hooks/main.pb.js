@@ -39,11 +39,19 @@ routerAdd('GET', '/api/todoless/hook-health', (c) => c.json(200, { ok: true }));
 // Note: routes/api-tokens.js registers CRUD for API tokens
 
 // ── Create invite code (server-side, bypasses PB API rules) ──
+// Supports type: 'user' (default) or 'agent'
+// If type='agent': also generates an API token (enabled=false), stored hashed, returned once.
 routerAdd('POST', '/api/todoless/invites/create', (c) => {
   try {
     var info = c.requestInfo();
     var auth = info && info.auth ? info.auth : null;
     if (!auth) return c.json(401, { error: 'Unauthorized' });
+
+    var body = info.body || {};
+    var type = String(body.type || 'user').trim();
+    if (type !== 'user' && type !== 'agent') {
+      return c.json(400, { error: 'type must be \"user\" or \"agent\"' });
+    }
 
     // Generate 6-digit code
     var code = '';
@@ -61,15 +69,46 @@ routerAdd('POST', '/api/todoless/invites/create', (c) => {
     rec.set('expires_at', expiresAt.toISOString());
     rec.set('used', false);
     rec.set('user', auth.id);
+    rec.set('type', type);
+
+    var rawToken = null;
+    var tokenId = null;
+
+    if (type === 'agent') {
+      rawToken = generateToken(48);
+      var hashed = hashToken(rawToken);
+
+      var tokenColl = $app.findCollectionByNameOrId('api_tokens');
+      var tokenRec = new Record(tokenColl);
+      tokenRec.set('name', 'Agent: ' + code);
+      tokenRec.set('token_hash', hashed);
+      tokenRec.set('scopes', ['*']);
+      tokenRec.set('enabled', false);
+      tokenRec.set('user', auth.id);
+      $app.save(tokenRec);
+
+      tokenId = tokenRec.id;
+      rec.set('token_id', tokenId);
+    }
+
     $app.save(rec);
 
-    return c.json(201, {
+    var result = {
       id: rec.id,
       code: code,
       created_by: auth.id,
       expires_at: expiresAt.toISOString(),
       used: false,
-    });
+      type: type,
+    };
+
+    if (type === 'agent' && rawToken) {
+      result.token = rawToken;
+      result.token_id = tokenId;
+      result.message_token = 'Save this token — it will not be shown again.';
+    }
+
+    return c.json(201, result);
   } catch (e) {
     return c.json(500, { error: String(e) });
   }
@@ -457,3 +496,183 @@ try { require('./routes/openapi.js'); } catch(e) { console.log('WARN: openapi.js
 try { require('./routes/docs.js'); } catch(e) { console.log('WARN: docs.js:', String(e)); }
 try { require('./routes/api-tokens.js'); } catch(e) { console.log('WARN: api-tokens.js:', String(e)); }
 try { require('./routes/users.js'); } catch(e) { console.log('WARN: users.js:', String(e)); }
+
+// ── Agent management endpoints ──────────────────────────────────────────
+// These work with api_tokens records where enabled=false = pending, enabled=true = approved.
+
+// GET /api/todoless/agent/counts — returns pending/approved counts
+routerAdd('GET', '/api/todoless/agent/counts', (c) => {
+  try {
+    var info = c.requestInfo();
+    var auth = info && info.auth ? info.auth : null;
+    if (!auth) return c.json(401, { error: 'Unauthorized' });
+    if (String(auth.get('role') || '') !== 'admin') return c.json(403, { error: 'Admin only' });
+
+    // Get family members to scope tokens
+    var fid = String(auth.get('family_id') || '');
+    var userIds = [];
+    if (fid) {
+      var members = $app.findRecordsByFilter('users', 'family_id = "' + fid + '"', '', 0, 0);
+      for (var mi = 0; mi < members.length; mi++) { userIds.push('"' + members[mi].id + '"'); }
+    } else {
+      userIds.push('"' + auth.id + '"');
+    }
+    var userFilter = 'user.id = ' + userIds.join(' || user.id = ');
+    var allTokens = $app.findRecordsByFilter('api_tokens', userFilter, '', 0, 0);
+    var pending = 0, approved = 0;
+    for (var ti = 0; ti < allTokens.length; ti++) {
+      var rawEnabled = allTokens[ti].get('enabled');
+      var isEnabled = rawEnabled !== false && rawEnabled !== 0 && rawEnabled !== 'false';
+      if (isEnabled) approved++; else pending++;
+    }
+    return c.json(200, { pending: pending, approved: approved });
+  } catch(e) { return c.json(500, { error: String(e) }); }
+});
+
+// GET /api/todoless/agent/pending — returns tokens where enabled=false
+routerAdd('GET', '/api/todoless/agent/pending', (c) => {
+  try {
+    var info = c.requestInfo();
+    var auth = info && info.auth ? info.auth : null;
+    if (!auth) return c.json(401, { error: 'Unauthorized' });
+    if (String(auth.get('role') || '') !== 'admin') return c.json(403, { error: 'Admin only' });
+
+    var fid = String(auth.get('family_id') || '');
+    var userIds = [];
+    if (fid) {
+      var members = $app.findRecordsByFilter('users', 'family_id = "' + fid + '"', '', 0, 0);
+      for (var mi = 0; mi < members.length; mi++) { userIds.push('"' + members[mi].id + '"'); }
+    } else {
+      userIds.push('"' + auth.id + '"');
+    }
+    var userFilter = 'user.id = ' + userIds.join(' || user.id = ');
+    var tokens = $app.findRecordsByFilter('api_tokens', userFilter + ' && enabled=false', '-created', 0, 0);
+    var agents = [];
+    for (var ti = 0; ti < tokens.length; ti++) {
+      var t = tokens[ti];
+      agents.push({
+        id: t.id,
+        name: String(t.get('name') || 'Agent'),
+        email: '',
+        status: 'pending',
+        created: t.get('created') || new Date().toISOString(),
+      });
+    }
+    return c.json(200, { agents: agents });
+  } catch(e) { return c.json(500, { error: String(e) }); }
+});
+
+// POST /api/todoless/agent/approve — enables a token
+routerAdd('POST', '/api/todoless/agent/approve', (c) => {
+  try {
+    var info = c.requestInfo();
+    var auth = info && info.auth ? info.auth : null;
+    if (!auth) return c.json(401, { error: 'Unauthorized' });
+    if (String(auth.get('role') || '') !== 'admin') return c.json(403, { error: 'Admin only' });
+
+    var d = info.body || {};
+    var tokenId = String(d.id || '').trim();
+    if (!tokenId) return c.json(400, { error: 'id required' });
+
+    var token = $app.findRecordById('api_tokens', tokenId);
+    if (!token) return c.json(404, { error: 'Token not found' });
+    token.set('enabled', true);
+    $app.save(token);
+
+    // Also update the invite's used flag if linked
+    var invites = $app.findRecordsByFilter('invite_codes', 'token_id = "' + tokenId + '"', '', 1, 0);
+    if (invites.length > 0) {
+      var inv = invites[0];
+      inv.set('used', true);
+      inv.set('used_at', new Date().toISOString());
+      $app.save(inv);
+    }
+
+    return c.json(200, {
+      id: tokenId,
+      name: String(token.get('name') || ''),
+      status: 'approved',
+      message: 'Agent approved. Token is now active.',
+    });
+  } catch(e) { return c.json(500, { error: String(e) }); }
+});
+
+// POST /api/todoless/agent/reject — deletes a pending token
+routerAdd('POST', '/api/todoless/agent/reject', (c) => {
+  try {
+    var info = c.requestInfo();
+    var auth = info && info.auth ? info.auth : null;
+    if (!auth) return c.json(401, { error: 'Unauthorized' });
+    if (String(auth.get('role') || '') !== 'admin') return c.json(403, { error: 'Admin only' });
+
+    var d = info.body || {};
+    var tokenId = String(d.id || '').trim();
+    if (!tokenId) return c.json(400, { error: 'id required' });
+
+    var token = $app.findRecordById('api_tokens', tokenId);
+    if (!token) return c.json(404, { error: 'Token not found' });
+
+    // Also delete linked invite
+    var invites = $app.findRecordsByFilter('invite_codes', 'token_id = "' + tokenId + '"', '', 1, 0);
+    if (invites.length > 0) {
+      $app.delete(invites[0]);
+    }
+
+    $app.delete(token);
+    return c.json(200, { deleted: true });
+  } catch(e) { return c.json(500, { error: String(e) }); }
+});
+
+// GET /api/todoless/agent/list — returns all tokens with status
+routerAdd('GET', '/api/todoless/agent/list', (c) => {
+  try {
+    var info = c.requestInfo();
+    var auth = info && info.auth ? info.auth : null;
+    if (!auth) return c.json(401, { error: 'Unauthorized' });
+    if (String(auth.get('role') || '') !== 'admin') return c.json(403, { error: 'Admin only' });
+
+    var fid = String(auth.get('family_id') || '');
+    var userIds = [];
+    if (fid) {
+      var members = $app.findRecordsByFilter('users', 'family_id = "' + fid + '"', '', 0, 0);
+      for (var mi = 0; mi < members.length; mi++) { userIds.push('"' + members[mi].id + '"'); }
+    } else {
+      userIds.push('"' + auth.id + '"');
+    }
+    var userFilter = 'user.id = ' + userIds.join(' || user.id = ');
+    var tokens = $app.findRecordsByFilter('api_tokens', userFilter, '-created', 0, 0);
+    var agents = [];
+    for (var ti = 0; ti < tokens.length; ti++) {
+      var t = tokens[ti];
+      var rawEnabled = t.get('enabled');
+      var isEnabled = rawEnabled !== false && rawEnabled !== 0 && rawEnabled !== 'false';
+      agents.push({
+        id: t.id,
+        name: String(t.get('name') || 'Agent'),
+        email: '',
+        status: isEnabled ? 'approved' : 'pending',
+        created: t.get('created') || new Date().toISOString(),
+        updated: t.get('updated') || '',
+      });
+    }
+    return c.json(200, { agents: agents });
+  } catch(e) { return c.json(500, { error: String(e) }); }
+});
+
+// DELETE /api/todoless/agent/:id — revoke token
+routerAdd('DELETE', '/api/todoless/agent/:id', (c) => {
+  try {
+    var info = c.requestInfo();
+    var auth = info && info.auth ? info.auth : null;
+    if (!auth) return c.json(401, { error: 'Unauthorized' });
+    if (String(auth.get('role') || '') !== 'admin') return c.json(403, { error: 'Admin only' });
+
+    var tokenId = c.pathParam('id');
+    if (!tokenId) return c.json(400, { error: 'id required' });
+
+    var token = $app.findRecordById('api_tokens', tokenId);
+    if (!token) return c.json(404, { error: 'Token not found' });
+    $app.delete(token);
+    return c.json(200, { deleted: true });
+  } catch(e) { return c.json(500, { error: String(e) }); }
+});

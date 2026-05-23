@@ -762,13 +762,14 @@ class PocketBaseClient {
     return list.map(normalizeInvite);
   }
 
-  async createInvite(data: { code: string; expiresAt: number }) {
+  async createInvite(data: { code: string; expiresAt: number; type?: string }) {
     const response = await fetch('/api/todoless/invites/create', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': pb.authStore.token ? `Bearer ${pb.authStore.token}` : '',
       },
+      body: JSON.stringify({ type: data.type || 'user' }),
     });
     if (!response.ok) {
       const err = await response.json().catch(() => ({ error: 'Failed to create invite' }));

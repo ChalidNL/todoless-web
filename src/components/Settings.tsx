@@ -31,14 +31,7 @@ export const Settings = () => {
   const [newLabelColor, setNewLabelColor] = useState('#3b82f6');
   const [newShopName, setNewShopName] = useState('');
   const [newShopColor, setNewShopColor] = useState('#3b82f6');
-  const [showApiTokens, setShowApiTokens] = useState(false);
   const [apiTokens, setApiTokens] = useState<ApiToken[]>([]);
-  const [showAddTokenModal, setShowAddTokenModal] = useState(false);
-  const [newTokenName, setNewTokenName] = useState('');
-  const [newTokenPermissions, setNewTokenPermissions] = useState<string[]>(['*']);
-  const [newTokenExpiry, setNewTokenExpiry] = useState('');
-  const [showAdvancedTokenOptions, setShowAdvancedTokenOptions] = useState(false);
-  const [createdToken, setCreatedToken] = useState<string | null>(null);
   const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
   const [editingLabelName, setEditingLabelName] = useState('');
   const [editingLabelColor, setEditingLabelColor] = useState('');
@@ -58,7 +51,6 @@ export const Settings = () => {
   const [loadingAgents, setLoadingAgents] = useState(false);
   const [approvingAgentId, setApprovingAgentId] = useState<string | null>(null);
   const [rejectingAgentId, setRejectingAgentId] = useState<string | null>(null);
-  const [approvedToken, setApprovedToken] = useState<{agentId: string; token: string} | null>(null);
   const [showIntegrations, setShowIntegrations] = useState(false);
   const [approvedAgentsCount, setApprovedAgentsCount] = useState(0);
 
@@ -246,33 +238,6 @@ export const Settings = () => {
     setApiTokens(tokens);
   };
 
-  const toggleApiTokenSection = async () => {
-    const next = !showApiTokens;
-    setShowApiTokens(next);
-    if (next) {
-      await loadApiTokens();
-    }
-  };
-
-  const handleCreateToken = async () => {
-    if (!newTokenName) return;
-    try {
-      // Default permissions and 1-year expiry
-      const defaultPermissions = ['tasks:read', 'tasks:write', 'groceries:read', 'groceries:write'];
-      const permissions = newTokenPermissions.length > 0 ? newTokenPermissions : defaultPermissions;
-      const expiry = newTokenExpiry || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      const result = await api.createApiToken(newTokenName, permissions, expiry);
-      setCreatedToken(result.token);
-      setNewTokenName('');
-      setNewTokenPermissions([]);
-      setNewTokenExpiry('');
-      setShowAdvancedTokenOptions(false);
-      await loadApiTokens();
-    } catch (err: any) {
-      showCompletionMessage(err.message || 'Failed to create token');
-    }
-  };
-
   const handleDeleteToken = async (tokenId: string) => {
     if (!window.confirm('Revoke this API token? This cannot be undone.')) return;
     try {
@@ -290,33 +255,6 @@ export const Settings = () => {
       await loadApiTokens();
     } catch (err: any) {
       showCompletionMessage(err.message || 'Failed to toggle token');
-    }
-  };
-
-  const togglePermission = (perm: string) => {
-    setNewTokenPermissions(prev =>
-      prev.includes(perm) ? prev.filter(p => p !== perm) : [...prev, perm]
-    );
-  };
-
-  const handleCopyToken = async (token: string) => {
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(token);
-      } else {
-        const textarea = document.createElement('textarea');
-        textarea.value = token;
-        textarea.setAttribute('readonly', '');
-        textarea.style.position = 'fixed';
-        textarea.style.top = '-9999px';
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-      }
-      showCompletionMessage('Token copied to clipboard');
-    } catch {
-      showCompletionMessage('Copy failed');
     }
   };
 
@@ -356,7 +294,6 @@ export const Settings = () => {
       const data = await response.json();
       if (response.ok) {
         setPendingAgents(prev => prev.filter(a => a.id !== agentId));
-        setApprovedToken({ agentId, token: data.token });
         showCompletionMessage('Agent approved');
       } else {
         showCompletionMessage(data.error || 'Failed to approve agent');
@@ -389,10 +326,6 @@ export const Settings = () => {
     } finally {
       setRejectingAgentId(null);
     }
-  };
-
-  const handleCopyAgentToken = async (token: string) => {
-    await handleCopyToken(token);
   };
 
   const loadAgentCounts = async () => {
@@ -986,43 +919,7 @@ export const Settings = () => {
 
                 {/* API Tokens */}
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-sm font-semibold">API Tokens</h3>
-                    <button
-                      onClick={() => setShowAddTokenModal(true)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-900 text-white rounded-lg text-xs hover:bg-neutral-800"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      Create
-                    </button>
-                  </div>
-
-                  {/* Created token display */}
-                  {createdToken && (
-                    <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <p className="text-sm font-semibold text-blue-800 mb-2">
-                        Token created — copy it now. It will not be shown again.
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <code className="flex-1 text-xs bg-white border border-blue-200 rounded p-2 break-all select-all">
-                          {createdToken}
-                        </code>
-                        <button
-                          onClick={() => handleCopyToken(createdToken!)}
-                          className="p-2 bg-blue-600 text-white rounded hover:bg-blue-700 shrink-0"
-                          title="Copy token"
-                        >
-                          <Copy className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <button
-                        onClick={() => setCreatedToken(null)}
-                        className="mt-2 text-xs text-blue-600 hover:text-blue-800"
-                      >
-                        Dismiss
-                      </button>
-                    </div>
-                  )}
+                  <h3 className="text-sm font-semibold mb-3">API Tokens</h3>
 
                   {apiTokens.length === 0 ? (
                     <p className="text-sm text-neutral-600">No API tokens yet.</p>
@@ -1126,32 +1023,6 @@ export const Settings = () => {
                     </div>
                   )}
 
-                  {/* Approved token display - shown once after approval */}
-                  {approvedToken && (
-                    <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                      <p className="text-sm font-semibold text-green-800 mb-2">
-                        Agent approved — copy the token now. It will not be shown again.
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <code className="flex-1 text-xs bg-white border border-green-200 rounded p-2 break-all select-all">
-                          {approvedToken.token}
-                        </code>
-                        <button
-                          onClick={() => handleCopyAgentToken(approvedToken.token)}
-                          className="p-2 bg-green-600 text-white rounded hover:bg-green-700 shrink-0"
-                          title="Copy token"
-                        >
-                          <Copy className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <button
-                        onClick={() => setApprovedToken(null)}
-                        className="mt-2 text-xs text-green-600 hover:text-green-800"
-                      >
-                        Dismiss
-                      </button>
-                    </div>
-                  )}
                 </div>
 
                 <div>
@@ -1442,56 +1313,6 @@ export const Settings = () => {
         </div>
       )}
 
-      {/* Create API Token Modal */}
-      {showAddTokenModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Create API Token</h3>
-              <button onClick={() => setShowAddTokenModal(false)} className="p-1 hover:bg-neutral-100 rounded">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm text-neutral-600 mb-1">Name</label>
-                <input
-                  type="text"
-                  value={newTokenName}
-                  onChange={(e) => setNewTokenName(e.target.value)}
-                  placeholder="My Agent Token"
-                  className="w-full px-3 py-2 border border-neutral-200 rounded"
-                />
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <button
-                  onClick={() => {
-                    setShowAddTokenModal(false);
-                    setNewTokenName('');
-                    setNewTokenPermissions(['*']);
-                    setNewTokenExpiry('');
-                  }}
-                  className="flex-1 px-4 py-2 border border-neutral-200 rounded"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    handleCreateToken();
-                    setShowAddTokenModal(false);
-                  }}
-                  disabled={!newTokenName}
-                  className="flex-1 px-4 py-2 bg-neutral-900 text-white rounded disabled:opacity-50"
-                >
-                  Create
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 };

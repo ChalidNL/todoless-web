@@ -191,7 +191,7 @@ interface AppContextType {
   convertTaskToItem: (taskId: string) => void;
   convertItemToTask: (itemId: string) => void;
   swapEntity: (id: string) => void;
-  generateInviteCode: () => Promise<InviteCode | null>;
+  generateInviteCode: (type?: 'user' | 'agent') => Promise<InviteCode | null>;
   deleteInviteCode: (id: string) => void;
   uncheckAllDoneTasks: () => void;
   uncheckAllDoneItems: () => void;
@@ -878,18 +878,23 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const generateInviteCode = async (): Promise<InviteCode | null> => {
+  const generateInviteCode = async (type: 'user' | 'agent' = 'user'): Promise<InviteCode | null> => {
     try {
-      const result = await api.createInvite({ code: '', expiresAt: 0 });
+      const result = await api.createInvite({ code: '', expiresAt: 0, type });
       await refreshInvites();
-      return {
+      const invite: InviteCode = {
         id: result.id,
         code: result.code,
         createdBy: result.created_by || appSettings.currentUserId,
         createdAt: Date.now(),
         expiresAt: new Date(result.expires_at).getTime(),
         used: false,
+        type: result.type || 'user',
       };
+      if (result.token) {
+        invite.token = result.token;
+      }
+      return invite;
     } catch (error) {
       console.error('generateInviteCode failed:', error);
       return null;
