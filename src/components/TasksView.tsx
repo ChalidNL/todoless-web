@@ -1,13 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { ChevronDown, ChevronUp, RotateCcw, CheckSquare, X as XIcon, Save, ChevronRight, AlertTriangle } from 'lucide-react';
+import { ChevronDown, ChevronUp, Trash2, CheckSquare, X as XIcon, Save, ChevronRight, AlertTriangle } from 'lucide-react';
 import { CompactTaskCard } from './shared/CompactTaskCard';
 import { NewGlobalHeader } from './shared/NewGlobalHeader';
 import { TopBar } from './shared/TopBar';
 import { DueDateNotifications } from './shared/DueDateNotifications';
 
 export const TasksView = () => {
-  const { tasks, filters, activeLabelFilters, activeChipFilters, toggleChipFilter, clearChipFilters, addTask, addFilter, deleteFilter, uncheckAllDoneTasks, showCompletionMessage } = useApp();
+  const { tasks, filters, activeLabelFilters, activeChipFilters, toggleChipFilter, clearChipFilters, addTask, addFilter, deleteFilter, uncheckAllDoneTasks, deleteTask, showCompletionMessage } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [showCheckedOut, setShowCheckedOut] = useState(false);
   const [showSavedFilters, setShowSavedFilters] = useState(false);
@@ -251,14 +251,15 @@ export const TasksView = () => {
 
               <button
                 onClick={() => {
-                  uncheckAllDoneTasks();
-                  showCompletionMessage('All tasks checked back in');
+                  const doneIds = checkedOutTasks.map(t => t.id);
+                  doneIds.forEach(id => deleteTask(id));
+                  showCompletionMessage(`${doneIds.length} deleted`);
                 }}
-                className="flex items-center gap-1 px-2 py-1 text-xs text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 rounded transition-colors"
-                title="Check in all tasks"
+                className="flex items-center gap-1 px-2 py-1 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                title="Delete all checked tasks"
               >
-                <RotateCcw className="w-3 h-3" />
-                Check In All
+                <Trash2 className="w-3 h-3" />
+                Delete All
               </button>
             </div>
 
