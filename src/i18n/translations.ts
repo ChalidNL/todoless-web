@@ -90,6 +90,20 @@ interface TranslationStructure {
     statusCompleted: string;
     statusArchived: string;
   };
+  invite: {
+    generate: string;
+    share: string;
+    delete: string;
+    copyUrl: string;
+    close: string;
+    urlCopied: string;
+    codeDeleted: string;
+    expired: string;
+    usedOn: string;
+    minutesRemaining: string;
+    shareViaWhatsApp: string;
+    shareInvite: string;
+  };
 }
 
 export const translations: Record<Language, TranslationStructure> = {
@@ -140,6 +154,20 @@ export const translations: Record<Language, TranslationStructure> = {
       title: 'Notes',
       newNote: 'New Note',
       content: 'Content',
+    },
+    invite: {
+      generate: 'Generate Invite Code',
+      share: 'Share',
+      delete: 'Delete',
+      copyUrl: 'Copy URL',
+      close: 'Close',
+      urlCopied: 'URL copied!',
+      codeDeleted: 'Invite code deleted',
+      expired: 'Expired',
+      usedOn: 'Used on {date}',
+      minutesRemaining: '{n} minutes remaining',
+      shareViaWhatsApp: 'Share via WhatsApp',
+      shareInvite: 'Share Invite',
     },
     settings: {
       title: 'Settings',
@@ -232,6 +260,20 @@ export const translations: Record<Language, TranslationStructure> = {
       newNote: 'Nouvelle note',
       content: 'Contenu',
     },
+    invite: {
+      generate: "Générer un code d'invitation",
+      share: 'Partager',
+      delete: 'Supprimer',
+      copyUrl: "Copier l'URL",
+      close: 'Fermer',
+      urlCopied: 'URL copiée !',
+      codeDeleted: "Code d'invitation supprimé",
+      expired: 'Expiré',
+      usedOn: 'Utilisé le {date}',
+      minutesRemaining: 'Encore {n} minutes',
+      shareViaWhatsApp: 'Partager via WhatsApp',
+      shareInvite: "Partager l'invitation",
+    },
     settings: {
       title: 'Paramètres',
       language: 'Langue',
@@ -323,6 +365,20 @@ export const translations: Record<Language, TranslationStructure> = {
       newNote: 'Nieuwe notitie',
       content: 'Inhoud',
     },
+    invite: {
+      generate: 'Genereer Invite Code',
+      share: 'Delen',
+      delete: 'Verwijderen',
+      copyUrl: 'Kopieer URL',
+      close: 'Sluiten',
+      urlCopied: 'URL gekopieerd!',
+      codeDeleted: 'Invite code verwijderd',
+      expired: 'Verlopen',
+      usedOn: 'Gebruikt op {date}',
+      minutesRemaining: 'Nog {n} minuten geldig',
+      shareViaWhatsApp: 'Delen via WhatsApp',
+      shareInvite: 'Deel Invite',
+    },
     settings: {
       title: 'Instellingen',
       language: 'Taal',
@@ -413,6 +469,20 @@ export const translations: Record<Language, TranslationStructure> = {
       title: 'Notizen',
       newNote: 'Neue Notiz',
       content: 'Inhalt',
+    },
+    invite: {
+      generate: 'Einladungscode generieren',
+      share: 'Teilen',
+      delete: 'Löschen',
+      copyUrl: 'URL kopieren',
+      close: 'Schließen',
+      urlCopied: 'URL kopiert!',
+      codeDeleted: 'Einladungscode gelöscht',
+      expired: 'Abgelaufen',
+      usedOn: 'Verwendet am {date}',
+      minutesRemaining: 'Noch {n} Minuten',
+      shareViaWhatsApp: 'Über WhatsApp teilen',
+      shareInvite: 'Einladung teilen',
     },
     settings: {
       title: 'Einstellungen',

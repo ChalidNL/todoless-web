@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Share2, Copy, Trash2, Plus, Bot, User } from 'lucide-react';
 
 export const InviteManager = () => {
   const { inviteCodes, generateInviteCode, deleteInviteCode, showCompletionMessage } = useApp();
+  const { t } = useLanguage();
   const [showShareModal, setShowShareModal] = useState(false);
   const [currentInviteUrl, setCurrentInviteUrl] = useState('');
   const [currentInviteCode, setCurrentInviteCode] = useState('');
@@ -44,7 +46,7 @@ export const InviteManager = () => {
 
   const handleCopyUrl = () => {
     navigator.clipboard.writeText(currentInviteUrl);
-    showCompletionMessage('URL gekopieerd!');
+    showCompletionMessage(t('invite.urlCopied'));
   };
 
   const handleCopyToken = async (token: string) => {
@@ -184,11 +186,11 @@ export const InviteManager = () => {
                   </div>
                   <p className="text-xs text-neutral-500 mt-0.5">
                     {isExpired ? (
-                      <span className="text-red-500">Verlopen</span>
+                      <span className="text-red-500">{t('invite.expired')}</span>
                     ) : invite.used ? (
-                      <span className="text-neutral-500">Gebruikt op {new Date(invite.usedAt!).toLocaleString()}</span>
+                      <span className="text-neutral-500">{t('invite.usedOn').replace('{date}', new Date(invite.usedAt!).toLocaleString())}</span>
                     ) : (
-                      <span className="text-green-600">Nog {minutesLeft} minuten geldig</span>
+                      <span className="text-green-600">{t('invite.minutesRemaining').replace('{n}', String(minutesLeft))}</span>
                     )}
                   </p>
                 </div>
@@ -197,7 +199,7 @@ export const InviteManager = () => {
                     <button
                       onClick={() => handleShareInvite(invite.code, invite.type)}
                       className="p-2 hover:bg-neutral-100 rounded text-green-600"
-                      title="Delen"
+                      title={t('invite.share')}
                     >
                       <Share2 className="w-4 h-4" />
                     </button>
@@ -205,10 +207,10 @@ export const InviteManager = () => {
                   <button
                     onClick={() => {
                       deleteInviteCode(invite.id);
-                      showCompletionMessage('Invite code verwijderd');
+                      showCompletionMessage(t('invite.codeDeleted'));
                     }}
                     className="p-2 hover:bg-neutral-100 rounded text-red-500"
-                    title="Verwijderen"
+                    title={t('invite.delete')}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -262,7 +264,7 @@ export const InviteManager = () => {
                   <button
                     onClick={handleCopyUrl}
                     className="px-3 py-2 bg-neutral-900 text-white rounded hover:bg-neutral-800"
-                    title="Kopieer URL"
+                    title={t('invite.copyUrl')}
                   >
                     <Copy className="w-4 h-4" />
                   </button>
@@ -309,7 +311,7 @@ export const InviteManager = () => {
                 onClick={() => setShowShareModal(false)}
                 className="w-full px-4 py-2 border border-neutral-200 rounded"
               >
-                Sluiten
+                {t('invite.close')}
               </button>
             </div>
           </div>
