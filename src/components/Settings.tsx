@@ -248,7 +248,7 @@ export const Settings = () => {
   const toggleApiTokenSection = async () => {
     const next = !showApiTokens;
     setShowApiTokens(next);
-    if (next && apiTokens.length === 0) {
+    if (next) {
       await loadApiTokens();
     }
   };

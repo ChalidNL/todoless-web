@@ -33,27 +33,10 @@ onRecordUpdate('tasks', (e) => {
 
 routerAdd('GET', '/api/todoless/hook-health', (c) => c.json(200, { ok: true }));
 
-routerAdd('GET', '/api/todoless/openapi.json', (c) => {
-  try {
-    var data = $app.findRecordsByFilter('api_docs', 'type = "openapi"', '-created', 1, 0);
-    if (data.length > 0) {
-      var spec = data[0].get('spec');
-      if (spec) { return c.json(200, spec); }
-    }
-    return c.json(404, { error: 'OpenAPI spec not found' });
-  } catch(e) { return c.json(500, { error: String(e) }); }
-});
-
-routerAdd('GET', '/api/todoless/docs', (c) => {
-  try {
-    var docs = $app.findRecordsByFilter('api_docs', 'type = "guide"', '-created', 0, 0);
-    var result = [];
-    for (var i = 0; i < docs.length; i++) {
-      result.push({ id: docs[i].id, title: docs[i].get('title'), content: docs[i].get('content') });
-    }
-    return c.json(200, result);
-  } catch(e) { return c.json(500, { error: String(e) }); }
-});
+// ─── Routes loaded from pb_hooks/routes/ ──
+// Note: routes/openapi.js registers GET /api/todoless/openapi.json (inline spec)
+// Note: routes/docs.js registers GET /api/todoless/docs + /api/todoless/swagger (Swagger UI HTML)
+// Note: routes/api-tokens.js registers CRUD for API tokens
 
 // ── Create invite code (server-side, bypasses PB API rules) ──
 routerAdd('POST', '/api/todoless/invites/create', (c) => {
@@ -236,127 +219,6 @@ routerAdd('POST', '/api/todoless/register', (c) => {
       user: { id: rec.id, email: String(rec.get('email')||''), name: String(rec.get('name')||''), role: role, family_id: fid }
     });
   } catch(e) { return c.json(400, { error: String(e), stack: String(e.stack||'') }); }
-});
-
-// ── Agent Registration: POST /api/todoless/agent/register ──
-routerAdd('POST', '/api/todoless/agent/register', (c) => {
-  try {
-    var info = c.requestInfo();
-    var d = info.body || {};
-    var email = String(d.email || '').trim();
-    var agentKey = String(d.agent_key || '').trim();
-
-    if (!email) return c.json(400, { error: 'Email required' });
-    if (!agentKey) return c.json(400, { error: 'Agent key required' });
-
-    // Check if agent already registered
-    var existing = $app.findRecordsByFilter('users', 'email="' + email + '"', '-created', 1, 0);
-    if (existing.length > 0) {
-      return c.json(409, { error: 'Agent with this email already registered' });
-    }
-
-    // Validate agent key
-    var validKey = $app.findRecordsByFilter('agent_keys', 'active=true&&key_hash="' + agentKey + '"', '-created', 1, 0);
-    if (validKey.length === 0) {
-      return c.json(403, { error: 'Invalid agent key' });
-    }
-
-    var role = 'assistant';
-
-    // Inline: create user with hooks bypass
-    var u = $app.unsafeWithoutHooks();
-    var uc = $app.findCollectionByNameOrId('users');
-    var rec = new Record(uc);
-    rec.set('id', $security.randomString(15));
-    rec.set('tokenKey', $security.randomString(30));
-    rec.set('verified', false);
-    rec.set('email', email);
-    rec.set('password', $security.randomString(20));
-    rec.set('name', email.split('@')[0]);
-    rec.set('emailVisibility', true);
-    rec.set('role', role);
-    rec.set('family_id', '');
-    u.save(rec);
-
-    return c.json(201, {
-      user: { id: rec.id, email: String(rec.get('email')||''), name: String(rec.get('name')||''), role: role, family_id: '' }
-    });
-  } catch(e) { return c.json(400, { error: String(e) }); }
-});
-
-// ── Agent: LIST pending agents (admin only) ──
-routerAdd('GET', '/api/todoless/agent/pending', (c) => {
-  try {
-    var ba = bearerAuthMiddleware(c);
-    if (ba) return ba;
-    var info = c.requestInfo();
-    var auth = info && info.auth ? info.auth : null;
-    if (!auth) return c.json(401, { error: 'Unauthorized' });
-
-    var pending = $app.findRecordsByFilter('users', 'agent_status="pending"', '-created', 0, 0);
-    var result = [];
-    for (var i = 0; i < pending.length; i++) {
-      var u = pending[i];
-      result.push({ id: u.id, email: String(u.get('email')||''), name: String(u.get('name')||''), created: u.get('created') });
-    }
-    return c.json(200, result);
-  } catch(e) { return c.json(500, { error: String(e) }); }
-});
-
-// ── Agent: APPROVE an agent (admin only) ──
-routerAdd('POST', '/api/todoless/agent/approve/:id', (c) => {
-  try {
-    var ba = bearerAuthMiddleware(c);
-    if (ba) return ba;
-    var info = c.requestInfo();
-    var auth = info && info.auth ? info.auth : null;
-    if (!auth) return c.json(401, { error: 'Unauthorized' });
-
-    var agentId = c.pathParam('id');
-    if (!agentId) return c.json(400, { error: 'Agent ID required' });
-
-    var agent = $app.findRecordById('users', agentId);
-    if (!agent) return c.json(404, { error: 'Agent not found' });
-
-    agent.set('agent_status', 'active');
-    var u = $app.unsafeWithoutHooks();
-    u.save(agent);
-
-    // Generate API token
-    var token = $security.randomString(32);
-    var tc = $app.findCollectionByNameOrId('api_tokens');
-    var tk = new Record(tc);
-    tk.set('name', 'Agent: ' + String(agent.get('name') || agent.get('email') || ''));
-    tk.set('token_hash', token);
-    tk.set('user', agent.id);
-    tk.set('scopes', ['entries:read', 'entries:write', 'users:read']);
-    $app.save(tk);
-
-    return c.json(200, { approved: true, agent_id: agentId, token: token });
-  } catch(e) { return c.json(500, { error: String(e) }); }
-});
-
-// ── Agent: REJECT an agent (admin only) ──
-routerAdd('POST', '/api/todoless/agent/reject/:id', (c) => {
-  try {
-    var ba = bearerAuthMiddleware(c);
-    if (ba) return ba;
-    var info = c.requestInfo();
-    var auth = info && info.auth ? info.auth : null;
-    if (!auth) return c.json(401, { error: 'Unauthorized' });
-
-    var agentId = c.pathParam('id');
-    if (!agentId) return c.json(400, { error: 'Agent ID required' });
-
-    var agent = $app.findRecordById('users', agentId);
-    if (!agent) return c.json(404, { error: 'Agent not found' });
-
-    agent.set('agent_status', 'rejected');
-    var u = $app.unsafeWithoutHooks();
-    u.save(agent);
-
-    return c.json(200, { rejected: true, agent_id: agentId });
-  } catch(e) { return c.json(500, { error: String(e) }); }
 });
 
 // ── Entries: LIST (GET) ──
@@ -589,3 +451,9 @@ routerAdd('POST', '/api/todoless/api', (c) => {
     return c.json(400, { error: 'Unknown action: ' + action });
   } catch(e) { return c.json(400, { error: String(e) }); }
 });
+
+// ── Load additional route files ──────────────────────────────────────
+try { require('./routes/openapi.js'); } catch(e) { console.log('WARN: openapi.js:', String(e)); }
+try { require('./routes/docs.js'); } catch(e) { console.log('WARN: docs.js:', String(e)); }
+try { require('./routes/api-tokens.js'); } catch(e) { console.log('WARN: api-tokens.js:', String(e)); }
+try { require('./routes/users.js'); } catch(e) { console.log('WARN: users.js:', String(e)); }

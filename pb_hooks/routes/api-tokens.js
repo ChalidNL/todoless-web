@@ -38,7 +38,7 @@ routerAdd('GET', '/api/todoless/api-tokens', (c) => {
       return {
         id: r.id,
         name: String(r.get('name') || ''),
-        permissions: r.get('scopes'),
+        permissions: r.get('permissions'),
         expires_at: String(r.get('expires_at') || ''),
         enabled: r.get('enabled') !== false && r.get('enabled') !== 0,
         user: String(r.get('user') || ''),
@@ -99,7 +99,7 @@ routerAdd('POST', '/api/todoless/api-tokens', (c) => {
 
     rec.set('name', name);
     rec.set('token_hash', hashed);
-    rec.set('scopes', permissions);
+    rec.set('permissions', permissions);
     rec.set('user', auth.id);
 
     // Try to set optional fields — ignore if collection schema doesn't have them
