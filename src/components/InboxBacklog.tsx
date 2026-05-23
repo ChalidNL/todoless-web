@@ -255,22 +255,38 @@ export const InboxBacklog = () => {
                   <h2 className="font-semibold text-sm text-neutral-600 flex items-center gap-1.5">
                     Inbox ({displayedTasks.length})
                   </h2>
-                  {displayedTasks.length > 0 && !isSelecting && (
-                    <button
-                      onClick={enterSelectMode}
-                      className="text-xs font-medium text-neutral-500 hover:text-neutral-900 px-2 py-1 rounded hover:bg-neutral-100 transition-colors"
-                    >
-                      Select
-                    </button>
-                  )}
-                  {isSelecting && (
-                    <button
-                      onClick={exitSelectMode}
-                      className="text-xs font-medium text-neutral-500 hover:text-neutral-900 px-2 py-1 rounded hover:bg-neutral-100 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  )}
+                  <div className="flex items-center gap-1">
+                    {displayedTasks.length > 0 && !isSelecting && (
+                      <button
+                        onClick={enterSelectMode}
+                        className="text-xs font-medium text-neutral-500 hover:text-neutral-900 px-2 py-1 rounded hover:bg-neutral-100 transition-colors"
+                      >
+                        Select
+                      </button>
+                    )}
+                    {isSelecting && (
+                      <>
+                        <button
+                          onClick={() => {
+                            if (selectedIds.size === displayedTasks.length) {
+                              setSelectedIds(new Set());
+                            } else {
+                              setSelectedIds(new Set(displayedTasks.map(t => t.id)));
+                            }
+                          }}
+                          className="text-xs font-medium text-neutral-500 hover:text-neutral-900 px-2 py-1 rounded hover:bg-neutral-100 transition-colors"
+                        >
+                          {selectedIds.size === displayedTasks.length ? 'Deselect all' : 'Select all'}
+                        </button>
+                        <button
+                          onClick={exitSelectMode}
+                          className="text-xs font-medium text-neutral-500 hover:text-neutral-900 px-2 py-1 rounded hover:bg-neutral-100 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
                 {displayedTasks.length === 0 ? (
                   <div className="text-center py-16">
