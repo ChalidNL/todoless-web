@@ -50,7 +50,7 @@ describe('UnifiedCard (grocery item)', () => {
     render(<UnifiedCard entity={createItem()} type="item" />);
     expect(screen.getByText('Milk')).toBeTruthy();
     expect(screen.getByLabelText('Mark as done')).toBeTruthy();
-    expect(screen.getByLabelText('Open attributes')).toBeTruthy();
+    expect(screen.getByLabelText('Open editor')).toBeTruthy();
   });
 
   it('shows quantity [+][-] controls on top row for items', () => {
@@ -68,7 +68,7 @@ describe('UnifiedCard (grocery item)', () => {
 
   it('shows only shop attribute + delete in attribute row', () => {
     render(<UnifiedCard entity={createItem()} type="item" />);
-    fireEvent.click(screen.getByLabelText('Open attributes'));
+    fireEvent.click(screen.getByLabelText('Open editor'));
 
     expect(screen.getByLabelText('Edit shop')).toBeTruthy();
     expect(screen.getByLabelText('Delete')).toBeTruthy();
@@ -78,7 +78,7 @@ describe('UnifiedCard (grocery item)', () => {
 
   it('opens shop editor and selects shop', () => {
     render(<UnifiedCard entity={createItem()} type="item" />);
-    fireEvent.click(screen.getByLabelText('Open attributes'));
+    fireEvent.click(screen.getByLabelText('Open editor'));
     fireEvent.click(screen.getByLabelText('Edit shop'));
 
     expect(screen.getByLabelText('Shop input')).toBeTruthy();
@@ -88,7 +88,7 @@ describe('UnifiedCard (grocery item)', () => {
 
   it('creates shop from input like label flow', () => {
     render(<UnifiedCard entity={createItem()} type="item" />);
-    fireEvent.click(screen.getByLabelText('Open attributes'));
+    fireEvent.click(screen.getByLabelText('Open editor'));
     fireEvent.click(screen.getByLabelText('Edit shop'));
 
     const input = screen.getByLabelText('Shop input');
@@ -100,7 +100,7 @@ describe('UnifiedCard (grocery item)', () => {
 
   it('deletes from attribute delete button', () => {
     render(<UnifiedCard entity={createItem()} type="item" />);
-    fireEvent.click(screen.getByLabelText('Open attributes'));
+    fireEvent.click(screen.getByLabelText('Open editor'));
     fireEvent.click(screen.getByLabelText('Delete'));
     expect(mockDeleteItem).toHaveBeenCalledWith('item-1');
   });
@@ -116,7 +116,7 @@ describe('UnifiedCard (grocery item)', () => {
     render(<UnifiedCard entity={createItem()} type="item" />);
     expect(screen.queryByLabelText('Edit title')).toBeNull();
 
-    fireEvent.click(screen.getByLabelText('Open attributes'));
+    fireEvent.click(screen.getByLabelText('Open editor'));
 
     const input = screen.getByLabelText('Edit title') as HTMLInputElement;
     expect(input).toBeTruthy();
@@ -125,7 +125,7 @@ describe('UnifiedCard (grocery item)', () => {
 
   it('saves edited title on Enter', () => {
     render(<UnifiedCard entity={createItem()} type="item" />);
-    fireEvent.click(screen.getByLabelText('Open attributes'));
+    fireEvent.click(screen.getByLabelText('Open editor'));
 
     const input = screen.getByLabelText('Edit title') as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'Soy Milk' } });
@@ -136,7 +136,7 @@ describe('UnifiedCard (grocery item)', () => {
 
   it('reverts title on Escape', () => {
     render(<UnifiedCard entity={createItem()} type="item" />);
-    fireEvent.click(screen.getByLabelText('Open attributes'));
+    fireEvent.click(screen.getByLabelText('Open editor'));
 
     const input = screen.getByLabelText('Edit title') as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'Soy Milk' } });

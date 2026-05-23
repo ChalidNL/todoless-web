@@ -43,7 +43,7 @@ describe('CompactTaskCard compact layout (GroceryCard style)', () => {
     render(<CompactTaskCard task={baseTask as any} />);
 
     expect(screen.getByText('Pay bills')).toBeTruthy();
-    expect(screen.getByLabelText('Open task attributes')).toBeTruthy();
+    expect(screen.getByLabelText('Open task editor')).toBeTruthy();
     expect(screen.getByLabelText('Mark as done')).toBeTruthy();
     // Chips hidden until hamburger tap (render behind showMenu conditional)
     expect(screen.queryByText('home')).toBeNull();
@@ -52,7 +52,7 @@ describe('CompactTaskCard compact layout (GroceryCard style)', () => {
 
   it('opens all attribute buttons when hamburger is tapped', () => {
     render(<CompactTaskCard task={baseTask as any} />);
-    fireEvent.click(screen.getByLabelText('Open task attributes'));
+    fireEvent.click(screen.getByLabelText('Open task editor'));
 
     expect(screen.getByLabelText('Edit labels')).toBeTruthy();
     expect(screen.getByLabelText('Edit assignee')).toBeTruthy();
@@ -63,7 +63,7 @@ describe('CompactTaskCard compact layout (GroceryCard style)', () => {
 
   it('shows label input when label icon is tapped in menu', () => {
     render(<CompactTaskCard task={baseTask as any} />);
-    fireEvent.click(screen.getByLabelText('Open task attributes'));
+    fireEvent.click(screen.getByLabelText('Open task editor'));
     fireEvent.click(screen.getByLabelText('Edit labels'));
 
     expect(screen.getByLabelText('Label input')).toBeTruthy();
@@ -71,7 +71,7 @@ describe('CompactTaskCard compact layout (GroceryCard style)', () => {
 
   it('toggles flag and blocked state on flag click', () => {
     render(<CompactTaskCard task={baseTask as any} />);
-    fireEvent.click(screen.getByLabelText('Open task attributes'));
+    fireEvent.click(screen.getByLabelText('Open task editor'));
     fireEvent.click(screen.getByLabelText('Toggle flag'));
 
     expect(mockUpdateTask).toHaveBeenCalledWith('task-1', { flag: true, blocked: true });
@@ -91,7 +91,7 @@ describe('CompactTaskCard compact layout (GroceryCard style)', () => {
     render(<CompactTaskCard task={withDate as any} />);
 
     // Open hamburger to reveal chips
-    fireEvent.click(screen.getByLabelText('Open task attributes'));
+    fireEvent.click(screen.getByLabelText('Open task editor'));
     expect(screen.getByText(/jun/i)).toBeTruthy();
   });
 
@@ -105,7 +105,7 @@ describe('CompactTaskCard compact layout (GroceryCard style)', () => {
     const root = container.firstChild as HTMLElement;
     expect(root.className.includes('!bg-red-50')).toBeTruthy();
     // Flag attribute button shows when hamburger opens
-    fireEvent.click(screen.getByLabelText('Open task attributes'));
+    fireEvent.click(screen.getByLabelText('Open task editor'));
     expect(screen.getByLabelText('Toggle flag')).toBeTruthy();
   });
 
@@ -114,7 +114,7 @@ describe('CompactTaskCard compact layout (GroceryCard style)', () => {
     render(<CompactTaskCard task={withLabels as any} />);
 
     // Open hamburger to reveal chips, clicking chip removes the label
-    fireEvent.click(screen.getByLabelText('Open task attributes'));
+    fireEvent.click(screen.getByLabelText('Open task editor'));
     fireEvent.click(screen.getByText('home'));
     expect(mockUpdateTask).toHaveBeenCalledWith('task-1', { labels: [] });
   });
@@ -124,7 +124,7 @@ describe('CompactTaskCard compact layout (GroceryCard style)', () => {
     render(<CompactTaskCard task={withAssignee as any} />);
 
     // Open hamburger to reveal chips, clicking chip clears assignee
-    fireEvent.click(screen.getByLabelText('Open task attributes'));
+    fireEvent.click(screen.getByLabelText('Open task editor'));
     fireEvent.click(screen.getByText('Chalid'));
     expect(mockUpdateTask).toHaveBeenCalledWith('task-1', { assignedTo: null });
   });
@@ -134,7 +134,7 @@ describe('CompactTaskCard compact layout (GroceryCard style)', () => {
     render(<CompactTaskCard task={withDate as any} />);
 
     // Open hamburger to reveal chips, clicking date chip clears schedule
-    fireEvent.click(screen.getByLabelText('Open task attributes'));
+    fireEvent.click(screen.getByLabelText('Open task editor'));
     fireEvent.click(screen.getByText(/jun/i));
     expect(mockUpdateTask).toHaveBeenCalledWith('task-1', { dueDate: null, repeatInterval: null });
   });
@@ -144,7 +144,7 @@ describe('CompactTaskCard compact layout (GroceryCard style)', () => {
     render(<CompactTaskCard task={withRepeat as any} />);
 
     // Open hamburger to reveal chips, clicking repeat chip clears schedule
-    fireEvent.click(screen.getByLabelText('Open task attributes'));
+    fireEvent.click(screen.getByLabelText('Open task editor'));
     fireEvent.click(screen.getByText('Weekly'));
     expect(mockUpdateTask).toHaveBeenCalledWith('task-1', { dueDate: null, repeatInterval: null });
   });
@@ -152,7 +152,7 @@ describe('CompactTaskCard compact layout (GroceryCard style)', () => {
   it('shows clear labels button when labels exist', () => {
     const withLabels = { ...baseTask, labels: ['l1'] };
     render(<CompactTaskCard task={withLabels as any} />);
-    fireEvent.click(screen.getByLabelText('Open task attributes'));
+    fireEvent.click(screen.getByLabelText('Open task editor'));
     fireEvent.click(screen.getByLabelText('Edit labels'));
 
     expect(screen.getByLabelText('Clear all labels')).toBeTruthy();
@@ -164,7 +164,7 @@ describe('CompactTaskCard compact layout (GroceryCard style)', () => {
     render(<CompactTaskCard task={baseTask as any} />);
     expect(screen.queryByLabelText('Edit task title')).toBeNull();
 
-    fireEvent.click(screen.getByLabelText('Open task attributes'));
+    fireEvent.click(screen.getByLabelText('Open task editor'));
 
     const input = screen.getByLabelText('Edit task title') as HTMLInputElement;
     expect(input).toBeTruthy();
@@ -173,7 +173,7 @@ describe('CompactTaskCard compact layout (GroceryCard style)', () => {
 
   it('saves edited title on blur', () => {
     render(<CompactTaskCard task={baseTask as any} />);
-    fireEvent.click(screen.getByLabelText('Open task attributes'));
+    fireEvent.click(screen.getByLabelText('Open task editor'));
 
     const input = screen.getByLabelText('Edit task title') as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'Pay all bills' } });
@@ -184,7 +184,7 @@ describe('CompactTaskCard compact layout (GroceryCard style)', () => {
 
   it('saves edited title on Enter key', () => {
     render(<CompactTaskCard task={baseTask as any} />);
-    fireEvent.click(screen.getByLabelText('Open task attributes'));
+    fireEvent.click(screen.getByLabelText('Open task editor'));
 
     const input = screen.getByLabelText('Edit task title') as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'Pay all bills' } });
@@ -195,7 +195,7 @@ describe('CompactTaskCard compact layout (GroceryCard style)', () => {
 
   it('reverts title on Escape key', () => {
     render(<CompactTaskCard task={baseTask as any} />);
-    fireEvent.click(screen.getByLabelText('Open task attributes'));
+    fireEvent.click(screen.getByLabelText('Open task editor'));
 
     const input = screen.getByLabelText('Edit task title') as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'Pay all bills' } });
@@ -207,7 +207,7 @@ describe('CompactTaskCard compact layout (GroceryCard style)', () => {
 
   it('restores original title when input is cleared and blurred', () => {
     render(<CompactTaskCard task={baseTask as any} />);
-    fireEvent.click(screen.getByLabelText('Open task attributes'));
+    fireEvent.click(screen.getByLabelText('Open task editor'));
 
     const input = screen.getByLabelText('Edit task title') as HTMLInputElement;
     fireEvent.change(input, { target: { value: '' } });
