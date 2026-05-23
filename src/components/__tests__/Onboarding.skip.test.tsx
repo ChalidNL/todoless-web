@@ -3,41 +3,14 @@ import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 
 vi.mock('../../context/AppContext', () => ({
-
-vi.mock('../context/LanguageContext', () => ({
-  useLanguage: () => ({
-    language: 'en',
-    setLanguage: () => {},
-    t: (key) => key,
-  }),
-  LanguageProvider: ({ children }) => children,
-}));
   useApp: () => ({ updateAppSettings: vi.fn() }),
 }));
 
 vi.mock('../AuthProvider', () => ({
-
-vi.mock('../context/LanguageContext', () => ({
-  useLanguage: () => ({
-    language: 'en',
-    setLanguage: () => {},
-    t: (key) => key,
-  }),
-  LanguageProvider: ({ children }) => children,
-}));
   useAuth: () => ({ user: null, loading: false }),
 }));
 
 vi.mock('../../lib/pocketbase-client', () => ({
-
-vi.mock('../context/LanguageContext', () => ({
-  useLanguage: () => ({
-    language: 'en',
-    setLanguage: () => {},
-    t: (key) => key,
-  }),
-  LanguageProvider: ({ children }) => children,
-}));
   api: {
     markOnboardingSeen: vi.fn(async () => {}),
     registerAdmin: vi.fn(async () => ({})),
@@ -45,16 +18,16 @@ vi.mock('../context/LanguageContext', () => ({
 }));
 
 vi.mock('../../lib/pocketbase', () => ({
-
-vi.mock('../context/LanguageContext', () => ({
-  useLanguage: () => ({
-    language: 'en',
-    setLanguage: () => {},
-    t: (key) => key,
-  }),
-  LanguageProvider: ({ children }) => children,
-}));
   pb: {},
+}));
+
+vi.mock('../../context/LanguageContext', () => ({
+  useLanguage: () => ({
+    language: 'en' as const,
+    setLanguage: vi.fn(),
+    t: (key: string) => key,
+  }),
+  LanguageProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
 const { Onboarding } = await import('../Onboarding');
@@ -68,7 +41,7 @@ describe('Onboarding skip', () => {
     const onComplete = vi.fn();
     render(<Onboarding mode="admin" onComplete={onComplete} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
+    fireEvent.click(screen.getByRole('button', { name: 'onboarding.skip' }));
     expect(onComplete).toHaveBeenCalledTimes(1);
   });
 });
