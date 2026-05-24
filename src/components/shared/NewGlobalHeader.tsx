@@ -4,6 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { t } from '../../i18n/translations';
 import { LabelBadge } from './LabelBadge';
 import { Priority, Horizon, TaskStatus } from '../../types';
+import { PRIORITY_ORDER, PRIORITY_LABELS, PRIORITY_COLORS } from '../../lib/priority';
 
 interface NewGlobalHeaderProps {
   onSearch?: (query: string) => void;
@@ -344,7 +345,7 @@ export const NewGlobalHeader = ({
                     <span className="text-xs font-medium text-neutral-700">{t('tasks.priority')}</span>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    {(['urgent', 'normal', 'low'] as Priority[]).map(priority => (
+                    {PRIORITY_ORDER.map(priority => (
                       <button
                         key={priority}
                         onClick={() => toggleArrayValue(selectedPriority, priority, setSelectedPriority)}
@@ -355,7 +356,7 @@ export const NewGlobalHeader = ({
                         }`}
                       >
                         {getPriorityIcon(priority)}
-                        {priority === 'urgent' ? t('tasks.priorityUrgent') : priority === 'normal' ? t('tasks.priorityNormal') : t('tasks.priorityLow')}
+                        {PRIORITY_LABELS[priority] || priority}
                       </button>
                     ))}
                   </div>

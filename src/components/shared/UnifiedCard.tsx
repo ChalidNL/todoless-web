@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Task, Item, userDisplayName } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../lib/pocketbase-client';
-import { Check, ChevronDown, ChevronUp, Trash2, Tag, User, CalendarDays, Flag, ShoppingCart, ArrowLeftRight, X } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, Trash2, Tag, User, CalendarDays, Flag, ShoppingCart, ArrowLeftRight, X, AlertTriangle } from 'lucide-react';
 import { t } from '../../i18n/translations';
 
 // Subtask icon: square with dot inside
@@ -14,6 +14,7 @@ const SubtaskIcon = ({ className }: { className?: string }) => (
 );
 import { LabelBadge } from './LabelBadge';
 import { AttributeChip } from './AttributeChip';
+import { PRIORITY_COLORS, PRIORITY_LABELS, PRIORITY_ORDER } from '../../lib/priority';
 import { entityColor, entityBg } from '../../lib/entity-colors';
 
 interface UnifiedCardProps {
@@ -21,7 +22,7 @@ interface UnifiedCardProps {
   type: 'task' | 'item';
 }
 
-type UnifiedEditor = 'labels' | 'assignee' | 'schedule' | 'shop' | null;
+type UnifiedEditor = 'labels' | 'assignee' | 'schedule' | 'shop' | 'priority' | null;
 
 export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
   const { updateTask, updateItem, deleteTask, deleteItem, labels, users, shops, tasks, addLabel, addShop, toggleChipFilter, isChipFilterActive, swapEntity, refreshEntries, showCompletionMessage } = useApp();
@@ -255,6 +256,13 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                 color="#8b5cf6"
               />
             )}
+            {isTask && task?.priority && (
+              <AttributeChip
+                icon={<AlertTriangle className="w-3.5 h-3.5" />}
+                label={PRIORITY_LABELS[task.priority] || task.priority}
+                color={PRIORITY_COLORS[task.priority] || '#6b7280'}
+              />
+            )}
           </div>
         )}
 
@@ -384,6 +392,20 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                   aria-label={t('tasks.viewSubtasks')}
                 >
                   <SubtaskIcon className="w-4 h-4" />
+                </button>
+              )}
+              {isTask && (
+                <button
+                  onClick={() => setActiveEditor(activeEditor === 'priority' ? null : 'priority')}
+                  className={`p-1.5 rounded transition-colors ${
+                    task?.priority || activeEditor === 'priority'
+                      ? 'bg-amber-100 text-amber-700'
+                      : 'hover:bg-neutral-100 text-neutral-500'
+                  }`}
+                  title="Priority"
+                  aria-label="Edit priority"
+                >
+                  <AlertTriangle className="w-4 h-4" strokeWidth={1.75} />
                 </button>
               )}
               {isTask && (
@@ -576,6 +598,31 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                   {visibleShops.length === 0 && (
                     <p className="text-xs text-neutral-400 italic">{t('items.noShopsFound')}</p>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* Priority editor (tasks only) */}
+            {activeEditor === 'priority' && isTask && (
+              <div className="mt-2">
+                <div className="flex items-center gap-1.5">
+                  {PRIORITY_ORDER.map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => {
+                        setValue({ priority: p });
+                        setActiveEditor(null);
+                      }}
+                      className={`flex-1 px-2 py-1.5 rounded text-xs font-medium transition-colors ${
+                        task?.priority === p
+                          ? 'text-white shadow-sm'
+                          : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                      }`}
+                      style={task?.priority === p ? { backgroundColor: PRIORITY_COLORS[p] } : undefined}
+                    >
+                      {PRIORITY_LABELS[p]}
+                    </button>
+                  ))}
                 </div>
               </div>
             )}

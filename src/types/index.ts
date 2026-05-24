@@ -20,7 +20,7 @@ export interface Shop {
   color: string;
 }
 
-export type Priority = 'urgent' | 'normal' | 'low';
+export type Priority = 'low' | 'medium' | 'high';
 export type Horizon = 'week' | 'month' | '3months' | '6months' | 'year';
 export type TaskStatus = 'backlog' | 'todo' | 'done';
 export type SprintDuration = '1week' | '2weeks' | '3weeks' | '1month';
