@@ -878,9 +878,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const generateInviteCode = async (type: 'human' | 'agent' = 'human'): Promise<InviteCode | null> => {
+  const generateInviteCode = async (): Promise<InviteCode | null> => {
     try {
-      const result = await api.createInvite({ code: '', expiresAt: 0, type });
+      const result = await api.createInvite({ code: '', expiresAt: 0 });
       await refreshInvites();
       const invite: InviteCode = {
         id: result.id,

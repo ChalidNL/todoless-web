@@ -542,34 +542,34 @@ export const Settings = () => {
               </div>
 
               <div>
-                <label className="block text-sm text-neutral-600 mb-1">{t('settings.name')}</label>
+                <label className="block text-sm text-neutral-600 mb-1">{t('onboarding.firstName')}</label>
                 <input
                   type="text"
                   value={editFirstName}
                   onChange={(e) => setEditFirstName(e.target.value)}
-                  placeholder={t('settings.name')}
+                  placeholder={t('onboarding.firstName')}
                   className="w-full px-3 py-2 border border-neutral-200 rounded text-sm"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-neutral-600 mb-1">{t('settings.name')}</label>
+                <label className="block text-sm text-neutral-600 mb-1">{t('onboarding.lastName')}</label>
                 <input
                   type="text"
                   value={editLastName}
                   onChange={(e) => setEditLastName(e.target.value)}
-                  placeholder={t('settings.name')}
+                  placeholder={t('onboarding.lastName')}
                   className="w-full px-3 py-2 border border-neutral-200 rounded text-sm"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-neutral-600 mb-1">{t('settings.name')}</label>
+                <label className="block text-sm text-neutral-600 mb-1">Display Name</label>
                 <input
                   type="text"
                   value={editDisplayName}
                   onChange={(e) => setEditDisplayName(e.target.value)}
-                  placeholder={t('settings.name')}
+                  placeholder="Display name"
                   className="w-full px-3 py-2 border border-neutral-200 rounded text-sm"
                 />
               </div>
