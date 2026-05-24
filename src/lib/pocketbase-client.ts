@@ -537,7 +537,9 @@ class PocketBaseClient {
   async getLabels(): Promise<Label[]> {
     if (!pb.authStore.isValid) return [];
     const userId = pb.authStore.record?.id;
-    const list = await pb.collection('labels').getFullList({ filter: `user.id = "${userId}"`, sort: 'name' });
+    const familyId = (pb.authStore.record as any)?.family_id;
+    const filter = familyId ? `user.family_id = "${familyId}"` : `user.id = "${userId}"`;
+    const list = await pb.collection('labels').getFullList({ filter, sort: 'name' });
     return list.map(normalizeLabel);
   }
 
@@ -565,7 +567,9 @@ class PocketBaseClient {
   async getShops(): Promise<Shop[]> {
     if (!pb.authStore.isValid) return [];
     const userId = pb.authStore.record?.id;
-    const list = await pb.collection('shops').getFullList({ filter: `user.id = "${userId}"`, sort: 'name' });
+    const familyId = (pb.authStore.record as any)?.family_id;
+    const filter = familyId ? `user.family_id = "${familyId}"` : `user.id = "${userId}"`;
+    const list = await pb.collection('shops').getFullList({ filter, sort: 'name' });
     return list.map(normalizeShop);
   }
 

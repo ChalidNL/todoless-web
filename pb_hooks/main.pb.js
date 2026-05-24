@@ -7,14 +7,69 @@
 // - $app.save(rec) for users throws "ReferenceError: tasks" (PB 0.34.2 bug)
 //   FIX: use var u = $app.unsafeWithoutHooks(); u.save(rec); with manual id/tokenKey
 
-// ── Record Hooks: task subtask_ids ──
+// ── Canonical Record Hooks: single creation path for ALL sources (UI, API, agent) ──
+
 onRecordCreate('tasks', (e) => {
   try {
+    var rec = e.record;
+    // Default status
+    if (!rec.get('status')) rec.set('status', 'todo');
+    // Default flag
+    if (rec.get('flag') === undefined || rec.get('flag') === null) rec.set('flag', false);
+    // Default is_private
+    if (rec.get('is_private') === undefined || rec.get('is_private') === null) rec.set('is_private', false);
+    // Auto-set user from auth context if not provided
+    if (!rec.get('user')) {
+      var info = e.requestInfo;
+      var auth = info && info.auth ? info.auth : null;
+      if (auth) rec.set('user', auth.id);
+    }
+    // Auto-set family_id from user
+    if (!rec.get('family_id') || rec.get('family_id') === '') {
+      var uid = rec.get('user');
+      if (uid) {
+        try {
+          var u = $app.findRecordById('users', uid);
+          var fid = u.get('family_id');
+          if (fid) rec.set('family_id', fid);
+        } catch(ex) { /* user may not exist yet during import */ }
+      }
+    }
+    // Subtask_ids from request data
     var data = e.requestInfo && e.requestInfo().data ? e.requestInfo().data : {};
     if (data && data.subtask_ids !== undefined) {
-      e.record.set('subtask_ids', data.subtask_ids);
+      rec.set('subtask_ids', data.subtask_ids);
     }
-  } catch(err) { /* ignore - e.requestInfo may not exist in all contexts */ }
+  } catch(err) { /* ignore */ }
+});
+
+onRecordCreate('items', (e) => {
+  try {
+    var rec = e.record;
+    // Default completed
+    if (rec.get('completed') === undefined || rec.get('completed') === null) rec.set('completed', false);
+    // Default quantity
+    if (!rec.get('quantity')) rec.set('quantity', 1);
+    // Default is_private
+    if (rec.get('is_private') === undefined || rec.get('is_private') === null) rec.set('is_private', false);
+    // Auto-set user from auth context if not provided
+    if (!rec.get('user')) {
+      var info = e.requestInfo;
+      var auth = info && info.auth ? info.auth : null;
+      if (auth) rec.set('user', auth.id);
+    }
+    // Auto-set family_id from user
+    if (!rec.get('family_id') || rec.get('family_id') === '') {
+      var uid = rec.get('user');
+      if (uid) {
+        try {
+          var u = $app.findRecordById('users', uid);
+          var fid = u.get('family_id');
+          if (fid) rec.set('family_id', fid);
+        } catch(ex) { /* ignore */ }
+      }
+    }
+  } catch(err) { /* ignore */ }
 });
 
 onRecordUpdate('tasks', (e) => {
@@ -25,8 +80,6 @@ onRecordUpdate('tasks', (e) => {
     }
   } catch(err) { /* ignore */ }
 });
-// Note: onRecordEnrich used — subtask_ids default rendering uses GET with ?expand=subtask_ids&subtasks=1
-// rendering uses GET with ?expand=subtask_ids&subtasks=1
 
 // ─── Public API endpoints ────────────────────────────────────────────────
 
