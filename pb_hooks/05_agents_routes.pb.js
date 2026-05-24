@@ -20,7 +20,7 @@ function getKeyPrefix(key) {
 
 
 function hasScope(agentKey, requiredScope) {
-  var scopes = agentKey.get('scopes');
+  var scopes = agentKey.get('permissions') || agentKey.get('scopes');
   if (!scopes || !Array.isArray(scopes)) return false;
   if (scopes.indexOf('*') !== -1) return true;
   if (scopes.indexOf(requiredScope) !== -1) return true;
@@ -135,7 +135,7 @@ routerAdd('POST', '/api/agent/keys', function(c) {
     rec.set('name', name);
     rec.set('key_hash', keyHash);
     rec.set('key_prefix', prefix);
-    rec.set('scopes', scopes);
+    rec.set('permissions', scopes);
     rec.set('active', true);
     rec.set('user', auth.id);
     if (expiresAt) rec.set('expires_at', expiresAt);
@@ -213,7 +213,7 @@ routerAdd('GET', '/api/agent/keys', function(c) {
         id: r.id,
         name: r.get('name'),
         key_prefix: r.get('key_prefix'),
-        scopes: r.get('scopes') || [],
+        scopes: r.get('permissions') || r.get('scopes') || [],
         active: !!r.get('active'),
         last_used_at: r.get('last_used_at') || null,
         expires_at: r.get('expires_at') || null,
@@ -805,7 +805,7 @@ routerAdd('GET', '/api/agent/auth-test', function(c) {
       authenticated: true,
       key_id: agentKey.id,
       name: agentKey.get('name'),
-      scopes: agentKey.get('scopes') || [],
+      scopes: agentKey.get('permissions') || agentKey.get('scopes') || [],
       active: !!agentKey.get('active'),
     });
   } catch (e) {

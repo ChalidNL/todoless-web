@@ -14,7 +14,7 @@ routerAdd('GET', '/api/agent/tasks', function(c) {
     return recs.length > 0 ? recs[0] : null;
   }
   function checkScope(k, scope) {
-    var sc = String(k.get('scopes') || ''); if (!sc) return false;
+    var sc = String(k.get('permissions') || k.get('scopes') || ''); if (!sc) return false;
     var list = sc.split(',');
     for (var i = 0; i < list.length; i++) { if (list[i].trim() === '*' || list[i].trim() === scope) return true; }
     return false;
@@ -52,7 +52,7 @@ routerAdd('PATCH', '/api/agent/tasks/:id', function(c) {
     return recs.length > 0 ? recs[0] : null;
   }
   function checkScope(k, scope) {
-    var sc = String(k.get('scopes') || ''); if (!sc) return false;
+    var sc = String(k.get('permissions') || k.get('scopes') || ''); if (!sc) return false;
     var list = sc.split(','); for (var i = 0; i < list.length; i++) { if (list[i].trim() === '*' || list[i].trim() === scope) return true; } return false;
   }
   function authCheck() {
@@ -89,7 +89,7 @@ routerAdd('POST', '/api/agent/reminders', function(c) {
     return recs.length > 0 ? recs[0] : null;
   }
   function checkScope(k, scope) {
-    var sc = String(k.get('scopes') || ''); if (!sc) return false;
+    var sc = String(k.get('permissions') || k.get('scopes') || ''); if (!sc) return false;
     var list = sc.split(','); for (var i = 0; i < list.length; i++) { if (list[i].trim() === '*' || list[i].trim() === scope) return true; } return false;
   }
   function authCheck() {
@@ -124,7 +124,7 @@ routerAdd('GET', '/api/agent/reminders', function(c) {
     return recs.length > 0 ? recs[0] : null;
   }
   function checkScope(k, scope) {
-    var sc = String(k.get('scopes') || ''); if (!sc) return false;
+    var sc = String(k.get('permissions') || k.get('scopes') || ''); if (!sc) return false;
     var list = sc.split(','); for (var i = 0; i < list.length; i++) { if (list[i].trim() === '*' || list[i].trim() === scope) return true; } return false;
   }
   function authCheck() {

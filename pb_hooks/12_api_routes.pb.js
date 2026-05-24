@@ -750,7 +750,7 @@ routerAdd('POST', '/api/members/:userId/token', function(c) {
     rec.set('name', 'API token for ' + String(memberUser.get('name') || memberUser.get('email') || targetUserId));
     rec.set('user', targetUserId);
     rec.set('token_hash', hash);
-    rec.set('scopes', ['tasks:write', 'groceries:write', 'tasks:read', 'groceries:read']);
+    rec.set('permissions', ['tasks:write', 'groceries:write', 'tasks:read', 'groceries:read']);
     rec.set('enabled', true);
     rec.set('created', new Date().toISOString());
     $app.save(rec);

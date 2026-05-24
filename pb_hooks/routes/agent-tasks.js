@@ -36,7 +36,7 @@ function authFromApiKey(c) {
 }
 
 function hasScope(agentKey, requiredScope) {
-  var scopes = agentKey.get('scopes');
+  var scopes = agentKey.get('permissions') || agentKey.get('scopes');
   if (!scopes || !Array.isArray(scopes)) return false;
   if (scopes.indexOf('*') !== -1) return true;
   if (scopes.indexOf(requiredScope) !== -1) return true;
