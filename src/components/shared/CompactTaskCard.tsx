@@ -273,7 +273,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                     key={label.id}
                     icon={<Tag className="w-3.5 h-3.5" />}
                     label={label.name}
-                    color="#3b82f6"
+                    color={label.color}
                     active={isLabelFiltered(label.id)}
                     onClick={showMenu ? () => removeLabel(label.id) : () => toggleChipFilter('label', label.id, label.name, label.color)}
                   />

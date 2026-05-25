@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Task, Item, userDisplayName } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../lib/pocketbase-client';
-import { Check, ChevronDown, ChevronUp, Trash2, Tag, User, CalendarDays, Flag, ShoppingCart, ArrowLeftRight, X, AlertTriangle } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, Trash2, Tag, User, CalendarDays, Flag, ShoppingCart, ArrowLeftRight, X, AlertTriangle, RotateCcw } from 'lucide-react';
 import { t } from '../../i18n/translations';
 
 // Subtask icon: square with dot inside
@@ -62,6 +62,9 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
   const currentShop = item?.shopId ? shops.find(s => s.id === item.shopId) : null;
   const assignedUser = entity.assignedTo ? users.find(u => u.id === entity.assignedTo) : null;
   const dateStr = entity.dueDate ? new Date(entity.dueDate).toLocaleDateString('nl-NL', { month: 'short', day: 'numeric' }) : null;
+  const repeatLabel = task?.repeatInterval
+    ? { day: t('common.repeatDaily'), week: t('common.repeatWeekly'), month: t('common.repeatMonthly'), year: t('common.repeatYearly') }[task.repeatInterval as string] ?? null
+    : null;
 
   const handleToggle = () => {
     if (isTask) {
@@ -209,7 +212,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
         {/* Chip row — labels + assignee + shop + date (only when not done) */}
         {/* Tasks: chips visible in both collapsed and edit mode (labels+assignee always visible) */}
         {/* Items: chips always visible */}
-        {!isDone && (showMenu || !isTask || hasLabels || assignedUser || task?.priority) && (hasLabels || assignedUser || hasShop || dateStr || subtaskCount > 0 || task?.priority) && (
+        {!isDone && (hasLabels || assignedUser || hasShop || dateStr || subtaskCount > 0 || task?.priority || task?.repeatInterval) && (
           <div className="flex flex-wrap items-center gap-1 mt-1.5 ml-0.5">
             {isTask && entity.labels.map(labelId => {
               const label = labels.find(l => l.id === labelId);
@@ -238,6 +241,14 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                 icon={<CalendarDays className="w-3.5 h-3.5" />}
                 label={dateStr}
                 color="#ea580c"
+                onClick={showMenu ? () => setValue({ dueDate: null, repeatInterval: null }) : () => toggleChipFilter('date', dateStr)}
+              />
+            )}
+            {isTask && repeatLabel && (
+              <AttributeChip
+                icon={<RotateCcw className="w-3.5 h-3.5" />}
+                label={repeatLabel}
+                color="#ea580c"
                 onClick={showMenu ? () => setValue({ dueDate: null, repeatInterval: null }) : undefined}
               />
             )}
@@ -245,7 +256,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
               <AttributeChip
                 icon={<ShoppingCart className="w-3.5 h-3.5" />}
                 label={currentShop.name}
-                color="#10b981"
+                color={currentShop.color}
                 active={isShopFiltered(currentShop.id)}
                 onClick={showMenu ? () => setValue({ shopId: null }) : () => toggleChipFilter('shop', currentShop.id, currentShop.name, currentShop.color)}
               />

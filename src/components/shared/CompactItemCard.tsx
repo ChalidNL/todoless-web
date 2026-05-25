@@ -114,7 +114,7 @@ export const CompactItemCard = ({ item }: CompactItemCardProps) => {
           </div>
 
           {/* Chips row — owner + assignee + shop + date */}
-          {(item.createdBy || (item.assignedTo && item.assignedTo !== item.createdBy) || currentShop || item.dueDate) && (
+          {!item.completed && (item.createdBy || (item.assignedTo && item.assignedTo !== item.createdBy) || currentShop || item.dueDate) && (
             <div className="flex flex-wrap items-center gap-1 mb-2">
               {item.createdBy && (
                 <AttributeChip icon={<User className="w-3.5 h-3.5" />} label={users.find(u => u.id === item.createdBy)?.firstName || t('common.unknown')} color={entityColor(item.createdBy)} />
