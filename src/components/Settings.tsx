@@ -5,7 +5,7 @@ import { User, ApiToken, userDisplayName, Agent } from '../types';
 import { t } from '../i18n/translations';
 import { ChevronDown, ChevronUp, Plus, Edit2, Trash2, X, LogOut, Eye, EyeOff, Copy, Check, Lock, ExternalLink, Plug, Bot } from 'lucide-react';
 import { NewGlobalHeader } from './shared/NewGlobalHeader';
-import { LabelBadge } from './shared/LabelBadge';
+import { AttributeChip } from './shared/AttributeChip';
 import { InviteManager } from './InviteManager';
 import { api } from '../lib/pocketbase-client';
 import { pb } from '../lib/pocketbase';
@@ -727,7 +727,7 @@ export const Settings = () => {
               <div className="space-y-3">
                 {labels.map(label => (
                   <div key={label.id} className="flex items-center gap-3 p-3 border border-neutral-200 rounded">
-                    <LabelBadge label={label} />
+                    <AttributeChip label={label.name} color={label.color} />
                     <div className="flex-1">
                       <p className="font-medium text-sm">{label.name}</p>
                     </div>
@@ -788,7 +788,7 @@ export const Settings = () => {
               <div className="space-y-3">
                 {shops.map(shop => (
                   <div key={shop.id} className="flex items-center gap-3 p-3 border border-neutral-200 rounded">
-                    <LabelBadge label={shop} />
+                    <AttributeChip label={shop.name} color={shop.color} />
                     <div className="flex-1">
                       <p className="font-medium text-sm">{shop.name}</p>
                     </div>
