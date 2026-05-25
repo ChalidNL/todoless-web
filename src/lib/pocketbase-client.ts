@@ -28,7 +28,7 @@ const normalizeUser = (record: any): User => ({
   avatarUrl: record.avatar,
   role: (record.role || 'member') as User['role'],
   family_id: record.family_id || undefined,
-  active: typeof record.active === 'boolean' ? record.active : true,
+  active: record.member_status ? record.member_status === 'active' : (typeof record.active === 'boolean' ? record.active : true),
 });
 
 const normalizeTask = (record: any): Task => ({
@@ -856,11 +856,13 @@ class PocketBaseClient {
   }
 
   async deleteUser(id: string) {
-    const response = await fetch(`/api/v1/users/${id}`, {
-      method: 'DELETE',
+    const response = await fetch('/api/v1', {
+      method: 'POST',
       headers: {
+        'Content-Type': 'application/json',
         'Authorization': pb.authStore.token ? `Bearer ${pb.authStore.token}` : '',
       },
+      body: JSON.stringify({ action: 'delete_user', user_id: id }),
     });
 
     if (!response.ok) {
