@@ -667,9 +667,12 @@ export const Settings = () => {
                           </div>
                           <p className="text-[11px] text-neutral-500 truncate">{user.email}</p>
                         </div>
-                        <div className="flex items-center gap-0.5 flex-shrink-0">
-                          <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-green-500' : 'bg-red-500'}`} 
-                            title={isActive ? t('settings.active') : t('settings.blocked')} />
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <span className={`inline-flex items-center px-2 h-6 rounded-full text-[10px] font-medium ${
+                            isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                          }`}>
+                            {isActive ? t('settings.active') : t('settings.blocked')}
+                          </span>
                           {currentUser?.role === 'admin' && !isCurrentUser && !isOwner && (
                             <div className="flex gap-0.5">
                               <button
@@ -815,6 +818,59 @@ export const Settings = () => {
                   </div>
                 ))}
               </div>
+            </>
+          )}
+        </div>
+
+        {/* Filter Views */}
+        <div className="mb-6 border-b border-neutral-200 pb-6">
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center justify-between w-full mb-3"
+          >
+            <h2 className="text-lg font-semibold">{t('filters.title')}</h2>
+            {showFilters ? (
+              <ChevronUp className="w-5 h-5 text-neutral-500" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-neutral-500" />
+            )}
+          </button>
+
+          {showFilters && (
+            <>
+              {filters.length === 0 ? (
+                <p className="text-sm text-neutral-500">{t('filters.noSavedFilters')}</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {filters.map(f => (
+                    <div key={f.id} className="flex items-center justify-between p-2.5 border border-neutral-200 rounded-lg">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-sm truncate">{f.name}</p>
+                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase ${f.type === 'task' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
+                            {f.type === 'task' ? t('common.tasks') : t('common.items')}
+                          </span>
+                        </div>
+                        <p className="text-xs text-neutral-500 mt-0.5">
+                          {f.chipFilters?.length || f.labelIds.length || 0} condition{(f.chipFilters?.length || f.labelIds.length || 0) !== 1 ? 's' : ''}
+                          {f.chipFilters?.map(cf => (
+                            <span key={cf.id} className="ml-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium"
+                              style={{ backgroundColor: cf.color ? `${cf.color}20` : '#f3f4f6', color: cf.color || '#6b7280' }}
+                            >{cf.label || cf.id}</span>
+                          ))}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => { deleteFilter(f.id); showCompletionMessage(t('common.success')); }}
+                        className="p-1 text-neutral-400 hover:text-red-500 rounded hover:bg-red-50 transition-colors"
+                        title={t('common.delete')}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </>
           )}
         </div>

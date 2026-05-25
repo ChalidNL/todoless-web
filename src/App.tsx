@@ -10,7 +10,6 @@ import { InboxBacklog } from './components/InboxBacklog';
 import { TasksView } from './components/TasksView';
 import { GroceriesView } from './components/groceries/GroceriesView';
 import { Settings } from './components/Settings';
-import { FiltersPage } from './components/FiltersPage';
 import { pb } from './lib/pocketbase';
 import { api } from './lib/pocketbase-client';
 import { Inbox as InboxIcon, CheckSquare, ShoppingCart, Settings as SettingsIcon, RefreshCw } from 'lucide-react';
@@ -227,7 +226,6 @@ function AppContent() {
           <Route path="/" element={<InboxBacklog />} />
           <Route path="/tasks" element={<TasksView />} />
           <Route path="/groceries" element={<GroceriesView />} />
-          <Route path="/filters" element={<FiltersPage />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Filter, CheckSquare, X, Save, Settings as SettingsIcon } from 'lucide-react';
+import { Plus, Filter, CheckSquare, X, Save } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { t } from '../../i18n/translations';
 
@@ -159,16 +159,6 @@ export const NewGlobalHeader = ({
                           </button>
                         ))
                       )}
-                    </div>
-
-                    <div className="border-t border-neutral-100 p-1">
-                      <button
-                        onClick={() => { setShowFilterDropdown(false); window.location.href = '/filters'; }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-50 rounded"
-                      >
-                        <SettingsIcon className="w-3.5 h-3.5" />
-                        {t('filters.manageFilters')}
-                      </button>
                     </div>
                   </div>
                 )}
