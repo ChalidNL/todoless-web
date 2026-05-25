@@ -635,7 +635,7 @@ export const Settings = () => {
               {users.length === 0 ? (
                 <p className="text-sm text-neutral-500 py-4">{t('members.noMembers')}</p>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   {users.map(user => {
                     const isCurrentUser = currentUser?.id === user.id;
                     const isAdmin = user.role === 'admin';
@@ -644,45 +644,47 @@ export const Settings = () => {
                     const roleColor = isOwner ? '#a855f7' : isAdmin ? '#f59e0b' : isAgent ? '#3b82f6' : '#6b7280';
                     const roleLabel = isOwner ? t('settings.owner') : isAdmin ? 'Admin' : isAgent ? 'Agent' : t('settings.member');
                     const isActive = user.active ?? true;
+                    const firstName = user.firstName || '';
+                    const lastName = user.lastName || '';
+                    const initials = (firstName.charAt(0) + lastName.charAt(0)).toUpperCase() || userDisplayName(user).charAt(0).toUpperCase();
+                    const adminCount = users.filter(u => u.role === 'admin').length;
+                    const hasOtherAdmin = adminCount > 0 && !isAdmin;
 
                     return (
-                      <div key={user.id} className="flex items-center gap-3 p-3 border border-neutral-200 rounded">
-                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                      <div key={user.id} className="flex items-center gap-2.5 p-2.5 border border-neutral-200 rounded-lg hover:bg-neutral-50 transition-colors">
+                        <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
                           style={{ backgroundColor: roleColor }}>
-                          {userDisplayName(user).charAt(0).toUpperCase()}
+                          {initials}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5">
                             <span className="font-medium text-sm truncate">{userDisplayName(user)}</span>
                             {isCurrentUser && <span className="text-[10px] text-neutral-400">(you)</span>}
+                            <span className="inline-flex items-center px-1.5 h-5 rounded-full text-[10px] font-medium text-white"
+                              style={{ backgroundColor: roleColor }}>
+                              {roleLabel}
+                            </span>
                           </div>
-                          <p className="text-xs text-neutral-500 truncate">{user.email}</p>
+                          <p className="text-[11px] text-neutral-500 truncate">{user.email}</p>
                         </div>
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
-                          <span className="inline-flex items-center px-2 h-6 rounded-full text-[10px] font-medium text-white"
-                            style={{ backgroundColor: roleColor }}>
-                            {roleLabel}
-                          </span>
-                          <span className={`inline-flex items-center px-2 h-6 rounded-full text-[10px] font-medium ${
-                            isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                          }`}>
-                            {isActive ? t('settings.active') : t('settings.blocked')}
-                          </span>
-                          {currentUser?.role === 'admin' && !isCurrentUser && (
-                            <div className="flex gap-1 ml-1">
+                        <div className="flex items-center gap-0.5 flex-shrink-0">
+                          <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-green-500' : 'bg-red-500'}`} 
+                            title={isActive ? t('settings.active') : t('settings.blocked')} />
+                          {currentUser?.role === 'admin' && !isCurrentUser && !isOwner && (
+                            <div className="flex gap-0.5">
                               <button
                                 onClick={() => handleToggleMemberActive(user)}
-                                className="p-1.5 hover:bg-neutral-100 rounded text-neutral-500"
+                                className="p-1 hover:bg-neutral-100 rounded text-neutral-400"
                                 title={isActive ? t('settings.blocked') : t('settings.unblock')}
                               >
-                                {isActive ? <Lock className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5 text-green-600" />}
+                                {isActive ? <Lock className="w-3 h-3" /> : <Check className="w-3 h-3 text-green-600" />}
                               </button>
                               <button
                                 onClick={() => handleDeleteMember(user)}
-                                className="p-1.5 hover:bg-red-50 rounded text-red-500"
+                                className="p-1 hover:bg-red-50 rounded text-red-400"
                                 title={t('common.delete')}
                               >
-                                <Trash2 className="w-3.5 h-3.5" />
+                                <Trash2 className="w-3 h-3" />
                               </button>
                             </div>
                           )}

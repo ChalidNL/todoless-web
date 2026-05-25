@@ -222,6 +222,7 @@ interface TranslationStructure {
     tokenName: string;
     tokenPermissions: string;
     tuesday: string;
+    unblock: string;
     unlimited: string;
     unnamed: string;
     update: string;
@@ -565,6 +566,7 @@ export const translations: Record<Language, TranslationStructure> = {
       tokenName: 'Token Name',
       tokenPermissions: 'Token Permissions',
       tuesday: 'Tuesday',
+      unblock: 'Unblock',
       unlimited: 'Unlimited',
       unnamed: 'Unnamed',
       update: 'Update',
