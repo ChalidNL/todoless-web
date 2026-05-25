@@ -117,10 +117,10 @@ export const CompactItemCard = ({ item }: CompactItemCardProps) => {
           {!item.completed && (item.createdBy || (item.assignedTo && item.assignedTo !== item.createdBy) || currentShop || item.dueDate) && (
             <div className="flex flex-wrap items-center gap-1 mb-2">
               {item.createdBy && (
-                <AttributeChip icon={<User className="w-3.5 h-3.5" />} label={users.find(u => u.id === item.createdBy)?.firstName || t('common.unknown')} color={entityColor(item.createdBy)} />
+                <AttributeChip icon={<User className="w-3.5 h-3.5" />} label={userDisplayName(users.find(u => u.id === item.createdBy)) || t('common.unknown')} color={entityColor(item.createdBy)} />
               )}
               {item.assignedTo && item.assignedTo !== item.createdBy && (
-                <AttributeChip icon={<User className="w-3.5 h-3.5" />} label={users.find(u => u.id === item.assignedTo)?.firstName || t('common.unknown')} color={entityColor(item.assignedTo)} onClick={() => toggleChipFilter('assignee', item.assignedTo!, users.find(u => u.id === item.assignedTo)?.firstName || '', entityColor(item.assignedTo!))} active={isChipFilterActive('assignee', item.assignedTo!)} />
+                <AttributeChip icon={<User className="w-3.5 h-3.5" />} label={userDisplayName(users.find(u => u.id === item.assignedTo)) || t('common.unknown')} color={entityColor(item.assignedTo)} onClick={() => toggleChipFilter('assignee', item.assignedTo!, userDisplayName(users.find(u => u.id === item.assignedTo)), entityColor(item.assignedTo!))} active={isChipFilterActive('assignee', item.assignedTo!)} />
               )}
               {currentShop && (
                 <AttributeChip icon={<ShoppingCart className="w-3.5 h-3.5" />} label={currentShop.name} color={currentShop.color} onClick={() => toggleChipFilter('shop', currentShop.id, currentShop.name, currentShop.color)} active={isChipFilterActive('shop', currentShop.id)} />

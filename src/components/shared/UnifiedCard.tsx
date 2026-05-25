@@ -230,10 +230,10 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
             {isTask && assignedUser && (
               <AttributeChip
                 icon={<User className="w-3.5 h-3.5" />}
-                label={assignedUser.firstName || ''}
+                label={userDisplayName(assignedUser)}
                 color="#10b981"
                 active={isChipFilterActive('assignee', assignedUser.id)}
-                onClick={showMenu ? () => setValue({ assignedTo: null }) : () => toggleChipFilter('assignee', assignedUser.id, assignedUser.firstName || '', '#10b981')}
+                onClick={showMenu ? () => setValue({ assignedTo: null }) : () => toggleChipFilter('assignee', assignedUser.id, userDisplayName(assignedUser), '#10b981')}
               />
             )}
             {isTask && dateStr && (
