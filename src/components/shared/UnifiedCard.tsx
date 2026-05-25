@@ -273,7 +273,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                 icon={<AlertTriangle className="w-3.5 h-3.5" />}
                 label={PRIORITY_LABELS[task.priority] || task.priority}
                 color={PRIORITY_COLORS[task.priority] || '#6b7280'}
-                onClick={showMenu ? () => setValue({ priority: undefined }) : undefined}
+                onClick={showMenu ? () => setValue({ priority: null }) : undefined}
               />
             )}
           </div>

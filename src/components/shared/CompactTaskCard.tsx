@@ -145,7 +145,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
   };
 
   const clearPriority = () => {
-    updateTask(task.id, { priority: undefined });
+    updateTask(task.id, { priority: null });
   };
 
   const removeLabel = (labelId: string) => {
