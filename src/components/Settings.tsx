@@ -434,7 +434,7 @@ export const Settings = () => {
             <div className="space-y-4">
               <div className="flex items-start gap-4">
                 <div className="w-16 h-16 rounded-full bg-neutral-200 flex items-center justify-center text-2xl font-semibold shrink-0">
-                  {currentUser.name.charAt(0)}
+                  {(currentUser?.name || '?').charAt(0)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
@@ -534,7 +534,7 @@ export const Settings = () => {
             <div className="space-y-4">
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 rounded-full bg-neutral-200 flex items-center justify-center text-2xl font-semibold shrink-0">
-                  {currentUser.name.charAt(0)}
+                  {(currentUser?.name || '?').charAt(0)}
                 </div>
                 <div>
                   <p className="text-sm text-neutral-500">{currentUser.email}</p>
@@ -637,11 +637,11 @@ export const Settings = () => {
                   <div key={user.id} className="p-3 border border-neutral-200 rounded">
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 rounded-full bg-neutral-200 flex items-center justify-center text-sm font-semibold shrink-0">
-                        {user.name.charAt(0)}
+                        {(user.name || '?').charAt(0)}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium text-sm truncate">{user.name}</p>
-                        <p className="text-xs text-neutral-600 truncate">{user.email}</p>
+                        <p className="font-medium text-sm truncate">{user.name || 'Unknown'}</p>
+                        <p className="text-xs text-neutral-600 truncate">{user.email || ''}</p>
                       </div>
                     </div>
 
