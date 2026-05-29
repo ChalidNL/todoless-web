@@ -1,10 +1,17 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
-import { UnifiedCard } from '../shared/UnifiedCard';
+import { CompactItemCard } from '../shared/CompactItemCard';
 import { NewGlobalHeader } from '../shared/NewGlobalHeader';
 import { TopBar } from '../shared/TopBar';
 import { ChevronDown, ChevronUp, RotateCcw, ShoppingCart, X as XIcon, Save, ChevronRight } from 'lucide-react';
 import { t } from '../../i18n/translations';
+
+/** Extract category from title: first word, lowercased, strip trailing 's' */
+const getCategory = (title: string): string => {
+  const firstWord = title.trim().split(/\s+/)[0].toLowerCase();
+  // Strip trailing 's' or 'en' for Dutch plurals
+  return firstWord.replace(/(s|en)$/, '') || firstWord;
+};
 
 export const GroceriesView = () => {
   const { items, addItem, uncheckAllDoneItems, showCompletionMessage, activeChipFilters, toggleChipFilter, clearChipFilters, filters, addFilter, deleteFilter } = useApp();
@@ -28,14 +35,12 @@ export const GroceriesView = () => {
   const filteredItems = useMemo(() => {
     let result = items;
 
-    // Chip filters (shop only)
     for (const f of activeChipFilters) {
       if (f.type === 'shop') {
         result = result.filter((item) => item.shopId === f.id);
       }
     }
 
-    // Search
     if (searchQuery) {
       result = result.filter((item) =>
         item.title.toLowerCase().includes(searchQuery.toLowerCase())
@@ -56,6 +61,18 @@ export const GroceriesView = () => {
       a.title.toLowerCase().localeCompare(b.title.toLowerCase())
     );
   }, [filteredItems]);
+
+  // Group active items by auto-detected category
+  const groupedActive = useMemo(() => {
+    const groups: Record<string, typeof sortedActiveItems> = {};
+    for (const item of sortedActiveItems) {
+      const cat = getCategory(item.title);
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(item);
+    }
+    // Sort groups alphabetically by category name
+    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+  }, [sortedActiveItems]);
 
   const handleAddItem = (value: string, metadata?: { shopId?: string }) => {
     addItem({
@@ -79,8 +96,7 @@ export const GroceriesView = () => {
           type="item"
         />
       </div>
-              {/* Filter bar */}
-        {hasAnyFilter && (
+      {hasAnyFilter && (
         <div className="bg-white border-b border-neutral-200 shadow-sm">
           <div className="max-w-lg mx-auto px-4 py-2 flex items-center gap-2">
             <span className="text-xs font-semibold text-neutral-600">
@@ -106,37 +122,19 @@ export const GroceriesView = () => {
                 </span>
               ))}
             </div>
-            <button
-              onClick={clearChipFilters}
-              className="flex-shrink-0 p-1 text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 rounded"
-              title={t('common.clearAllTooltip')}
-            >
+            <button onClick={clearChipFilters} className="flex-shrink-0 p-1 text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 rounded">
               <XIcon className="w-3.5 h-3.5" />
             </button>
             <div className="relative">
-              <button
-                onClick={() => setShowSavedFilters(!showSavedFilters)}
-                className="flex-shrink-0 p-1.5 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 rounded"
-                title={t('common.filters')}
-                aria-label={t('common.filters')}
-              >
+              <button onClick={() => setShowSavedFilters(!showSavedFilters)} className="flex-shrink-0 p-1.5 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 rounded">
                 <ChevronRight className={`w-3.5 h-3.5 transition-transform ${showSavedFilters ? 'rotate-90' : ''}`} />
               </button>
               {showSavedFilters && itemFilters.length > 0 && (
                 <div className="absolute right-0 top-full mt-1 bg-white border border-neutral-200 rounded-lg shadow-lg z-50 min-w-[180px] py-1">
                   {itemFilters.map((f) => (
                     <div key={f.id} className="flex items-center justify-between px-3 py-1.5 hover:bg-neutral-50">
-                      <button
-                        onClick={() => applySavedFilter(f)}
-                        className="text-xs text-neutral-700 text-left flex-1 truncate"
-                      >
-                        {f.name}
-                      </button>
-                      <button
-                        onClick={() => { deleteFilter(f.id); showCompletionMessage('Filter deleted'); }}
-                        className="text-neutral-400 hover:text-red-500 ml-2 flex-shrink-0"
-                        title={t('common.delete')}
-                      >
+                      <button onClick={() => applySavedFilter(f)} className="text-xs text-neutral-700 text-left flex-1 truncate">{f.name}</button>
+                      <button onClick={() => { deleteFilter(f.id); showCompletionMessage('Filter deleted'); }} className="text-neutral-400 hover:text-red-500 ml-2 flex-shrink-0">
                         <XIcon className="w-3 h-3" />
                       </button>
                     </div>
@@ -149,32 +147,17 @@ export const GroceriesView = () => {
                 try {
                   const name = window.prompt(t('settings.filterName'), '');
                   if (!name || !name.trim()) return;
-                  const typeRaw = window.prompt(t('items.title') + ' of shop?', 'item');
-                  const ftype = (typeRaw || 'item').trim().toLowerCase();
-                  const validType = ftype === 'task' ? 'task' : 'item';
-                  addFilter({
-                    name: name.trim(),
-                    labelIds: [],
-                    chipFilters: activeChipFilters.length > 0 ? activeChipFilters.map(c => ({...c})) : undefined,
-                    showCompleted: true,
-                    type: validType,
-                  });
+                  addFilter({ name: name.trim(), labelIds: [], chipFilters: activeChipFilters.length > 0 ? activeChipFilters.map(c => ({...c})) : undefined, showCompleted: true, type: 'item' });
                   showCompletionMessage('Filter saved');
-                } catch(e) {
-                  showCompletionMessage('Failed to save filter');
-                }
+                } catch(e) { showCompletionMessage('Failed to save filter'); }
               }}
-              className="flex-shrink-0 p-1.5 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 rounded"
-              title={t('common.save')}
-              aria-label={t('common.save')}
-            >
+              className="flex-shrink-0 p-1.5 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 rounded">
               <Save className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
       )}
 
-      {/* Active items */}
       <div className="max-w-6xl mx-auto px-4 pt-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold text-sm text-neutral-600 flex items-center gap-1.5">
@@ -187,43 +170,40 @@ export const GroceriesView = () => {
             <p className="text-neutral-400 text-sm">{t('groceries.empty') || 'No items yet'}</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {sortedActiveItems.map((item) => (
-              <UnifiedCard key={item.id} entity={item} type="item" />
+          <div className="space-y-4">
+            {groupedActive.map(([category, catItems]) => (
+              <div key={category}>
+                <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2 px-1">
+                  {category} ({catItems.length})
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {catItems.map((item) => (
+                    <CompactItemCard key={item.id} item={item} />
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         )}
 
-        {/* In stock items (collapsed by default) */}
         {sortedBoughtItems.length > 0 && (
           <div className="mt-6 border-t border-neutral-200 pt-4">
             <div className="flex items-center justify-between">
-              <button
-                onClick={() => setShowBought(!showBought)}
-                className="flex items-center gap-2 text-sm font-medium text-neutral-600 hover:text-neutral-900"
-              >
+              <button onClick={() => setShowBought(!showBought)} className="flex items-center gap-2 text-sm font-medium text-neutral-600 hover:text-neutral-900">
                 {showBought ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 {t('common.completed')} ({sortedBoughtItems.length})
               </button>
-              {sortedBoughtItems.length > 0 && (
-                <button
-                  onClick={() => {
-                    uncheckAllDoneItems();
-                    showCompletionMessage(t('common.completed') + ' reset');
-                  }}
-                  className="flex items-center gap-1 px-2 py-1 text-xs text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 rounded transition-colors"
-                  title={t('common.refresh')}
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  {t('common.refresh')}
-                </button>
-              )}
+              <button
+                onClick={() => { uncheckAllDoneItems(); showCompletionMessage(t('common.completed') + ' reset'); }}
+                className="flex items-center gap-1 px-2 py-1 text-xs text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 rounded transition-colors">
+                <RotateCcw className="w-3 h-3" />
+                {t('common.refresh')}
+              </button>
             </div>
-
             {showBought && (
               <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {sortedBoughtItems.map((item) => (
-                  <UnifiedCard key={item.id} entity={item} type="item" />
+                  <CompactItemCard key={item.id} item={item} />
                 ))}
               </div>
             )}
