@@ -1,94 +1,78 @@
 /**
- * Dutch grocery → supermarket category. Multi-word matches first.
+ * Dutch grocery → supermarket category with emoji headers.
+ * Multi-word matches first (longest keyword wins).
  */
 const CATEGORIES: [string, string[]][] = [
-  ['Groente', [
+  ['🥦 Groente & Fruit', [
     'tomaat', 'komkommer', 'paprika', 'wortel', 'ui', 'sla', 'salade',
     'spinazie', 'courgette', 'champignon', 'knoflook', 'gember',
     'broccoli', 'bloemkool', 'prei', 'selderij', 'aubergine', 'olijf',
-  ]],
-  ['Fruit', [
     'banaan', 'appel', 'peer', 'sinaasappel', 'mandarijn', 'watermeloen',
     'citroen', 'mango', 'aardbei', 'druif', 'kiwi', 'appelmoes', 'ananassap',
-    'mangosap', 'multisap', 'appelsap', 'blödorange',
+    'mangosap', 'multisap', 'appelsap', 'blödorange', 'aardappel', 'friet',
   ]],
-  ['Aardappelen', [
-    'aardappel', 'friet',
-  ]],
-  ['Vlees', [
-    'kipfilet', 'kipnuggets', 'kippenbout', 'kipvleugels', 'hele kip',
-    'gehakt', 'hamburger', 'salami', 'sucuk', 'merguez', 'döner',
-    'kalf', 'lam', 'vlees', 'frikandel', 'bout', 'vleugel',
-  ]],
-  ['Vis', [
-    'zalm', 'tonijn', 'fishstick',
-  ]],
-  ['Zuivel & Eieren', [
-    'roomboter', 'slagroom', 'yoghurt drink', 'yoghurt',
-    'crème fraiche', 'chocolade melk', 'karnemelk', 'geraspte kaas',
-    'raclette cheese', 'raclette', 'melk', 'kaas', 'eieren', 'vla',
-    'margerine', 'ayran',
-  ]],
-  ['Brood & Bakkerij', [
+  ['🍞 Brood & Ontbijt', [
     'hamburger brood', 'tostibrood', 'krentenbollen', 'frikandelbrood',
     'bamischuif', 'brioche', 'durum', 'brood', 'croissant', 'pistolet',
-    'baguette',
+    'baguette', 'cornflakes', 'hagelslag vlokken', 'hagelslag', 'jam',
+    'chocoladepasta', 'pindakaas',
   ]],
-  ['Rijst, Pasta & Granen', [
-    'basmati rice', 'basmati', 'pasta penne', 'pasta',
-    'cornflakes', 'bulgur', 'couscous', 'rijst', 'noodles',
+  ['🥛 Zuivel & Eieren', [
+    'roomboter naturel', 'roomboter zout', 'roomboter', 'slagroom',
+    'yoghurt drink', 'yoghurt', 'crème fraiche', 'chocolade melk',
+    'karnemelk', 'geraspte kaas', 'raclette cheese', 'raclette',
+    'melk', 'kaas', 'eieren', 'vla', 'margerine', 'ayran',
   ]],
-  ['Bakproducten & Meel', [
-    'aardappel zetmeel', 'poedersuiker', 'kristal suiker', 'suikerklontjes',
-    'bakpapier', 'bloem', 'meel', 'suiker', 'zout', 'maizena', 'zetmeel',
+  ['🥩 Vlees, Kip & Vis', [
+    'kipfilet', 'kipnuggets', 'kippenbouten', 'kipvleugels', 'hele kip',
+    'diepvries snacks', 'gehakt', 'hamburger', 'frikandel', 'salami',
+    'sucuk', 'merguez', 'döner', 'kalf', 'lam', 'vlees',
+    'zalm', 'tonijn', 'fishstick',
   ]],
-  ['Peulvruchten', [
+  ['❄️ Diepvries', [
+    'ijsbak cookie dough', 'ijsbak', 'ijsjes', 'frikandellen',
+    'pizza', 'nuggets', 'diepvries', 'ijs',
+  ]],
+  ['🍚 Rijst, Pasta & Droge Waren', [
+    'aardappel zetmeel', 'basmati rice', 'pasta penne', 'pasta',
+    'bulgur', 'couscous', 'rijst', 'noodles', 'maizena', 'zetmeel',
     'rode linzen', 'groene linzen', 'kikkererwten', 'split erwten',
-    'linzen', 'erwten',
+    'linzen', 'erwten', 'bloem', 'meel', 'suiker', 'zout',
+    'poedersuiker', 'kristal suiker', 'suikerklontjes', 'bakpapier',
   ]],
-  ['Kruiden & Specerijen', [
+  ['🌶️ Kruiden, Sauzen & Olie', [
     'paprika poeder', 'koriander blad', 'peterselie blad',
     'zwarte peper', 'kefta kruiden', 'curry kruiden', 'munt blad',
     'gemberpoeder', 'komijn', 'peper', 'curry', 'kruiden',
+    'knoflook saus', 'andalous saus', 'algerien saus', 'samurai saus',
+    'loumpia saus', 'sambal saus', 'satesaus poeder', 'pasta saus',
+    'mayonaise', 'ketchup', 'saus', 'siroop',
+    'zonnebloem olie', 'olijven groen', 'smen', 'azijn', 'olie',
   ]],
-  ['Sauzen & Smeersels', [
-    'chocoladepasta', 'knoflook saus', 'andalous saus', 'algerien saus',
-    'samurai saus', 'loumpia saus', 'sambal saus', 'satesaus poeder',
-    'pasta saus', 'pindakaas', 'hagelslag', 'mayonaise', 'ketchup',
-    'chocolade', 'siroop', 'saus', 'jam',
-  ]],
-  ['Dranken', [
+  ['🥤 Drinken', [
     'frisdrank limoen', 'frisdrank pommes', 'frisdrank tropical',
     'chocolade melk poeder', 'water met prik', 'sinasappelsap',
-    'ijsthee', 'waterflesjes', 'appelsap', 'cola zero', 'cola',
-    'thee', 'koffie', 'sap', 'water', 'frisdrank', 'siroop',
+    'waterflesjes', 'cola zero', 'ijsthee', 'cola', 'thee',
+    'koffie', 'sap', 'water', 'frisdrank',
   ]],
-  ['Snacks & Snoep', [
-    'ijsjes', 'ijsbak cookie dough', 'ijsbak', 'chocolade',
-    'snoepjes', 'popcorn', 'chips', 'koek', 'snoep', 'ijs',
+  ['🍪 Snacks & Zoet', [
+    'snoepjes', 'popcorn', 'chips', 'koek', 'snoep', 'chocolade',
   ]],
-  ['Diepvries', [
-    'diepvries snacks', 'frikandellen', 'pizza', 'nuggets',
-    'diepvries',
+  ['👶 Baby', [
+    'babydoekjes', 'babymelk', 'babypotjes', 'pyamapap',
   ]],
-  ['Schoonmaak', [
+  ['🧼 Huishouden & Schoonmaak', [
     'dikke bleek', 'vuilniszakken 30l', 'vuilniszakken', 'vuilniszak',
     'vaatwastablet', 'vaatwas', 'keukenpapier', 'toiletpapier',
-    'wasverzachter', 'afwasmiddel', 'wasmiddel', 'bleek', 'dasty', 'azijn',
+    'wasverzachter', 'afwasmiddel', 'wasmiddel', 'bleek', 'dasty',
   ]],
-  ['Persoonlijke Verzorging', [
-    'babydoekjes', 'babymelk', 'babypotjes', 'pleisters', 'pyamapap',
-    'sudo creme', 'sudo', 'shampoo', 'zeep', 'tandpasta',
+  ['💊 Verzorging & Apotheek', [
+    'pleisters', 'sudo creme', 'sudo', 'shampoo', 'zeep', 'tandpasta',
   ]],
-  ['Olie & Vet', [
-    'zonnebloem olie', 'olijven groen', 'smen', 'olie',
-  ]],
-  ['Noten & Zaden', [
-    'cashew nootjes', 'cashew', 'amandel', 'noot', 'pinda',
-  ]],
-  ['Overig', [
-    'hagelslag vlokken', 'chocolade melk poeder', 'verven thee',
-    'ijsthee',
+  ['🌍 Speciaal / Buitenland', [
+    'verven thee', 'cashew nootjes', 'cashew', 'amandel', 'noot', 'pinda',
+    'algerien', 'andalous', 'loumpia', 'samurai', 'sambal', 'ayran',
+    'durum', 'döner', 'sucuk', 'merguez', 'halal', 'bamischuif',
   ]],
 ];
 
