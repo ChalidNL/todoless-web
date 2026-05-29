@@ -5,6 +5,7 @@ import { NewGlobalHeader } from '../shared/NewGlobalHeader';
 import { TopBar } from '../shared/TopBar';
 import { ChevronDown, ChevronUp, RotateCcw, ShoppingCart, X as XIcon, Save, ChevronRight } from 'lucide-react';
 import { t } from '../../i18n/translations';
+import { categorizeItem } from '../../lib/grocery-categories';
 
 export const GroceriesView = () => {
   const { items, addItem, uncheckAllDoneItems, showCompletionMessage, activeChipFilters, toggleChipFilter, clearChipFilters, filters, addFilter, deleteFilter } = useApp();
@@ -50,6 +51,16 @@ export const GroceriesView = () => {
       a.title.toLowerCase().localeCompare(b.title.toLowerCase())
     );
   }, [filteredItems]);
+
+  const groupedActive = useMemo(() => {
+    const groups: Record<string, typeof sortedActiveItems> = {};
+    for (const item of sortedActiveItems) {
+      const cat = categorizeItem(item.title);
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(item);
+    }
+    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+  }, [sortedActiveItems]);
 
   const sortedBoughtItems = useMemo(() => {
     return [...filteredItems.filter((item) => item.completed)].sort((a, b) =>
@@ -187,9 +198,18 @@ export const GroceriesView = () => {
             <p className="text-neutral-400 text-sm">{t('groceries.empty') || 'No items yet'}</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {sortedActiveItems.map((item) => (
-              <UnifiedCard key={item.id} entity={item} type="item" />
+          <div className="space-y-4">
+            {groupedActive.map(([category, catItems]) => (
+              <div key={category}>
+                <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2 px-1">
+                  {category} ({catItems.length})
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {catItems.map((item) => (
+                    <UnifiedCard key={item.id} entity={item} type="item" />
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         )}
