@@ -19,14 +19,14 @@ export const AppMark = ({ className = '' }: AppMarkProps) => (
     className={className}
   >
     <path
-      d="M14.25 4.25H8.4C6.63369 4.25 5.2 5.68369 5.2 7.45V15.55C5.2 17.3163 6.63369 18.75 8.4 18.75H16.5C18.2663 18.75 19.7 17.3163 19.7 15.55V10.75"
+      d="M14.6 4.1H8.35C6.63817 4.1 5.25 5.48817 5.25 7.2V15.65C5.25 17.3618 6.63817 18.75 8.35 18.75H16.8C18.5118 18.75 19.9 17.3618 19.9 15.65V10.65"
       stroke="currentColor"
       strokeWidth="2.15"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
     <path
-      d="M10 13.3L13.15 16.15L21.15 8.15"
+      d="M9.65 12.3L12.7 15.35L21.35 6.7"
       stroke="currentColor"
       strokeWidth="2.15"
       strokeLinecap="round"

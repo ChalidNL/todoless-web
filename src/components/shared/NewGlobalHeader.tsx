@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Plus, Filter, CheckSquare, X, Save } from 'lucide-react';
+import { Plus, Filter, X, Save } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { t } from '../../i18n/translations';
+import { AppMark } from './AppLogo';
 
 interface NewGlobalHeaderProps {
   onSearch?: (query: string) => void;
@@ -83,7 +84,7 @@ export const NewGlobalHeader = ({
       <div className="bg-black border-b border-neutral-800 sticky top-0 z-40">
         <div className="max-w-2xl mx-auto px-4 py-3 space-y-2">
           <div className="flex items-center justify-center gap-2 text-white w-full">
-            <CheckSquare className="w-8 h-8" strokeWidth={2.5} />
+            <AppMark className="w-8 h-8 text-white" />
             <span className="text-xl font-semibold tracking-tight">todoless</span>
           </div>
 
