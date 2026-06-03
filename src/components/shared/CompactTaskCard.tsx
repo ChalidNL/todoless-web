@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Task, RepeatInterval, userDisplayName } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../lib/pocketbase-client';
-import { Check, ChevronDown, ChevronUp, Trash2, Tag, User, CalendarDays, Flag, ArrowLeftRight, RotateCcw, X, AlertTriangle, Inbox, Target, GitBranch, MoreHorizontal } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, Trash2, Tag, User, CalendarDays, Flag, ArrowLeftRight, RotateCcw, X, AlertTriangle, Inbox, Target, GitBranch, MoreHorizontal, Edit2 } from 'lucide-react';
 import { t } from '../../i18n/translations';
 
 // Subtask icon: square with dot inside
@@ -78,6 +78,10 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
   const [subtaskTitle, setSubtaskTitle] = useState('');
+  const [subtaskEditMode, setSubtaskEditMode] = useState(false);
+  const [editingSubtaskId, setEditingSubtaskId] = useState<string | null>(null);
+  const [editingSubtaskTitle, setEditingSubtaskTitle] = useState('');
+  const [subtaskPendingDelete, setSubtaskPendingDelete] = useState<Task | null>(null);
 
   // Edit mode inactivity timeout (60s)
   const lastInteractionRef = useRef(Date.now());
@@ -160,6 +164,55 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
     deleteTask(task.id);
     setShowMenu(false);
     setActiveEditor(null);
+  };
+
+  const commitSubtask = async () => {
+    const title = subtaskTitle.trim();
+    if (!title) return;
+    try {
+      await api.createSubtask(title, task.id);
+      setSubtaskTitle('');
+      await refreshEntries();
+      showCompletionMessage(t('tasks.subtaskAdded'));
+    } catch (err: any) {
+      showCompletionMessage(err.message || t('tasks.failedToCreateSubtask'));
+    }
+  };
+
+  const startEditingSubtask = (subtask: Task) => {
+    setEditingSubtaskId(subtask.id);
+    setEditingSubtaskTitle(subtask.title);
+  };
+
+  const commitSubtaskEdit = () => {
+    if (!editingSubtaskId) return;
+    const title = editingSubtaskTitle.trim();
+    const original = subtasks.find((subtask) => subtask.id === editingSubtaskId);
+    if (!original) {
+      setEditingSubtaskId(null);
+      setEditingSubtaskTitle('');
+      return;
+    }
+    if (!title) {
+      setEditingSubtaskTitle(original.title);
+      setEditingSubtaskId(null);
+      return;
+    }
+    if (title !== original.title) {
+      updateTask(editingSubtaskId, { title });
+    }
+    setEditingSubtaskId(null);
+    setEditingSubtaskTitle('');
+  };
+
+  const handleSubtaskDelete = () => {
+    if (!subtaskPendingDelete) return;
+    deleteTask(subtaskPendingDelete.id);
+    setSubtaskPendingDelete(null);
+    if (editingSubtaskId === subtaskPendingDelete.id) {
+      setEditingSubtaskId(null);
+      setEditingSubtaskTitle('');
+    }
   };
 
   const dateValue = task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 10) : '';
@@ -252,7 +305,14 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
                 const next = !showMenu;
                 setShowMenu(next);
                 setActiveEditor(null);
-                if (next) setTitleDraft(task.title);
+                if (next) {
+                  setTitleDraft(task.title);
+                } else {
+                  setSubtaskEditMode(false);
+                  setEditingSubtaskId(null);
+                  setEditingSubtaskTitle('');
+                  setSubtaskPendingDelete(null);
+                }
               }}
               className="p-1 hover:bg-neutral-100 rounded transition-colors flex-shrink-0"
               aria-label={showMenu ? t('common.closeEditor') : t('common.openEditor')}
@@ -326,80 +386,127 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
           )}
 
           {/* Subtasks list — visible when selected or when subtasks exist */}{showMenu && (activeEditor === 'subtasks' || subtaskCount > 0) && (
-            <div className="mt-2 pt-2 border-t border-neutral-100 space-y-1.5">
-              <div className="px-1">
-                <span className="text-xs font-medium text-neutral-500">{t('tasks.subtasks')} ({subtaskCount})</span>
+            <div className={`mt-2 pt-2 border-t space-y-1.5 ${subtaskCount > 0 ? 'border-purple-100' : 'border-neutral-100'}`}>
+              <div className="flex items-center justify-between px-1">
+                <span className={`text-xs font-medium ${subtaskCount > 0 ? 'text-purple-600' : 'text-neutral-500'}`}>
+                  {t('tasks.subtasks')} ({subtaskCount})
+                </span>
+                <button
+                  onClick={() => {
+                    const next = !subtaskEditMode;
+                    setSubtaskEditMode(next);
+                    if (!next) {
+                      setEditingSubtaskId(null);
+                      setEditingSubtaskTitle('');
+                    }
+                  }}
+                  className={`p-1 rounded transition-colors ${subtaskEditMode ? 'bg-neutral-900 text-white' : 'hover:bg-neutral-100 text-neutral-500'}`}
+                  title="Subtasks bewerken"
+                  aria-label="Bewerk subtasks"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                </button>
               </div>
-              {subtasks.map((subtask) => (
-                <div key={subtask.id} className="flex items-center gap-2 pl-2 py-1 bg-neutral-50 rounded border border-neutral-100">
-                  <button
-                    onClick={() => {
-                      if (subtask.status === 'done') {
-                        updateTask(subtask.id, { status: 'todo', completedAt: undefined });
-                      } else {
-                        updateTask(subtask.id, { status: 'done', completedAt: Date.now() });
-                      }
-                    }}
-                    className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                      subtask.status === 'done'
-                        ? 'bg-neutral-900 border-neutral-900 text-white'
-                        : 'border-neutral-300 hover:border-neutral-500'
+
+              {subtasks.map((subtask) => {
+                const isEditing = editingSubtaskId === subtask.id;
+                return (
+                  <div
+                    key={subtask.id}
+                    className={`flex items-center gap-2 pl-2 pr-1.5 py-1.5 rounded border ${
+                      subtaskCount > 0 ? 'bg-purple-50/50 border-purple-100' : 'bg-neutral-50 border-neutral-100'
                     }`}
-                    aria-label={subtask.status === 'done' ? t('tasks.markSubtaskAsNotDone') : t('tasks.markSubtaskAsDone')}
                   >
-                    {subtask.status === 'done' && <Check className="w-2.5 h-2.5" />}
-                  </button>
-                  <span className={`text-xs flex-1 truncate ${subtask.status === 'done' ? 'line-through text-neutral-400' : 'text-neutral-700'}`}>
-                    {subtask.title}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-          {/* Add subtask input — only when subtasks editor is selected */}
-          {showMenu && activeEditor === 'subtasks' && (
-            <div className={`${subtaskCount > 0 ? 'mt-2' : 'mt-2 pt-2 border-t border-neutral-100'}`}>
-              <div className="flex items-center gap-1.5 pl-2">
+                    <button
+                      onClick={() => {
+                        if (subtask.status === 'done') {
+                          updateTask(subtask.id, { status: 'todo', completedAt: undefined });
+                        } else {
+                          updateTask(subtask.id, { status: 'done', completedAt: Date.now() });
+                        }
+                      }}
+                      className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                        subtask.status === 'done'
+                          ? 'bg-neutral-900 border-neutral-900 text-white'
+                          : 'border-neutral-300 hover:border-neutral-500'
+                      }`}
+                      aria-label={subtask.status === 'done' ? t('tasks.markSubtaskAsNotDone') : t('tasks.markSubtaskAsDone')}
+                    >
+                      {subtask.status === 'done' && <Check className="w-2.5 h-2.5" />}
+                    </button>
+
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={editingSubtaskTitle}
+                        onChange={(e) => setEditingSubtaskTitle(e.target.value)}
+                        onBlur={commitSubtaskEdit}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') commitSubtaskEdit();
+                          if (e.key === 'Escape') {
+                            setEditingSubtaskId(null);
+                            setEditingSubtaskTitle('');
+                          }
+                        }}
+                        autoFocus
+                        className="flex-1 text-xs px-2 py-1 border border-neutral-200 rounded bg-white"
+                        aria-label="Bewerk subtask titel"
+                      />
+                    ) : (
+                      <span className={`text-xs flex-1 truncate ${subtask.status === 'done' ? 'line-through text-neutral-400' : 'text-neutral-700'}`}>
+                        {subtask.title}
+                      </span>
+                    )}
+
+                    {subtaskEditMode && (
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => startEditingSubtask(subtask)}
+                          className="p-1 rounded text-neutral-500 hover:bg-white hover:text-neutral-700 transition-colors"
+                          title="Subtask bewerken"
+                          aria-label="Subtask bewerken"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setSubtaskPendingDelete(subtask)}
+                          className="p-1 rounded text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors"
+                          title="Subtask verwijderen"
+                          aria-label="Subtask verwijderen"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              <div className={`flex items-center gap-1.5 pl-2 pr-1.5 py-1.5 rounded border ${subtaskCount > 0 ? 'bg-purple-50 border-purple-200' : 'bg-neutral-50 border-dashed border-neutral-200'}`}>
+                <SubtaskIcon className={`w-4 h-4 flex-shrink-0 ${subtaskCount > 0 ? 'text-purple-500' : 'text-neutral-300'}`} />
                 <input
                   type="text"
                   value={subtaskTitle}
                   onChange={(e) => setSubtaskTitle(e.target.value)}
+                  onFocus={() => setActiveEditor('subtasks')}
                   onKeyDown={async (e) => {
                     if (e.key === 'Enter') {
-                      const title = subtaskTitle.trim();
-                      if (!title) return;
-                      try {
-                        await api.createSubtask(title, task.id);
-                        setSubtaskTitle('');
-                        await refreshEntries();
-                        showCompletionMessage(t('tasks.subtaskAdded'));
-                      } catch (err: any) {
-                        showCompletionMessage(err.message || t('tasks.failedToCreateSubtask'));
-                      }
+                      await commitSubtask();
                     }
                   }}
                   placeholder={t('tasks.newSubtaskTitle')}
-                  className="flex-1 text-xs px-2 py-1.5 border border-neutral-200 rounded bg-white"
+                  className="flex-1 text-xs px-0 py-0 bg-transparent border-0 focus:outline-none placeholder:text-neutral-400"
                   aria-label={t('tasks.newSubtaskTitle')}
                 />
-                <button
-                  onClick={async () => {
-                    const title = subtaskTitle.trim();
-                    if (!title) return;
-                    try {
-                      await api.createSubtask(title, task.id);
-                      setSubtaskTitle('');
-                      await refreshEntries();
-                      showCompletionMessage(t('tasks.subtaskAdded'));
-                    } catch (err: any) {
-                      showCompletionMessage(err.message || t('tasks.failedToCreateSubtask'));
-                    }
-                  }}
-                  className="px-2 py-1.5 text-xs font-medium text-white bg-neutral-900 hover:bg-neutral-800 rounded transition-colors"
-                  aria-label={t('tasks.addSubtask')}
-                >
-                  {t('common.add')}
-                </button>
+                {subtaskTitle.trim() && (
+                  <button
+                    onClick={commitSubtask}
+                    className="px-2 py-1 text-xs font-medium text-white bg-neutral-900 hover:bg-neutral-800 rounded transition-colors"
+                    aria-label={t('tasks.addSubtask')}
+                  >
+                    {t('common.add')}
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -453,7 +560,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
                 <button
                   onClick={() => setActiveEditor(activeEditor === 'subtasks' ? null : 'subtasks')}
                   className={`p-1.5 rounded transition-colors ${
-                    subtaskCount > 0
+                    subtaskCount > 0 || activeEditor === 'subtasks'
                       ? 'bg-purple-100 text-purple-700'
                       : 'hover:bg-neutral-100 text-neutral-500'
                   }`}
@@ -676,14 +783,14 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
                     <select
                       value={task.repeatInterval || ''}
                       onChange={(e) => updateTask(task.id, { repeatInterval: (e.target.value || null) as RepeatInterval | null })}
-                      className="text-sm px-2 py-1.5 border border-neutral-200 rounded"
+                      className="w-24 text-sm px-2 py-1.5 border border-neutral-200 rounded"
                       aria-label={t('tasks.recurringIntervalAria')}
                     >
-                      <option value="">{t('common.noRepeat')}</option>
-                      <option value="day">{t('common.repeatDaily')}</option>
-                      <option value="week">{t('common.repeatWeekly')}</option>
-                      <option value="month">{t('common.repeatMonthly')}</option>
-                      <option value="year">{t('common.repeatYearly')}</option>
+                      <option value="">Repeat</option>
+                      <option value="day">Daily</option>
+                      <option value="week">Weekly</option>
+                      <option value="month">Monthly</option>
+                      <option value="year">Yearly</option>
                     </select>
                   </div>
                 </div>
@@ -799,6 +906,15 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
         <DeleteConfirm
           onConfirm={handleDelete}
           onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
+
+      {subtaskPendingDelete && (
+        <ConfirmDialog
+          title={`Verwijder subtask \"${subtaskPendingDelete.title}\"?`}
+          confirmLabel={t('common.delete')}
+          onConfirm={handleSubtaskDelete}
+          onCancel={() => setSubtaskPendingDelete(null)}
         />
       )}
     </>
