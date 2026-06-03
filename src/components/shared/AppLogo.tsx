@@ -1,4 +1,5 @@
 import React from 'react';
+import { CheckSquare } from 'lucide-react';
 
 interface AppLogoProps {
   size?: 'sm' | 'md' | 'lg';
@@ -11,28 +12,7 @@ interface AppMarkProps {
 }
 
 export const AppMark = ({ className = '' }: AppMarkProps) => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    aria-hidden="true"
-    className={className}
-  >
-    <path
-      d="M14.6 4.1H8.35C6.63817 4.1 5.25 5.48817 5.25 7.2V15.65C5.25 17.3618 6.63817 18.75 8.35 18.75H16.8C18.5118 18.75 19.9 17.3618 19.9 15.65V10.65"
-      stroke="currentColor"
-      strokeWidth="2.15"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M9.65 12.3L12.7 15.35L21.35 6.7"
-      stroke="currentColor"
-      strokeWidth="2.15"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
+  <CheckSquare className={className} strokeWidth={2.5} aria-hidden="true" />
 );
 
 export const AppLogo = ({ size = 'md', showText = true, variant = 'dark' }: AppLogoProps) => {
