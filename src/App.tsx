@@ -179,7 +179,9 @@ function AppContent() {
   if (appScreen === 'checking') {
     return (
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-        <RefreshCw className="w-8 h-8 text-neutral-400 animate-spin" />
+        <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-white shadow-sm border border-neutral-200">
+          <AppMark className="w-8 h-8 text-neutral-900 animate-pulse" />
+        </div>
       </div>
     );
   }

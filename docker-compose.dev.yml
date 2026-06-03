@@ -79,7 +79,7 @@ x-casaos:
   category: Productivity
   description:
     en_US: todoless-ngx — self-hosted multi-user task manager. Tasks, notes, calendar, brain dumps, real-time sync. Free forever.
-  icon: https://cdn.jsdelivr.net/gh/ChalidNL/todoless-ngx@main/src/public/icon.svg
+  icon: https://cdn.jsdelivr.net/gh/ChalidNL/todoless-ngx@main/public/icons/icon-512.png
   tagline:
     en_US: Self-hosted productivity app
   title:
