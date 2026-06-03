@@ -88,10 +88,7 @@ export const TasksView = () => {
           break;
         case 'repeat':
           filtered = filtered.filter((t) => {
-            const rl = t.repeatInterval
-              ? { day: 'Daily', week: 'Weekly', month: 'Monthly', year: 'Yearly' }[t.repeatInterval]
-              : null;
-            return rl === f.id;
+            return t.repeatInterval === f.id;
           });
           break;
         case 'priority':

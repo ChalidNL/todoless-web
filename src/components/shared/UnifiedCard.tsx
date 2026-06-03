@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Task, Item, userDisplayName, Priority } from '../../types';
+import { Task, Item, userDisplayName, Priority, RepeatInterval } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../lib/pocketbase-client';
 import { Check, ChevronDown, ChevronUp, Trash2, Tag, User, CalendarDays, Flag, ShoppingCart, ArrowLeftRight, X, AlertTriangle, RotateCcw, Inbox } from 'lucide-react';
 import { t } from '../../i18n/translations';
+import { getRepeatLabel, getRepeatOptions } from '../../lib/repeat-options';
 
 // Subtask icon: square with dot inside
 const SubtaskIcon = ({ className }: { className?: string }) => (
@@ -62,9 +63,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
   const currentShop = item?.shopId ? shops.find(s => s.id === item.shopId) : null;
   const assignedUser = entity.assignedTo ? users.find(u => u.id === entity.assignedTo) : null;
   const dateStr = entity.dueDate ? new Date(entity.dueDate).toLocaleDateString('nl-NL', { month: 'short', day: 'numeric' }) : null;
-  const repeatLabel = task?.repeatInterval
-    ? { day: t('common.repeatDaily'), week: t('common.repeatWeekly'), month: t('common.repeatMonthly'), year: t('common.repeatYearly') }[task.repeatInterval as string] ?? null
-    : null;
+  const repeatLabel = task?.repeatInterval ? getRepeatLabel(task.repeatInterval, task.dueDate) : null;
 
   const handleToggle = () => {
     if (isTask) {
@@ -94,8 +93,8 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
 
   const isShopFiltered = (id?: string) => id ? isChipFilterActive('shop', id) : false;
 
-  const hasLabels = entity.labels.length > 0;
-  const hasAssignee = !!entity.assignedTo;
+  const hasLabels = isTask && entity.labels.length > 0;
+  const hasAssignee = isTask && !!entity.assignedTo;
   const hasShop = !!currentShop;
 
   const visibleShops = shops.filter((shop) => shop.name.toLowerCase().includes(shopInput.toLowerCase()));
@@ -212,9 +211,9 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
         {/* Chip row — labels + assignee + shop + date (only when not done) */}
         {/* Tasks: chips visible in both collapsed and edit mode (labels+assignee always visible) */}
         {/* Items: chips always visible */}
-        {!isDone && (hasLabels || assignedUser || hasShop || dateStr || subtaskCount > 0 || (entity.priority && PRIORITY_COLORS[entity.priority as Priority]) || (isTask && task?.repeatInterval)) && (
+        {!isDone && ((isTask && (hasLabels || assignedUser || dateStr || subtaskCount > 0 || (entity.priority && PRIORITY_COLORS[entity.priority as Priority]) || !!task?.repeatInterval)) || (!isTask && hasShop)) && (
           <div className="flex flex-wrap items-center gap-1 mt-1.5 ml-0.5">
-            {entity.labels.map(labelId => {
+            {isTask && entity.labels.map(labelId => {
               const label = labels.find(l => l.id === labelId);
               return label ? (
                 <AttributeChip
@@ -227,7 +226,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                 />
               ) : null;
             })}
-            {assignedUser && (
+            {isTask && assignedUser && (
               <AttributeChip
                 icon={<User className="w-3.5 h-3.5" />}
                 label={userDisplayName(assignedUser)}
@@ -236,7 +235,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                 onClick={showMenu ? () => setValue({ assignedTo: null }) : () => toggleChipFilter('assignee', assignedUser.id, userDisplayName(assignedUser), '#10b981')}
               />
             )}
-            {dateStr && (
+            {isTask && dateStr && (
               <AttributeChip
                 icon={<CalendarDays className="w-3.5 h-3.5" />}
                 label={dateStr}
@@ -249,7 +248,8 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                 icon={<RotateCcw className="w-3.5 h-3.5" />}
                 label={repeatLabel}
                 color="#ea580c"
-                onClick={showMenu ? () => setValue({ dueDate: null, repeatInterval: null }) : undefined}
+                active={!!task?.repeatInterval && isChipFilterActive('repeat', task.repeatInterval)}
+                onClick={showMenu ? () => setValue({ dueDate: null, repeatInterval: null }) : () => task?.repeatInterval && toggleChipFilter('repeat', task.repeatInterval, repeatLabel)}
               />
             )}
             {currentShop && (
@@ -268,7 +268,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                 color="#8b5cf6"
               />
             )}
-            {entity.priority && PRIORITY_COLORS[entity.priority as Priority] && (
+            {isTask && entity.priority && PRIORITY_COLORS[entity.priority as Priority] && (
               <AttributeChip
                 icon={<AlertTriangle className="w-3.5 h-3.5" />}
                 label={PRIORITY_LABELS[entity.priority as Priority] || entity.priority}
@@ -363,7 +363,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
           <div className="mt-2 pt-2 border-t border-neutral-100">
             {/* Attribute buttons */}
             <div className="flex items-center gap-2">
-              {(
+              {isTask && (
                 <button
                   onClick={() => setActiveEditor(activeEditor === 'labels' ? null : 'labels')}
                   className={`p-1.5 rounded transition-colors ${activeEditor === 'labels' ? 'bg-neutral-900 text-white' : 'hover:bg-neutral-100 text-neutral-500'}`}
@@ -373,7 +373,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                   <Tag className="w-4 h-4" strokeWidth={1.75} />
                 </button>
               )}
-              {(
+              {isTask && (
                 <button
                   onClick={() => setActiveEditor(activeEditor === 'assignee' ? null : 'assignee')}
                   className={`p-1.5 rounded transition-colors ${activeEditor === 'assignee' ? 'bg-neutral-900 text-white' : 'hover:bg-neutral-100 text-neutral-500'}`}
@@ -383,7 +383,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                   <User className="w-4 h-4" strokeWidth={1.75} />
                 </button>
               )}
-              {(
+              {isTask && (
                 <button
                   onClick={() => setActiveEditor(activeEditor === 'schedule' ? null : 'schedule')}
                   className={`p-1.5 rounded transition-colors ${activeEditor === 'schedule' ? 'bg-neutral-900 text-white' : 'hover:bg-neutral-100 text-neutral-500'}`}
@@ -407,7 +407,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                   <SubtaskIcon className="w-4 h-4" />
                 </button>
               )}
-              {(
+              {isTask && (
                 <button
                   onClick={() => setActiveEditor(activeEditor === 'priority' ? null : 'priority')}
                   className={`p-1.5 rounded transition-colors ${
@@ -540,6 +540,20 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                   className="text-sm px-2 py-1.5 border border-neutral-200 rounded"
                   aria-label={t('tasks.dueTimeAria')}
                 />
+                {isTask && (
+                  <select
+                    value={task?.repeatInterval || ''}
+                    onChange={(e) => setValue({ repeatInterval: (e.target.value || null) as RepeatInterval | null })}
+                    className="w-44 text-sm px-2 py-1.5 border border-neutral-200 rounded"
+                    aria-label={t('tasks.recurringIntervalAria')}
+                  >
+                    {getRepeatOptions(task?.dueDate).map((option) => (
+                      <option key={option.value || 'none'} value={option.value} disabled={option.disabled}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
             )}
 

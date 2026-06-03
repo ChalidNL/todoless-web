@@ -69,10 +69,7 @@ export const InboxBacklog = () => {
           break;
         case 'repeat':
           filtered = filtered.filter((t) => {
-            const rl = t.repeatInterval
-              ? { day: 'Daily', week: 'Weekly', month: 'Monthly', year: 'Yearly' }[t.repeatInterval]
-              : null;
-            return rl === f.id;
+            return t.repeatInterval === f.id;
           });
           break;
         case 'priority':
@@ -210,7 +207,7 @@ export const InboxBacklog = () => {
 
         <div className="max-w-lg mx-auto px-4 pt-4 space-y-6 pb-20">
           {/* Stat boxes — clickable as filters */}
-          <div className="grid grid-cols-2 gap-1.5">
+          <div className="grid gap-1.5" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
             {statusSections.map((stat) => (
               <button
                 key={stat.key}
@@ -222,7 +219,7 @@ export const InboxBacklog = () => {
                     toggleChipFilter('status', stat.key, stat.label);
                   }
                 }}
-                className={`bg-white rounded-md border px-2.5 py-2 text-left transition-all active:scale-95 min-h-[68px] ${
+                className={`w-full min-w-0 bg-white rounded-md border px-2.5 py-2 text-left transition-all active:scale-95 min-h-[68px] ${
                   activeStatusFilter === stat.key
                     ? 'border-neutral-900 ring-1 ring-neutral-900'
                     : 'border-neutral-200 hover:border-neutral-400'

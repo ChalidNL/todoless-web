@@ -12,7 +12,7 @@ export const GroceriesView = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showBought, setShowBought] = useState(false);
   const [showSavedFilters, setShowSavedFilters] = useState(false);
-  const [sortMode, setSortMode] = useState<'category' | 'categoryAlpha' | 'alpha'>('category');
+  const [sortMode, setSortMode] = useState<'category' | 'categoryAlpha' | 'alpha'>('alpha');
 
   const stripEmoji = (cat: string): string => cat.replace(/^[^\w\s]+\s*/, '');
 

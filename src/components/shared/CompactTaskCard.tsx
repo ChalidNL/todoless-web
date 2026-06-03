@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Task, RepeatInterval, userDisplayName } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../lib/pocketbase-client';
 import { Check, ChevronDown, ChevronUp, Trash2, Tag, User, CalendarDays, Flag, ArrowLeftRight, RotateCcw, X, AlertTriangle, Inbox, Target, GitBranch, MoreHorizontal, Edit2 } from 'lucide-react';
 import { t } from '../../i18n/translations';
+import { getRepeatLabel, getRepeatOptions } from '../../lib/repeat-options';
 
 // Subtask icon: square with dot inside
 const SubtaskIcon = ({ className }: { className?: string }) => (
@@ -82,6 +83,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
   const [editingSubtaskId, setEditingSubtaskId] = useState<string | null>(null);
   const [editingSubtaskTitle, setEditingSubtaskTitle] = useState('');
   const [subtaskPendingDelete, setSubtaskPendingDelete] = useState<Task | null>(null);
+  const [showParentPicker, setShowParentPicker] = useState(false);
+  const [parentSearch, setParentSearch] = useState('');
 
   // Edit mode inactivity timeout (60s)
   const lastInteractionRef = useRef(Date.now());
@@ -110,9 +113,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
     ? new Date(task.dueDate).toLocaleDateString('nl-NL', { month: 'short', day: 'numeric' })
     : null;
 
-  const repeatLabel = task.repeatInterval
-    ? { day: t('common.repeatDaily'), week: t('common.repeatWeekly'), month: t('common.repeatMonthly'), year: t('common.repeatYearly') }[task.repeatInterval]
-    : null;
+  const repeatLabel = getRepeatLabel(task.repeatInterval, task.dueDate);
 
   // Subtasks: tasks that have this task's id in their linkedTo/linkedType (subtask relationship)
   const subtasks = (task.subtaskIds || [])
@@ -227,15 +228,52 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
   const hasLabels = task.labels.length > 0;
   const hasAssignee = !!task.assignedTo;
   const hasSchedule = !!task.dueDate || !!task.repeatInterval;
+  const parentTaskMatches = useMemo(() => {
+    const query = parentSearch.trim().toLowerCase();
+    return tasks
+      .filter((candidate) => {
+        if (candidate.id === task.id || candidate.status === 'done') return false;
+        if (!query) return true;
+        return candidate.title.toLowerCase().includes(query);
+      })
+      .slice(0, 6);
+  }, [parentSearch, task.id, tasks]);
 
   const isLabelFiltered = (id: string) => isChipFilterActive('label', id);
   const isAssigneeFiltered = (id?: string) => id ? isChipFilterActive('assignee', id) : false;
   const isDateFiltered = (ds: string) => isChipFilterActive('date', ds);
-  const isRepeatFiltered = (rl: string) => isChipFilterActive('repeat', rl);
+  const isRepeatFiltered = (repeatInterval?: RepeatInterval | null) => repeatInterval ? isChipFilterActive('repeat', repeatInterval) : false;
 
   const openEditor = (editor: TaskEditor) => {
     setShowMenu(true);
     setActiveEditor(editor);
+  };
+
+  const resetParentPicker = () => {
+    setShowParentPicker(false);
+    setParentSearch('');
+  };
+
+  const detachFromParentTask = (parentTaskId?: string | null) => {
+    if (!parentTaskId) return;
+    const parentTask = tasks.find((candidate) => candidate.id === parentTaskId);
+    if (!parentTask?.subtaskIds?.includes(task.id)) return;
+
+    updateTask(parentTask.id, {
+      subtaskIds: parentTask.subtaskIds.filter((subtaskId) => subtaskId !== task.id),
+    });
+  };
+
+  const linkToParentTask = (parentTask: Task) => {
+    detachFromParentTask(task.linkedTo);
+    updateTask(task.id, { linkedTo: parentTask.id, linkedType: 'task' });
+    const current = parentTask.subtaskIds || [];
+    if (!current.includes(task.id)) {
+      updateTask(parentTask.id, { subtaskIds: [...current, task.id] });
+    }
+    showCompletionMessage(`Linked under "${parentTask.title}"`);
+    resetParentPicker();
+    setActiveEditor(null);
   };
 
   return (
@@ -312,6 +350,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
                   setEditingSubtaskId(null);
                   setEditingSubtaskTitle('');
                   setSubtaskPendingDelete(null);
+                  resetParentPicker();
                 }
               }}
               className="p-1 hover:bg-neutral-100 rounded transition-colors flex-shrink-0"
@@ -363,8 +402,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
                   icon={<RotateCcw className="w-3.5 h-3.5" />}
                   label={repeatLabel}
                   color="#ea580c"
-                  active={isRepeatFiltered(repeatLabel)}
-                  onClick={showMenu ? clearAllSchedule : undefined}
+                  active={isRepeatFiltered(task.repeatInterval)}
+                  onClick={showMenu ? clearAllSchedule : () => task.repeatInterval && toggleChipFilter('repeat', task.repeatInterval, repeatLabel)}
                 />
               )}
               {subtaskCount > 0 && (
@@ -783,14 +822,14 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
                     <select
                       value={task.repeatInterval || ''}
                       onChange={(e) => updateTask(task.id, { repeatInterval: (e.target.value || null) as RepeatInterval | null })}
-                      className="w-24 text-sm px-2 py-1.5 border border-neutral-200 rounded"
+                      className="w-44 text-sm px-2 py-1.5 border border-neutral-200 rounded"
                       aria-label={t('tasks.recurringIntervalAria')}
                     >
-                      <option value="">Repeat</option>
-                      <option value="day">Daily</option>
-                      <option value="week">Weekly</option>
-                      <option value="month">Monthly</option>
-                      <option value="year">Yearly</option>
+                      {getRepeatOptions(task.dueDate).map((option) => (
+                        <option key={option.value || 'none'} value={option.value} disabled={option.disabled}>
+                          {option.label}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
@@ -847,30 +886,16 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
                   <button
                     onClick={() => {
                       if (task.linkedType === 'task' && task.linkedTo) {
+                        detachFromParentTask(task.linkedTo);
                         updateTask(task.id, { linkedTo: null, linkedType: null });
                         showCompletionMessage('Promoted to standalone task');
+                        resetParentPicker();
                         setActiveEditor(null);
                         return;
                       }
 
-                      const parentTitle = window.prompt('Enter parent task title to link under:');
-                      if (!parentTitle || !parentTitle.trim()) return;
-                      const parentTask = tasks.find(
-                        (t) => t.id !== task.id && t.title.toLowerCase() === parentTitle.trim().toLowerCase() && t.status !== 'done'
-                      );
-
-                      if (!parentTask) {
-                        showCompletionMessage('Parent task not found');
-                        return;
-                      }
-
-                      updateTask(task.id, { linkedTo: parentTask.id, linkedType: 'task' });
-                      const current = parentTask.subtaskIds || [];
-                      if (!current.includes(task.id)) {
-                        updateTask(parentTask.id, { subtaskIds: [...current, task.id] });
-                      }
-                      showCompletionMessage(`Linked under "${parentTask.title}"`);
-                      setActiveEditor(null);
+                      setShowParentPicker((current) => !current);
+                      setParentSearch('');
                     }}
                     className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left rounded border transition-colors ${
                       task.linkedType === 'task' && task.linkedTo
@@ -879,8 +904,42 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
                     }`}
                   >
                     <GitBranch className="w-4 h-4" strokeWidth={1.75} />
-                    <span>{task.linkedType === 'task' && task.linkedTo ? 'Convert child to parent' : 'Convert parent to child'}</span>
+                    <span>{task.linkedType === 'task' && task.linkedTo ? 'Maak weer hoofdtaak' : 'Maak sub-taak'}</span>
                   </button>
+                  {!(task.linkedType === 'task' && task.linkedTo) && showParentPicker && (
+                    <div className="rounded-lg border border-purple-200 bg-purple-50/60 p-2.5 space-y-2">
+                      <input
+                        type="text"
+                        value={parentSearch}
+                        onChange={(e) => setParentSearch(e.target.value)}
+                        placeholder="Typ om een hoofdtaak te zoeken"
+                        className="w-full text-sm px-3 py-2 border border-purple-200 rounded bg-white"
+                        autoFocus
+                      />
+                      <div className="space-y-1">
+                        {parentTaskMatches.length > 0 ? (
+                          parentTaskMatches.map((parentTask) => (
+                            <button
+                              key={parentTask.id}
+                              onClick={() => linkToParentTask(parentTask)}
+                              className="w-full text-left px-3 py-2 rounded border border-white/70 bg-white hover:border-purple-300 hover:bg-purple-50 transition-colors"
+                            >
+                              <span className="block text-sm font-medium text-neutral-900 truncate">{parentTask.title}</span>
+                              {parentTask.dueDate && (
+                                <span className="block text-xs text-neutral-500 mt-0.5">
+                                  {new Date(parentTask.dueDate).toLocaleDateString('nl-NL', { month: 'short', day: 'numeric' })}
+                                </span>
+                              )}
+                            </button>
+                          ))
+                        ) : (
+                          <div className="px-3 py-2 text-xs text-neutral-500 bg-white rounded border border-dashed border-purple-200">
+                            Geen passende hoofdtaak gevonden
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                   {task.status !== 'backlog' && (
                     <button
                       onClick={() => {
@@ -911,7 +970,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
 
       {subtaskPendingDelete && (
         <ConfirmDialog
-          title={`Verwijder subtask \"${subtaskPendingDelete.title}\"?`}
+          title={`Verwijder subtask "${subtaskPendingDelete.title}"?`}
           confirmLabel={t('common.delete')}
           onConfirm={handleSubtaskDelete}
           onCancel={() => setSubtaskPendingDelete(null)}
