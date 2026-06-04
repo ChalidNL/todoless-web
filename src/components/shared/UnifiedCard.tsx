@@ -5,6 +5,8 @@ import { api } from '../../lib/pocketbase-client';
 import { Check, ChevronDown, ChevronUp, Trash2, Tag, User, CalendarDays, Flag, ShoppingCart, ArrowLeftRight, X, AlertTriangle, RotateCcw, Inbox } from 'lucide-react';
 import { t } from '../../i18n/translations';
 import { getRepeatLabel, getRepeatOptions } from '../../lib/repeat-options';
+import { getCompactUserName } from '../../lib/member-role-utils';
+import { combineLocalDateAndTime, formatLocalDateInputValue, formatLocalTimeInputValue, parseLocalDateInputValue } from '../../lib/date-local';
 
 // Subtask icon: square with dot inside
 const SubtaskIcon = ({ className }: { className?: string }) => (
@@ -229,10 +231,10 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
             {isTask && assignedUser && (
               <AttributeChip
                 icon={<User className="w-3.5 h-3.5" />}
-                label={userDisplayName(assignedUser)}
+                label={getCompactUserName(assignedUser)}
                 color="#10b981"
                 active={isChipFilterActive('assignee', assignedUser.id)}
-                onClick={showMenu ? () => setValue({ assignedTo: null }) : () => toggleChipFilter('assignee', assignedUser.id, userDisplayName(assignedUser), '#10b981')}
+                onClick={showMenu ? () => setValue({ assignedTo: null }) : () => toggleChipFilter('assignee', assignedUser.id, getCompactUserName(assignedUser), '#10b981')}
               />
             )}
             {isTask && dateStr && (
@@ -524,18 +526,18 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
               <div className="mt-2 flex items-center gap-2">
                 <input
                   type="date"
-                  value={entity.dueDate ? new Date(entity.dueDate).toISOString().slice(0, 10) : ''}
-                  onChange={(e) => setValue({ dueDate: e.target.value ? new Date(e.target.value).getTime() : null })}
+                  value={formatLocalDateInputValue(entity.dueDate)}
+                  onChange={(e) => setValue({ dueDate: e.target.value ? (combineLocalDateAndTime(e.target.value, formatLocalTimeInputValue(entity.dueDate) || '00:00') ?? parseLocalDateInputValue(e.target.value)) : null })}
                   className="text-sm px-2 py-1.5 border border-neutral-200 rounded flex-1"
                   aria-label={t('tasks.dueDateAria')}
                 />
                 <input
                   type="time"
-                  value={entity.dueDate ? new Date(entity.dueDate).toTimeString().slice(0, 5) : ''}
+                  value={formatLocalTimeInputValue(entity.dueDate)}
                   onChange={(e) => {
-                    const dateVal = entity.dueDate ? new Date(entity.dueDate).toISOString().slice(0, 10) : '';
+                    const dateVal = formatLocalDateInputValue(entity.dueDate);
                     if (!dateVal) return;
-                    setValue({ dueDate: new Date(`${dateVal}T${e.target.value || '00:00'}:00`).getTime() });
+                    setValue({ dueDate: combineLocalDateAndTime(dateVal, e.target.value || '00:00') });
                   }}
                   className="text-sm px-2 py-1.5 border border-neutral-200 rounded"
                   aria-label={t('tasks.dueTimeAria')}
@@ -564,7 +566,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                   type="text"
                   onChange={(e) => {
                     const q = e.target.value.toLowerCase();
-                    const match = users.find(u => userDisplayName(u).toLowerCase().includes(q) || u.email?.toLowerCase().includes(q));
+                    const match = users.find(u => getCompactUserName(u).toLowerCase().includes(q) || userDisplayName(u).toLowerCase().includes(q) || u.email?.toLowerCase().includes(q));
                     if (match && e.target.value.length > 0) {
                       setValue({ assignedTo: match.id });
                       setActiveEditor(null);

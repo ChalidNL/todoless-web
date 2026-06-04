@@ -6,6 +6,7 @@ import { Check, ChevronDown, ChevronUp, Trash2, Tag, User, CalendarDays, Flag, A
 import { t } from '../../i18n/translations';
 import { getRepeatLabel, getRepeatOptions } from '../../lib/repeat-options';
 import { getCompactUserName } from '../../lib/member-role-utils';
+import { combineLocalDateAndTime, formatLocalDateInputValue, formatLocalTimeInputValue, parseLocalDateInputValue } from '../../lib/date-local';
 import { buildFlagUpdate, getCommentButtonActive } from '../../lib/task-attribute-utils';
 
 // Subtask icon: square with dot inside
@@ -279,8 +280,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
     }
   };
 
-  const dateValue = task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 10) : '';
-  const timeValue = task.dueDate ? new Date(task.dueDate).toTimeString().slice(0, 5) : '';
+  const dateValue = formatLocalDateInputValue(task.dueDate);
+  const timeValue = formatLocalTimeInputValue(task.dueDate);
   const filteredUsers = users.filter((u) =>
     userDisplayName(u).toLowerCase().includes(assigneeSearch.toLowerCase()) ||
     u.email?.toLowerCase().includes(assigneeSearch.toLowerCase())
@@ -857,9 +858,9 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
                             className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-white font-bold flex-shrink-0"
                             style={{ backgroundColor: entityColor(u.id) }}
                           >
-                            {userDisplayName(u).charAt(0).toUpperCase()}
+                            {getCompactUserName(u).charAt(0).toUpperCase()}
                           </span>
-                          <span>{userDisplayName(u)}</span>
+                          <span>{getCompactUserName(u)}</span>
                           {u.role && <span className="text-xs text-neutral-400 ml-auto">{u.role}</span>}
                         </button>
                       ))}
@@ -880,8 +881,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
                           updateTask(task.id, { dueDate: null });
                           return;
                         }
-                        const t = timeValue || '00:00';
-                        updateTask(task.id, { dueDate: new Date(`${e.target.value}T${t}:00`).getTime() });
+                        const nextDueDate = combineLocalDateAndTime(e.target.value, timeValue || '00:00') ?? parseLocalDateInputValue(e.target.value);
+                        updateTask(task.id, { dueDate: nextDueDate });
                       }}
                       className="flex-1 text-sm px-2 py-1.5 border border-neutral-200 rounded"
                       aria-label={t('tasks.dueDateAria')}
@@ -891,7 +892,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
                       value={timeValue}
                       onChange={(e) => {
                         if (!dateValue) return;
-                        updateTask(task.id, { dueDate: new Date(`${dateValue}T${e.target.value || '00:00'}:00`).getTime() });
+                        const nextDueDate = combineLocalDateAndTime(dateValue, e.target.value || '00:00');
+                        updateTask(task.id, { dueDate: nextDueDate });
                       }}
                       className="text-sm px-2 py-1.5 border border-neutral-200 rounded"
                       aria-label={t('tasks.dueTimeAria')}

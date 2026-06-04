@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { Plus, X, Edit2, Trash2, Tag, User } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { LabelBadge } from './LabelBadge';
+import { Label, Filter, userDisplayName } from '../../types';
 import { entityColor, entityBg } from '../../lib/entity-colors';
-import { userDisplayName } from '../../types';
+import { getCompactUserName } from '../../lib/member-role-utils';
 
 interface FilterPanelProps {
   type: 'task' | 'item';
@@ -219,7 +220,7 @@ export const FilterPanel = ({
                     style={{ backgroundColor: entityBg(user.id), color: entityColor(user.id) }}
                   >
                     <User className="w-4 h-4" strokeWidth={1.5} />
-                    {userDisplayName(user)}
+                    {getCompactUserName(user) || userDisplayName(user)}
                   </span>
                 ))}
               </div>
