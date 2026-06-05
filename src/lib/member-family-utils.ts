@@ -1,6 +1,7 @@
 import { User } from '../types';
+import { getCompactUserName } from './member-role-utils';
 
-type FamilyMember = Pick<User, 'id' | 'name' | 'email' | 'role' | 'family_id'>;
+type FamilyMember = Pick<User, 'id' | 'name' | 'email' | 'role' | 'family_id' | 'firstName' | 'lastName' | 'member_type' | 'member_status' | 'active'>;
 
 type FamilyMembershipView = {
   familyId?: string;
@@ -19,8 +20,8 @@ function compareMembers(left: FamilyMember, right: FamilyMember): number {
   const roleDiff = (ROLE_ORDER[left.role || 'member'] ?? 99) - (ROLE_ORDER[right.role || 'member'] ?? 99);
   if (roleDiff !== 0) return roleDiff;
 
-  const leftName = (left.name || left.email || '').toLocaleLowerCase();
-  const rightName = (right.name || right.email || '').toLocaleLowerCase();
+  const leftName = (getCompactUserName(left) || left.name || left.email || '').toLocaleLowerCase();
+  const rightName = (getCompactUserName(right) || right.name || right.email || '').toLocaleLowerCase();
   return leftName.localeCompare(rightName, 'nl');
 }
 

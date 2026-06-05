@@ -9,6 +9,9 @@ interface AttributeChipProps {
   active?: boolean;
   onClick?: () => void;
   onRemove?: (e: React.MouseEvent) => void;
+  maxWidthClassName?: string;
+  compact?: boolean;
+  ariaLabel?: string;
 }
 
 /**
@@ -24,25 +27,39 @@ interface AttributeChipProps {
  * - onClick: makes chip clickable (cursor-pointer, hover effects) — used for filter toggle
  * - onRemove: shows × button for attribute removal
  */
-export const AttributeChip = ({ icon, label, color, muted, active, onClick, onRemove }: AttributeChipProps) => {
-  const isActive = active ?? (!muted && !!color);
-  const backgroundColor = color && isActive ? `${color}30` : undefined;
-  const textColor = color && isActive ? color : undefined;
-  const borderColor = color && isActive ? `${color}40` : '#e5e7eb';
+export const AttributeChip = ({
+  icon,
+  label,
+  color,
+  muted,
+  active,
+  onClick,
+  onRemove,
+  maxWidthClassName = 'max-w-[120px]',
+  compact = false,
+  ariaLabel,
+}: AttributeChipProps) => {
+  const hasColor = !muted && !!color;
+  const isSelected = !!active;
+  const backgroundColor = hasColor ? `${color}${isSelected ? '26' : '18'}` : undefined;
+  const textColor = hasColor ? color : undefined;
+  const borderColor = hasColor ? `${color}${isSelected ? '80' : '4d'}` : '#e5e7eb';
+  const boxShadow = hasColor && isSelected ? `0 0 0 1px ${color}33 inset` : undefined;
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2 h-7 rounded-full text-xs font-normal leading-none border select-none ${
+      className={`inline-flex items-center ${compact ? 'justify-center w-7 px-0' : 'gap-1.5 px-2'} h-7 rounded-full text-xs font-medium leading-none border select-none ${
         onClick ? 'cursor-pointer hover:opacity-80 active:scale-95 transition-all' : ''
       }`}
-      style={{ backgroundColor, color: textColor, borderColor }}
+      style={{ backgroundColor, color: textColor, borderColor, boxShadow }}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
+      aria-label={ariaLabel || label}
       onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
     >
       {icon && <span className="flex-shrink-0 flex items-center">{icon}</span>}
-      <span className="truncate max-w-[120px]">{label}</span>
+      {!compact && <span className={`truncate ${maxWidthClassName}`}>{label}</span>}
       {onRemove && (
         <button
           onClick={(e) => {

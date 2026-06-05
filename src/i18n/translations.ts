@@ -189,7 +189,9 @@ interface TranslationStructure {
     notifications: string;
     openSwaggerDocs: string;
     admin: string;
+    adminOnly: string;
     autoFamilyJoinHint: string;
+    deactivate: string;
     firstAdmin: string;
     makeAdmin: string;
     makeMember: string;
@@ -557,7 +559,9 @@ export const translations: Record<Language, TranslationStructure> = {
       notifications: 'Notifications',
       openSwaggerDocs: 'Open Swagger Docs',
       admin: 'Admin',
+      adminOnly: 'Admin only',
       autoFamilyJoinHint: 'New members automatically join this family.',
+      deactivate: 'Deactivate',
       firstAdmin: 'First admin',
       makeAdmin: 'Make admin',
       makeMember: 'Make member',
@@ -923,10 +927,12 @@ export const translations: Record<Language, TranslationStructure> = {
       notifications: 'Notifications',
       openSwaggerDocs: 'Ouvrir la documentation Swagger',
       admin: 'Admin',
+      adminOnly: 'Admin uniquement',
       autoFamilyJoinHint: 'Les nouveaux membres rejoignent automatiquement cette famille.',
+      deactivate: 'Désactiver',
       firstAdmin: 'Premier admin',
-      makeAdmin: 'Rendre admin',
-      makeMember: 'Rendre membre',
+      makeAdmin: 'Nommer admin',
+      makeMember: 'Nommer membre',
       owner: 'Propriétaire',
       password: 'Mot de passe',
       passwordMinLength: 'Le mot de passe doit contenir au moins {n} caractères',
@@ -1289,7 +1295,9 @@ export const translations: Record<Language, TranslationStructure> = {
       notifications: 'Meldingen',
       openSwaggerDocs: 'Open Swagger Docs',
       admin: 'Admin',
+      adminOnly: 'Alleen admin',
       autoFamilyJoinHint: 'Nieuwe leden komen automatisch in deze familie.',
+      deactivate: 'Deactiveer',
       firstAdmin: 'Eerste admin',
       makeAdmin: 'Maak admin',
       makeMember: 'Maak member',
@@ -1655,7 +1663,9 @@ export const translations: Record<Language, TranslationStructure> = {
       notifications: 'Benachrichtigungen',
       openSwaggerDocs: 'Swagger-Dokumentation öffnen',
       admin: 'Admin',
+      adminOnly: 'Nur Admin',
       autoFamilyJoinHint: 'Neue Mitglieder treten dieser Familie automatisch bei.',
+      deactivate: 'Deaktivieren',
       firstAdmin: 'Erster Admin',
       makeAdmin: 'Zum Admin machen',
       makeMember: 'Zum Mitglied machen',

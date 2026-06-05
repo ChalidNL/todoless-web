@@ -72,6 +72,7 @@ export interface Item {
   id: string;
   title: string;
   completed: boolean;
+  focus?: boolean;
   shopId?: string;
   quantity?: number;
   priority?: Priority;

@@ -65,6 +65,7 @@ const normalizeItem = (record: any): Item => ({
   id: record.id,
   title: record.title,
   completed: !!record.completed,
+  focus: !!record.focus,
   shopId: record.shop_id || undefined,
   quantity: record.quantity || undefined,
   priority: record.priority || undefined,
@@ -499,7 +500,8 @@ class PocketBaseClient {
       }
       return await pb.collection('items').create({
         title: item.title,
-        completed: item.completed || false,
+        completed: item.completed,
+        focus: item.focus,
         shop_id: item.shopId,
         quantity: item.quantity,
         priority: item.priority,

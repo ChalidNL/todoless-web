@@ -69,6 +69,7 @@ const entryToItem = (entry: Entry): Item => ({
   id: entry.id,
   title: entry.title,
   completed: entry.completed ?? false,
+  focus: entry.focus ?? false,
   shopId: entry.shopId,
   quantity: entry.quantity,
   priority: entry.priority,
@@ -318,6 +319,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       status: i.completed ? 'done' as const : 'todo' as const,
       blocked: false,
       flag: false,
+      focus: i.focus ?? false,
       completed: i.completed,
     }));
     setEntries([...taskEntries, ...itemEntries]);

@@ -48,6 +48,7 @@ const normalizeTask = (r: any): Task => ({
 
 const normalizeItem = (r: any): Item => ({
   id: r.id, title: r.title, completed: !!r.completed,
+  focus: !!r.focus,
   shopId: r.shop_id, quantity: r.quantity, priority: r.priority,
   assignedTo: r.assigned_to, dueDate: r.due_date ? new Date(r.due_date).getTime() : undefined,
   labels: Array.isArray(r.labels) ? r.labels : [], isPrivate: !!r.is_private,
@@ -202,6 +203,7 @@ export const api = {
     async create(data: Partial<Item>): Promise<Item> {
       const record = await pb.collection('items').create({
         title: data.title, completed: data.completed, shop_id: data.shopId,
+        focus: data.focus,
         quantity: data.quantity, priority: data.priority, assigned_to: data.assignedTo,
         due_date: toISO(data.dueDate), labels: data.labels || [],
         is_private: data.isPrivate, user: requireAuth().id,
@@ -211,6 +213,7 @@ export const api = {
     async update(id: string, data: Partial<Item>): Promise<Item> {
       const record = await pb.collection('items').update(id, {
         title: data.title, completed: data.completed, shop_id: data.shopId,
+        focus: data.focus,
         quantity: data.quantity, labels: data.labels, is_private: data.isPrivate,
       } as any);
       return normalizeItem(record);

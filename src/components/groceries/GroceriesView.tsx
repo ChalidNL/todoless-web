@@ -2,19 +2,16 @@ import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { UnifiedCard } from '../shared/UnifiedCard';
 import { NewGlobalHeader } from '../shared/NewGlobalHeader';
-import { TopBar } from '../shared/TopBar';
-import { ChevronDown, ChevronUp, RotateCcw, ShoppingCart, X as XIcon, Save, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronUp, RotateCcw, ShoppingCart, X as XIcon, Save, ChevronRight, Target } from 'lucide-react';
 import { t } from '../../i18n/translations';
-import { categorizeItem } from '../../lib/grocery-categories';
+import { groupGroceriesByCategory, partitionFocusedGroceries, sortGroceriesAlpha, type GrocerySortMode } from '../../lib/grocery-view-utils';
 
 export const GroceriesView = () => {
   const { items, addItem, uncheckAllDoneItems, showCompletionMessage, activeChipFilters, toggleChipFilter, clearChipFilters, filters, addFilter, deleteFilter } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [showBought, setShowBought] = useState(false);
   const [showSavedFilters, setShowSavedFilters] = useState(false);
-  const [sortMode, setSortMode] = useState<'category' | 'categoryAlpha' | 'alpha'>('alpha');
-
-  const stripEmoji = (cat: string): string => cat.replace(/^[^\w\s]+\s*/, '');
+  const [sortMode, setSortMode] = useState<GrocerySortMode>('alpha');
 
   const itemFilters = useMemo(() => filters.filter(f => f.type === 'item'), [filters]);
 
@@ -49,30 +46,18 @@ export const GroceriesView = () => {
     return result;
   }, [items, activeChipFilters, searchQuery]);
 
-  const sortedActiveItems = useMemo(() => {
-    return [...filteredItems.filter((item) => !item.completed)].sort((a, b) =>
-      a.title.toLowerCase().localeCompare(b.title.toLowerCase())
-    );
-  }, [filteredItems]);
+  const activeItems = useMemo(() => filteredItems.filter((item) => !item.completed), [filteredItems]);
 
-  const groupedActive = useMemo(() => {
-    const groups: Record<string, typeof sortedActiveItems> = {};
-    for (const item of sortedActiveItems) {
-      const cat = categorizeItem(item.title);
-      if (!groups[cat]) groups[cat] = [];
-      groups[cat].push(item);
-    }
-    if (sortMode === 'categoryAlpha') {
-      return Object.entries(groups).sort(([a], [b]) => stripEmoji(a).localeCompare(stripEmoji(b)));
-    }
-    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
-  }, [sortedActiveItems, sortMode]);
+  const { focused: focusedActiveItems, regular: regularActiveItems } = useMemo(
+    () => partitionFocusedGroceries(activeItems),
+    [activeItems]
+  );
 
-  const sortedBoughtItems = useMemo(() => {
-    return [...filteredItems.filter((item) => item.completed)].sort((a, b) =>
-      a.title.toLowerCase().localeCompare(b.title.toLowerCase())
-    );
-  }, [filteredItems]);
+  const sortedActiveItems = useMemo(() => sortGroceriesAlpha(activeItems), [activeItems]);
+
+  const groupedActive = useMemo(() => groupGroceriesByCategory(regularActiveItems), [regularActiveItems]);
+
+  const sortedBoughtItems = useMemo(() => sortGroceriesAlpha(filteredItems.filter((item) => item.completed)), [filteredItems]);
 
   const handleAddItem = (value: string, metadata?: { shopId?: string }) => {
     addItem({
@@ -199,13 +184,12 @@ export const GroceriesView = () => {
           </h2>
           <select
             value={sortMode}
-            onChange={(e) => setSortMode(e.target.value as 'category' | 'categoryAlpha' | 'alpha')}
+            onChange={(e) => setSortMode(e.target.value as GrocerySortMode)}
             className="text-xs border border-neutral-200 rounded px-2 py-1 bg-white text-neutral-600 cursor-pointer"
             title={t('items.sortLabel')}
           >
-            <option value="category">{t('items.sortCategory')}</option>
-            <option value="categoryAlpha">{t('items.sortCategoryAlpha')}</option>
             <option value="alpha">{t('items.sortAlpha')}</option>
+            <option value="category">{t('items.sortCategory')}</option>
           </select>
         </div>
         {sortedActiveItems.length === 0 ? (
@@ -213,26 +197,47 @@ export const GroceriesView = () => {
             <ShoppingCart className="w-12 h-12 text-neutral-200 mx-auto mb-3" />
             <p className="text-neutral-400 text-sm">{t('groceries.empty') || 'No items yet'}</p>
           </div>
-        ) : sortMode === 'alpha' ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {sortedActiveItems.map((item) => (
-              <UnifiedCard key={item.id} entity={item} type="item" />
-            ))}
-          </div>
         ) : (
           <div className="space-y-4">
-            {groupedActive.map(([category, catItems]) => (
-              <div key={category}>
-                <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2 px-1">
-                  {category} ({catItems.length})
+            {focusedActiveItems.length > 0 && (
+              <div>
+                <h3 className="text-xs font-semibold text-violet-600 uppercase tracking-wider mb-2 px-1 flex items-center gap-1.5">
+                  <Target className="w-3.5 h-3.5" />
+                  {t('tasks.focus')} ({focusedActiveItems.length})
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {catItems.map((item) => (
+                  {focusedActiveItems.map((item) => (
                     <UnifiedCard key={item.id} entity={item} type="item" />
                   ))}
                 </div>
               </div>
-            ))}
+            )}
+
+            {sortMode === 'alpha' ? (
+              <div>
+                <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2 px-1">
+                  {t('items.sortAlpha')} ({regularActiveItems.length})
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {regularActiveItems.map((item) => (
+                    <UnifiedCard key={item.id} entity={item} type="item" />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              groupedActive.map(([category, catItems]) => (
+                <div key={category}>
+                  <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2 px-1">
+                    {category} ({catItems.length})
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {catItems.map((item) => (
+                      <UnifiedCard key={item.id} entity={item} type="item" />
+                    ))}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         )}
 

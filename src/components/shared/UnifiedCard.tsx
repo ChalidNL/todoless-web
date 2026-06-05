@@ -68,7 +68,8 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
   const repeatLabel = task?.repeatInterval ? getRepeatLabel(task.repeatInterval, task.dueDate) : null;
   const repeatChipLabel = task?.repeatInterval ? getRepeatChipLabel(task.repeatInterval, task.dueDate) : null;
   const hasTaskComment = !!task?.blockedComment?.trim();
-  const isFocusTask = !!task?.focus && !isDone;
+  const isItemFocused = !!item?.focus && !isDone;
+  const isFocusHighlighted = (isTask ? !!task?.focus : !!item?.focus) && !isDone;
 
   const handleToggle = () => {
     if (isTask) {
@@ -116,9 +117,9 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
       ref={cardRef}
       onClick={trackInteraction}
       className={`rounded-lg border transition-colors ${
-        isDone ? 'border-neutral-200 opacity-75' : isFocusTask ? 'border-violet-300 hover:border-violet-400 shadow-[0_0_0_1px_rgba(124,58,237,0.08)]' : 'border-neutral-200 hover:border-neutral-300'
+        isDone ? 'border-neutral-200 opacity-75' : isFocusHighlighted ? 'border-violet-300 hover:border-violet-400 shadow-[0_0_0_1px_rgba(124,58,237,0.08)]' : 'border-neutral-200 hover:border-neutral-300'
       } ${
-        isTaskFlagged ? '!bg-red-50' : isOverdue ? '!bg-orange-50' : isFocusTask ? '!bg-violet-50/70' : 'bg-white'
+        isTaskFlagged ? '!bg-red-50' : isOverdue ? '!bg-orange-50' : isFocusHighlighted ? '!bg-violet-50/70' : 'bg-white'
       } ${showMenu ? 'ring-1 ring-neutral-300 !bg-neutral-50' : ''}`}>
       <div className="p-2.5">
         {/* Line 1: checkbox + title + badge(s) + hamburger */}
@@ -216,7 +217,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
         {/* Chip row — labels + assignee + shop + date (only when not done) */}
         {/* Tasks: chips visible in both collapsed and edit mode (labels+assignee always visible) */}
         {/* Items: chips always visible */}
-        {!isDone && ((isTask && (hasLabels || assignedUser || dateStr || subtaskCount > 0 || (entity.priority && PRIORITY_COLORS[entity.priority as Priority]) || !!task?.repeatInterval || isFocusTask || hasTaskComment)) || (!isTask && hasShop)) && (
+        {!isDone && ((isTask && (hasLabels || assignedUser || dateStr || subtaskCount > 0 || (entity.priority && PRIORITY_COLORS[entity.priority as Priority]) || !!task?.repeatInterval || hasTaskComment)) || (!isTask && hasShop)) && (
           <div className="flex flex-wrap items-center gap-1 mt-1.5 ml-0.5">
             {isTask && entity.labels.map(labelId => {
               const label = labels.find(l => l.id === labelId);
@@ -258,19 +259,13 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                 maxWidthClassName="max-w-[92px]"
               />
             )}
-            {isTask && isFocusTask && (
-              <AttributeChip
-                icon={<Target className="w-3.5 h-3.5" />}
-                label={t('tasks.focus')}
-                color="#7c3aed"
-              />
-            )}
             {isTask && hasTaskComment && (
               <AttributeChip
                 icon={<MessageSquare className="w-3.5 h-3.5" />}
                 label={t('tasks.comment')}
                 color="#2563eb"
-                maxWidthClassName="max-w-[80px]"
+                compact
+                ariaLabel={t('tasks.comment')}
               />
             )}
             {currentShop && (
@@ -449,12 +444,36 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
               )}
               {isTask && (
                 <button
+                  onClick={() => setValue({ focus: !task!.focus })}
+                  className={`p-1.5 rounded transition-colors ${
+                    task!.focus ? 'bg-violet-100 text-violet-700 ring-1 ring-violet-300' : 'hover:bg-neutral-100 text-neutral-500'
+                  }`}
+                  title={t('tasks.focus')}
+                  aria-label={t('tasks.focus')}
+                >
+                  <Target className="w-4 h-4" strokeWidth={1.75} />
+                </button>
+              )}
+              {isTask && (
+                <button
                   onClick={handleToggleFlag}
                   className={`p-1.5 rounded transition-colors ${task!.flag ? 'bg-red-200 text-red-700' : 'hover:bg-neutral-100 text-neutral-500'}`}
                   title={t('tasks.flagTooltip')}
                   aria-label={t('tasks.toggleFlag')}
                 >
                   <Flag className="w-4 h-4" strokeWidth={1.75} />
+                </button>
+              )}
+              {!isTask && (
+                <button
+                  onClick={() => setValue({ focus: !item!.focus })}
+                  className={`p-1.5 rounded transition-colors ${
+                    isItemFocused ? 'bg-violet-100 text-violet-700 ring-1 ring-violet-300' : 'hover:bg-neutral-100 text-neutral-500'
+                  }`}
+                  title={t('tasks.focus')}
+                  aria-label={t('tasks.focus')}
+                >
+                  <Target className="w-4 h-4" strokeWidth={1.75} />
                 </button>
               )}
               {!isTask && (
@@ -466,13 +485,12 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                   }}
                   className={`p-1.5 rounded transition-colors ${hasShop || activeEditor === 'shop' ? 'bg-green-100 text-green-700 ring-1 ring-green-300' : 'hover:bg-neutral-100 text-neutral-500'}`}
                   title={t('items.selectShopTooltip')}
-                  aria-label={t('tasks.editSchedule')}
+                  aria-label={t('items.selectShopTooltip')}
                 >
                   <ShoppingCart className="w-4 h-4" strokeWidth={1.75} />
                 </button>
               )}
               <div className="flex-1" />
-              {/* Impact buttons: Backlog + Swap + Delete */}
               {isTask && task!.status !== 'backlog' && (
                 <button
                   onClick={() => { moveTaskToStatus(entity.id, 'backlog'); showCompletionMessage(t('tasks.movedToBacklog')); }}

@@ -62,6 +62,7 @@ export const Settings = () => {
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [updatingApp, setUpdatingApp] = useState(false);
   const [familyName, setFamilyName] = useState<string | undefined>(undefined);
+  const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
 
   // Full Agents management
   const [showAgents, setShowAgents] = useState(false);
@@ -70,6 +71,7 @@ export const Settings = () => {
   const [revokingAgentId, setRevokingAgentId] = useState<string | null>(null);
 
   const currentUser = users.find(u => u.id === appSettings.currentUserId);
+  const canManageMembers = currentUser?.role === 'admin' || currentUser?.role === 'owner';
   const familyMembershipView = useMemo(
     () => buildFamilyMembershipView(users, currentUser?.family_id, familyName),
     [currentUser?.family_id, familyName, users]
@@ -217,12 +219,12 @@ export const Settings = () => {
   };
 
   const handleToggleMemberActive = async (user: User) => {
-    if (!currentUser || currentUser.role !== 'admin') return;
+    if (!canManageMembers) return;
     await updateUser(user.id, { active: !(user.active ?? true) } as Partial<User>);
   };
 
   const handleDeleteMember = async (user: User) => {
-    if (!currentUser || currentUser.role !== 'admin') return;
+    if (!canManageMembers) return;
     if (!window.confirm(t('settings.deleteMemberConfirm'))) return;
     await deleteUser(user.id);
   };
@@ -699,69 +701,80 @@ export const Settings = () => {
                 <p className="text-sm text-neutral-500 py-4">{t('members.noMembers')}</p>
               ) : (
                 <>
-                  <div className="mb-4 rounded-xl border border-violet-200 bg-violet-50/70 px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-100 text-violet-700">
+                  <div className="rounded-2xl border border-violet-200 bg-violet-50/60 overflow-hidden">
+                    <div className="flex items-center gap-2 px-4 py-3 border-b border-violet-200/80">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-100 text-violet-700 flex-shrink-0">
                         <Users className="h-4 w-4" />
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-violet-700">{t('members.familyLabel')}</p>
-                        <p className="text-sm font-semibold text-violet-950 truncate">{familyMembershipView.familyName}</p>
+                      <div className="flex items-center gap-2 min-w-0 text-sm">
+                        <span className="text-[11px] font-semibold uppercase tracking-wide text-violet-700">{t('members.familyLabel')}</span>
+                        <span className="font-semibold text-violet-950 truncate">{familyMembershipView.familyName}</span>
                       </div>
                     </div>
-                    <p className="mt-2 text-xs text-violet-800">{t('members.sameFamilyHint')}</p>
-                  </div>
-                  {(currentUser?.role === 'admin' || currentUser?.role === 'owner') && (
-                    <div className="mb-4 p-4 bg-neutral-50 border border-neutral-200 rounded-xl">
-                      <h3 className="text-sm font-semibold mb-1">{t('members.inviteMember')}</h3>
-                      <p className="mb-3 text-xs text-neutral-500">{t('settings.autoFamilyJoinHint')}</p>
-                      <InviteManager />
-                    </div>
-                  )}
-                  <div className="space-y-2">
-                    {familyMembershipView.members.map(user => {
-                    const isCurrentUser = currentUser?.id === user.id;
-                    const isAdmin = isSystemAdminRole(user.role);
-                    const isOwner = user.role === 'owner';
-                    const isAgent = user.role === 'agent';
-                    const isActive = user.active ?? true;
-                    const canManageRole = canChangeMemberRole(currentUser, user);
-                    const compactName = getCompactUserName(user);
-                    const initials = getMemberInitials({
-                      firstName: user.firstName,
-                      lastName: user.lastName,
-                      name: user.name,
-                      email: user.email,
-                    });
-                    const memberRoleLabel = isOwner ? t('settings.owner') : isAdmin ? t('settings.admin') : isAgent ? t('agent.title').slice(0, -1) : t('settings.member');
-                    const roleColor = getMemberRoleColor(user);
-                    const disableMemberRole = isAdmin && isOnlyAdmin(familyMembershipView.members, user.id);
 
-                    return (
-                      <div key={user.id} className={`flex items-start gap-2.5 p-3 border rounded-xl transition-colors ${isAdmin ? 'border-violet-200 bg-violet-50/40' : 'border-neutral-200 hover:bg-neutral-50'}`}>
-                        <div
-                          className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
-                          style={{ backgroundColor: roleColor }}
-                        >
-                          {initials}
-                        </div>
-                        <div className="flex-1 min-w-0 space-y-1.5">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="font-medium text-sm truncate">{compactName || userDisplayName(user)}</span>
-                            {isCurrentUser && <span className="text-[10px] text-neutral-400">(you)</span>}
-                          </div>
-                          <p className="text-[11px] text-neutral-500 truncate">{user.email}</p>
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <AttributeChip label={memberRoleLabel} color={roleColor} active />
-                            {isOwner && <AttributeChip icon={<Shield className="w-3.5 h-3.5" />} label={t('settings.firstAdmin')} color="#7c3aed" />}
-                            <AttributeChip
-                              label={isActive ? t('settings.active') : t('settings.blocked')}
-                              color={isActive ? '#16a34a' : '#dc2626'}
-                              active
-                            />
-                            {canManageRole && (
-                              <>
-                                {!isAdmin ? (
+                    <div className="divide-y divide-violet-100">
+                      {familyMembershipView.members.map(user => {
+                        const isCurrentUser = currentUser?.id === user.id;
+                        const isAdmin = isSystemAdminRole(user.role);
+                        const isOwner = user.role === 'owner';
+                        const isAgent = user.role === 'agent';
+                        const isActive = user.active ?? true;
+                        const canManageRole = canChangeMemberRole(currentUser, user);
+                        const compactName = getCompactUserName(user);
+                        const initials = getMemberInitials({
+                          firstName: user.firstName,
+                          lastName: user.lastName,
+                          name: user.name,
+                          email: user.email,
+                        });
+                        const memberRoleLabel = isOwner ? t('settings.owner') : isAdmin ? t('settings.admin') : isAgent ? t('agent.title').slice(0, -1) : t('settings.member');
+                        const roleColor = getMemberRoleColor(user);
+                        const disableMemberRole = isAdmin && isOnlyAdmin(familyMembershipView.members, user.id);
+                        const isEditingMember = editingMemberId === user.id;
+
+                        return (
+                          <div key={user.id} className="px-4 py-3 bg-white/70">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div
+                                className="w-8 h-8 min-w-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
+                                style={{ backgroundColor: roleColor }}
+                              >
+                                {initials}
+                              </div>
+                              <div className="flex-1 min-w-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                                <span className="font-medium text-neutral-900 truncate">{compactName || userDisplayName(user)}</span>
+                                <span className="text-xs text-neutral-500 truncate">{user.email}</span>
+                                {isCurrentUser && <span className="text-[10px] text-neutral-400">(you)</span>}
+                              </div>
+                              <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                                <AttributeChip label={memberRoleLabel} color={roleColor} active />
+                                <AttributeChip label={isActive ? t('settings.active') : t('settings.blocked')} color={isActive ? '#16a34a' : '#dc2626'} active />
+                                {isOwner && <AttributeChip icon={<Shield className="w-3.5 h-3.5" />} label={t('settings.firstAdmin')} color="#7c3aed" />}
+                                {canManageMembers && !isCurrentUser && !isOwner && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingMemberId(isEditingMember ? null : user.id)}
+                                    className={`p-1.5 rounded transition-colors ${isEditingMember ? 'bg-violet-100 text-violet-700' : 'text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700'}`}
+                                    aria-label={t('common.edit')}
+                                    title={t('common.edit')}
+                                  >
+                                    <Edit2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+
+                            {canManageMembers && !isCurrentUser && !isOwner && isEditingMember && (
+                              <div className="mt-2 ml-11 flex flex-wrap items-center gap-2">
+                                <span className="text-[11px] text-neutral-500">{t('settings.adminOnly')}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleMemberActive(user)}
+                                  className="inline-flex items-center px-2.5 h-7 rounded-full text-xs font-medium border border-neutral-200 text-neutral-700 hover:bg-neutral-50 transition-colors"
+                                >
+                                  {isActive ? t('settings.deactivate') : t('settings.unblock')}
+                                </button>
+                                {canManageRole && !isAdmin ? (
                                   <button
                                     type="button"
                                     onClick={() => handleRoleChange(user.id, 'admin')}
@@ -769,41 +782,40 @@ export const Settings = () => {
                                   >
                                     {t('settings.makeAdmin')}
                                   </button>
-                                ) : (
+                                ) : canManageRole ? (
                                   <button
                                     type="button"
                                     onClick={() => handleRoleChange(user.id, 'member')}
                                     disabled={disableMemberRole}
-                                    className="inline-flex items-center px-2.5 h-7 rounded-full text-xs font-medium border border-neutral-200 text-neutral-600 hover:border-neutral-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                    className="inline-flex items-center px-2.5 h-7 rounded-full text-xs font-medium border border-neutral-200 text-neutral-700 hover:bg-neutral-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                                   >
                                     {t('settings.makeMember')}
                                   </button>
-                                )}
-                              </>
+                                ) : null}
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteMember(user)}
+                                  className="inline-flex items-center px-2.5 h-7 rounded-full text-xs font-medium border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
+                                >
+                                  {t('common.delete')}
+                                </button>
+                              </div>
                             )}
                           </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="border-t border-violet-200/80 px-4 py-3 bg-violet-50/40">
+                      <p className="mb-2 text-xs text-violet-800">{t('members.sameFamilyHint')}</p>
+                      {canManageMembers && (
+                        <div>
+                          <h3 className="text-sm font-semibold mb-1">{t('members.inviteMember')}</h3>
+                          <p className="mb-3 text-xs text-neutral-500">{t('settings.autoFamilyJoinHint')}</p>
+                          <InviteManager />
                         </div>
-                        {(currentUser?.role === 'admin' || currentUser?.role === 'owner') && !isCurrentUser && !isOwner && (
-                          <div className="flex items-center gap-0.5 flex-shrink-0 pt-0.5">
-                            <button
-                              onClick={() => handleToggleMemberActive(user)}
-                              className="p-1 hover:bg-neutral-100 rounded text-neutral-400"
-                              title={isActive ? t('settings.blocked') : t('settings.unblock')}
-                            >
-                              {isActive ? <Lock className="w-3 h-3" /> : <Check className="w-3 h-3 text-green-600" />}
-                            </button>
-                            <button
-                              onClick={() => handleDeleteMember(user)}
-                              className="p-1 hover:bg-red-50 rounded text-red-400"
-                              title={t('common.delete')}
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                      )}
+                    </div>
                   </div>
                 </>
               )}

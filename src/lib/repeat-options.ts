@@ -19,6 +19,52 @@ export function getRepeatLabel(repeatInterval?: RepeatInterval | null, dueDate?:
   return getRepeatDescriptor(repeatInterval, dueDate, getUiLanguage());
 }
 
+export function getRepeatChipLabel(repeatInterval?: RepeatInterval | null, dueDate?: number): string | null {
+  if (!repeatInterval) return null;
+
+  const language = getUiLanguage();
+  const shortLabels = language === 'nl'
+    ? {
+        day: 'Dagelijks',
+        week: 'Wekelijks',
+        month: 'Maandelijks',
+        year: 'Jaarlijks',
+      }
+    : {
+        day: 'Daily',
+        week: 'Weekly',
+        month: 'Monthly',
+        year: 'Yearly',
+      };
+
+  if (repeatInterval !== 'month_weekday') {
+    return shortLabels[repeatInterval];
+  }
+
+  const fullLabel = getRepeatDescriptor(repeatInterval, dueDate, language);
+  if (!fullLabel) return language === 'nl' ? 'Maandelijks' : 'Monthly';
+
+  return language === 'nl'
+    ? fullLabel
+      .replace(/^Elke\s+/i, 'Mnd · ')
+      .replace(/\s+van de maand$/i, '')
+      .replace(/eerste/i, '1e')
+      .replace(/tweede/i, '2e')
+      .replace(/derde/i, '3e')
+      .replace(/vierde/i, '4e')
+      .replace(/vijfde/i, '5e')
+      .replace(/laatste/i, 'laatste')
+    : fullLabel
+      .replace(/^Every\s+/i, 'Mon · ')
+      .replace(/\s+of the month$/i, '')
+      .replace(/first/i, '1st')
+      .replace(/second/i, '2nd')
+      .replace(/third/i, '3rd')
+      .replace(/fourth/i, '4th')
+      .replace(/fifth/i, '5th')
+      .replace(/last/i, 'last');
+}
+
 export function getRepeatOptions(dueDate?: number): Array<{ value: '' | RepeatInterval; label: string; disabled?: boolean }> {
   const language = getUiLanguage();
   const repeatLabel = language === 'nl' ? 'Herhalen' : 'Repeat';

@@ -443,7 +443,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
           </div>
 
           {/* Line 2: chips — labels, assignee, date, repeat, subtask progress (always visible) */}
-          {!isDone && (hasLabels || assignedUser || (dateStr && !isDone) || (repeatChipLabel && !isDone) || subtaskCount > 0 || (task.priority && PRIORITY_COLORS[task.priority]) || task.focus || hasComment) && (
+          {!isDone && (hasLabels || assignedUser || dateStr || subtaskCount > 0 || (task.priority && PRIORITY_COLORS[task.priority]) || !!task.repeatInterval || hasComment) && (
             <div className="flex flex-wrap items-center gap-1 mt-1.5 ml-0.5">
               {task.labels.map((labelId) => {
                 const label = labels.find((l) => l.id === labelId);
@@ -486,20 +486,14 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
                   maxWidthClassName="max-w-[92px]"
                 />
               )}
-              {task.focus && (
-                <AttributeChip
-                  icon={<Target className="w-3.5 h-3.5" />}
-                  label={t('tasks.focus')}
-                  color="#7c3aed"
-                />
-              )}
               {hasComment && (
                 <AttributeChip
                   icon={<MessageSquare className="w-3.5 h-3.5" />}
                   label={t('tasks.comment')}
                   color="#2563eb"
                   onClick={() => openCommentEditor()}
-                  maxWidthClassName="max-w-[80px]"
+                  compact
+                  ariaLabel={t('tasks.comment')}
                 />
               )}
               {subtaskCount > 0 && (
