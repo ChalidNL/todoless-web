@@ -2,9 +2,9 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Task, Item, userDisplayName, Priority, RepeatInterval } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../lib/pocketbase-client';
-import { Check, ChevronDown, ChevronUp, Trash2, Tag, User, CalendarDays, Flag, ShoppingCart, ArrowLeftRight, X, AlertTriangle, RotateCcw, Inbox } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, Trash2, Tag, User, CalendarDays, Flag, ShoppingCart, ArrowLeftRight, X, AlertTriangle, RotateCcw, Inbox, MessageSquare, Target } from 'lucide-react';
 import { t } from '../../i18n/translations';
-import { getRepeatLabel, getRepeatOptions } from '../../lib/repeat-options';
+import { getRepeatChipLabel, getRepeatLabel, getRepeatOptions } from '../../lib/repeat-options';
 import { getCompactUserName } from '../../lib/member-role-utils';
 import { combineLocalDateAndTime, formatLocalDateInputValue, formatLocalTimeInputValue, parseLocalDateInputValue } from '../../lib/date-local';
 
@@ -66,6 +66,9 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
   const assignedUser = entity.assignedTo ? users.find(u => u.id === entity.assignedTo) : null;
   const dateStr = entity.dueDate ? new Date(entity.dueDate).toLocaleDateString('nl-NL', { month: 'short', day: 'numeric' }) : null;
   const repeatLabel = task?.repeatInterval ? getRepeatLabel(task.repeatInterval, task.dueDate) : null;
+  const repeatChipLabel = task?.repeatInterval ? getRepeatChipLabel(task.repeatInterval, task.dueDate) : null;
+  const hasTaskComment = !!task?.blockedComment?.trim();
+  const isFocusTask = !!task?.focus && !isDone;
 
   const handleToggle = () => {
     if (isTask) {
@@ -113,9 +116,9 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
       ref={cardRef}
       onClick={trackInteraction}
       className={`rounded-lg border transition-colors ${
-        isDone ? 'border-neutral-200 opacity-75' : 'border-neutral-200 hover:border-neutral-300'
+        isDone ? 'border-neutral-200 opacity-75' : isFocusTask ? 'border-violet-300 hover:border-violet-400 shadow-[0_0_0_1px_rgba(124,58,237,0.08)]' : 'border-neutral-200 hover:border-neutral-300'
       } ${
-        isTaskFlagged ? '!bg-red-50' : isOverdue ? '!bg-orange-50' : 'bg-white'
+        isTaskFlagged ? '!bg-red-50' : isOverdue ? '!bg-orange-50' : isFocusTask ? '!bg-violet-50/70' : 'bg-white'
       } ${showMenu ? 'ring-1 ring-neutral-300 !bg-neutral-50' : ''}`}>
       <div className="p-2.5">
         {/* Line 1: checkbox + title + badge(s) + hamburger */}
@@ -213,7 +216,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
         {/* Chip row — labels + assignee + shop + date (only when not done) */}
         {/* Tasks: chips visible in both collapsed and edit mode (labels+assignee always visible) */}
         {/* Items: chips always visible */}
-        {!isDone && ((isTask && (hasLabels || assignedUser || dateStr || subtaskCount > 0 || (entity.priority && PRIORITY_COLORS[entity.priority as Priority]) || !!task?.repeatInterval)) || (!isTask && hasShop)) && (
+        {!isDone && ((isTask && (hasLabels || assignedUser || dateStr || subtaskCount > 0 || (entity.priority && PRIORITY_COLORS[entity.priority as Priority]) || !!task?.repeatInterval || isFocusTask || hasTaskComment)) || (!isTask && hasShop)) && (
           <div className="flex flex-wrap items-center gap-1 mt-1.5 ml-0.5">
             {isTask && entity.labels.map(labelId => {
               const label = labels.find(l => l.id === labelId);
@@ -248,10 +251,26 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
             {isTask && repeatLabel && (
               <AttributeChip
                 icon={<RotateCcw className="w-3.5 h-3.5" />}
-                label={repeatLabel}
-                color="#ea580c"
+                label={repeatChipLabel || repeatLabel}
+                color="#0f766e"
                 active={!!task?.repeatInterval && isChipFilterActive('repeat', task.repeatInterval)}
                 onClick={showMenu ? () => setValue({ dueDate: null, repeatInterval: null }) : () => task?.repeatInterval && toggleChipFilter('repeat', task.repeatInterval, repeatLabel)}
+                maxWidthClassName="max-w-[92px]"
+              />
+            )}
+            {isTask && isFocusTask && (
+              <AttributeChip
+                icon={<Target className="w-3.5 h-3.5" />}
+                label={t('tasks.focus')}
+                color="#7c3aed"
+              />
+            )}
+            {isTask && hasTaskComment && (
+              <AttributeChip
+                icon={<MessageSquare className="w-3.5 h-3.5" />}
+                label={t('tasks.comment')}
+                color="#2563eb"
+                maxWidthClassName="max-w-[80px]"
               />
             )}
             {currentShop && (

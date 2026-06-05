@@ -4,7 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { api } from '../../lib/pocketbase-client';
 import { Check, ChevronDown, ChevronUp, Trash2, Tag, User, CalendarDays, Flag, ArrowLeftRight, RotateCcw, X, AlertTriangle, Inbox, Target, GitBranch, MoreHorizontal, Edit2, MessageSquare } from 'lucide-react';
 import { t } from '../../i18n/translations';
-import { getRepeatLabel, getRepeatOptions } from '../../lib/repeat-options';
+import { getRepeatChipLabel, getRepeatLabel, getRepeatOptions } from '../../lib/repeat-options';
 import { getCompactUserName } from '../../lib/member-role-utils';
 import { combineLocalDateAndTime, formatLocalDateInputValue, formatLocalTimeInputValue, parseLocalDateInputValue } from '../../lib/date-local';
 import { buildFlagUpdate, getCommentButtonActive } from '../../lib/task-attribute-utils';
@@ -122,12 +122,15 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
   const isDone = task.status === 'done';
   const assignedUser = task.assignedTo ? users.find((u) => u.id === task.assignedTo) : null;
   const isFlagged = task.flag && !isDone;
+  const isFocusTask = !!task.focus && !isDone;
   const isOverdue = !!task.dueDate && task.dueDate < Date.now() && !isDone;
   const dateStr = task.dueDate
     ? new Date(task.dueDate).toLocaleDateString('nl-NL', { month: 'short', day: 'numeric' })
     : null;
 
   const repeatLabel = getRepeatLabel(task.repeatInterval, task.dueDate);
+  const repeatChipLabel = getRepeatChipLabel(task.repeatInterval, task.dueDate);
+  const hasComment = !!task.blockedComment?.trim();
 
   // Subtasks: tasks that have this task's id in their linkedTo/linkedType (subtask relationship)
   const subtasks = (task.subtaskIds || [])
@@ -346,9 +349,21 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
         ref={cardRef}
         onClick={trackInteraction}
         className={`rounded-lg border transition-colors ${
-        isDone ? 'border-neutral-200 opacity-75' : 'border-neutral-200 hover:border-neutral-300'
+        isDone
+          ? 'border-neutral-200 opacity-75'
+          : isFocusTask
+            ? 'border-violet-300 hover:border-violet-400 shadow-[0_0_0_1px_rgba(124,58,237,0.08)]'
+            : 'border-neutral-200 hover:border-neutral-300'
       } ${
-        urgent ? '!border-orange-400 !bg-orange-50' : isFlagged ? 'border-red-300 !bg-red-50' : isOverdue ? '!bg-orange-50' : 'bg-white'
+        urgent
+          ? '!border-orange-400 !bg-orange-50'
+          : isFlagged
+            ? 'border-red-300 !bg-red-50'
+            : isOverdue
+              ? '!bg-orange-50'
+              : isFocusTask
+                ? '!bg-violet-50/70'
+                : 'bg-white'
       } ${showMenu ? 'ring-1 ring-neutral-300 !bg-neutral-50' : ''}`}>
         <div className="p-2.5">
           {/* Line 1: checkbox + title + hamburger */}
@@ -428,7 +443,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
           </div>
 
           {/* Line 2: chips — labels, assignee, date, repeat, subtask progress (always visible) */}
-          {!isDone && (hasLabels || assignedUser || (dateStr && !isDone) || (repeatLabel && !isDone) || subtaskCount > 0 || (task.priority && PRIORITY_COLORS[task.priority])) && (
+          {!isDone && (hasLabels || assignedUser || (dateStr && !isDone) || (repeatChipLabel && !isDone) || subtaskCount > 0 || (task.priority && PRIORITY_COLORS[task.priority]) || task.focus || hasComment) && (
             <div className="flex flex-wrap items-center gap-1 mt-1.5 ml-0.5">
               {task.labels.map((labelId) => {
                 const label = labels.find((l) => l.id === labelId);
@@ -464,10 +479,27 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
               {repeatLabel && !isDone && (
                 <AttributeChip
                   icon={<RotateCcw className="w-3.5 h-3.5" />}
-                  label={repeatLabel}
-                  color="#ea580c"
+                  label={repeatChipLabel || repeatLabel}
+                  color="#0f766e"
                   active={isRepeatFiltered(task.repeatInterval)}
                   onClick={showMenu ? clearAllSchedule : () => task.repeatInterval && toggleChipFilter('repeat', task.repeatInterval, repeatLabel)}
+                  maxWidthClassName="max-w-[92px]"
+                />
+              )}
+              {task.focus && (
+                <AttributeChip
+                  icon={<Target className="w-3.5 h-3.5" />}
+                  label={t('tasks.focus')}
+                  color="#7c3aed"
+                />
+              )}
+              {hasComment && (
+                <AttributeChip
+                  icon={<MessageSquare className="w-3.5 h-3.5" />}
+                  label={t('tasks.comment')}
+                  color="#2563eb"
+                  onClick={() => openCommentEditor()}
+                  maxWidthClassName="max-w-[80px]"
                 />
               )}
               {subtaskCount > 0 && (
@@ -693,7 +725,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
                 <button
                   onClick={() => updateTask(task.id, { focus: !task.focus })}
                   className={`p-1.5 rounded transition-colors ${
-                    task.focus ? 'bg-orange-100 text-orange-700 ring-1 ring-orange-300' : 'hover:bg-neutral-100 text-neutral-500'
+                    task.focus ? 'bg-violet-100 text-violet-700 ring-1 ring-violet-300' : 'hover:bg-neutral-100 text-neutral-500'
                   }`}
                   title={task.focus ? 'Remove focus' : 'Add focus'}
                   aria-label="Toggle focus"

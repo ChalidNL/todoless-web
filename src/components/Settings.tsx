@@ -3,10 +3,10 @@ import { useApp } from '../context/AppContext';
 import { useAuth } from './AuthProvider';
 import { User, ApiToken, userDisplayName, Agent } from '../types';
 import { t } from '../i18n/translations';
-import { ChevronDown, ChevronUp, Plus, Edit2, Trash2, X, LogOut, Eye, EyeOff, Copy, Check, Lock, ExternalLink, Plug, Bot, RefreshCw } from 'lucide-react';
+import { ChevronDown, ChevronUp, Plus, Edit2, Trash2, X, LogOut, Eye, EyeOff, Copy, Check, Lock, ExternalLink, Plug, Bot, RefreshCw, Shield, Users } from 'lucide-react';
 import { NewGlobalHeader } from './shared/NewGlobalHeader';
 import { AttributeChip } from './shared/AttributeChip';
-import { getCompactUserName, getMemberInitials, canChangeMemberRole, isOnlyAdmin } from '../lib/member-role-utils';
+import { getCompactUserName, getMemberInitials, canChangeMemberRole, getMemberRoleColor, isOnlyAdmin, isSystemAdminRole } from '../lib/member-role-utils';
 import { buildFamilyMembershipView } from '../lib/member-family-utils';
 import { InviteManager } from './InviteManager';
 import { api } from '../lib/pocketbase-client';
@@ -695,26 +695,33 @@ export const Settings = () => {
 
           {showTeamMembers && (
             <>
-              {(currentUser?.role === 'admin' || currentUser?.role === 'owner') && (
-                <div className="mb-6 p-4 bg-neutral-50 border border-neutral-200 rounded-lg">
-                  <h3 className="text-sm font-semibold mb-3">{t('members.inviteMember')}</h3>
-                  <InviteManager />
-                </div>
-              )}
-
               {familyMembershipView.members.length === 0 ? (
                 <p className="text-sm text-neutral-500 py-4">{t('members.noMembers')}</p>
               ) : (
                 <>
-                  <div className="mb-3 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">{t('members.familyLabel')}</p>
-                    <p className="text-sm font-medium text-neutral-900">{familyMembershipView.familyName}</p>
-                    <p className="text-[11px] text-neutral-500">{t('members.sameFamilyHint')}</p>
+                  <div className="mb-4 rounded-xl border border-violet-200 bg-violet-50/70 px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-100 text-violet-700">
+                        <Users className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-violet-700">{t('members.familyLabel')}</p>
+                        <p className="text-sm font-semibold text-violet-950 truncate">{familyMembershipView.familyName}</p>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-xs text-violet-800">{t('members.sameFamilyHint')}</p>
                   </div>
+                  {(currentUser?.role === 'admin' || currentUser?.role === 'owner') && (
+                    <div className="mb-4 p-4 bg-neutral-50 border border-neutral-200 rounded-xl">
+                      <h3 className="text-sm font-semibold mb-1">{t('members.inviteMember')}</h3>
+                      <p className="mb-3 text-xs text-neutral-500">{t('settings.autoFamilyJoinHint')}</p>
+                      <InviteManager />
+                    </div>
+                  )}
                   <div className="space-y-2">
                     {familyMembershipView.members.map(user => {
                     const isCurrentUser = currentUser?.id === user.id;
-                    const isAdmin = user.role === 'admin';
+                    const isAdmin = isSystemAdminRole(user.role);
                     const isOwner = user.role === 'owner';
                     const isAgent = user.role === 'agent';
                     const isActive = user.active ?? true;
@@ -726,12 +733,12 @@ export const Settings = () => {
                       name: user.name,
                       email: user.email,
                     });
-                    const memberRoleLabel = isOwner ? t('settings.owner') : isAdmin ? 'Admin' : isAgent ? 'Agent' : t('settings.member');
-                    const roleColor = isOwner ? '#a855f7' : isAdmin ? '#f59e0b' : isAgent ? '#3b82f6' : '#6b7280';
+                    const memberRoleLabel = isOwner ? t('settings.owner') : isAdmin ? t('settings.admin') : isAgent ? t('agent.title').slice(0, -1) : t('settings.member');
+                    const roleColor = getMemberRoleColor(user);
                     const disableMemberRole = isAdmin && isOnlyAdmin(familyMembershipView.members, user.id);
 
                     return (
-                      <div key={user.id} className="flex items-start gap-2.5 p-2.5 border border-neutral-200 rounded-lg hover:bg-neutral-50 transition-colors">
+                      <div key={user.id} className={`flex items-start gap-2.5 p-3 border rounded-xl transition-colors ${isAdmin ? 'border-violet-200 bg-violet-50/40' : 'border-neutral-200 hover:bg-neutral-50'}`}>
                         <div
                           className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
                           style={{ backgroundColor: roleColor }}
@@ -746,6 +753,7 @@ export const Settings = () => {
                           <p className="text-[11px] text-neutral-500 truncate">{user.email}</p>
                           <div className="flex flex-wrap items-center gap-1.5">
                             <AttributeChip label={memberRoleLabel} color={roleColor} active />
+                            {isOwner && <AttributeChip icon={<Shield className="w-3.5 h-3.5" />} label={t('settings.firstAdmin')} color="#7c3aed" />}
                             <AttributeChip
                               label={isActive ? t('settings.active') : t('settings.blocked')}
                               color={isActive ? '#16a34a' : '#dc2626'}
@@ -753,29 +761,24 @@ export const Settings = () => {
                             />
                             {canManageRole && (
                               <>
-                                <button
-                                  type="button"
-                                  onClick={() => handleRoleChange(user.id, 'admin')}
-                                  className={`inline-flex items-center px-2 h-7 rounded-full text-xs border transition-colors ${
-                                    isAdmin
-                                      ? 'bg-amber-100 text-amber-800 border-amber-200'
-                                      : 'border-neutral-200 text-neutral-600 hover:border-amber-200 hover:text-amber-700'
-                                  }`}
-                                >
-                                  Admin
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleRoleChange(user.id, 'member')}
-                                  disabled={disableMemberRole}
-                                  className={`inline-flex items-center px-2 h-7 rounded-full text-xs border transition-colors ${
-                                    !isAdmin
-                                      ? 'bg-neutral-900 text-white border-neutral-900'
-                                      : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'
-                                  } disabled:opacity-40 disabled:cursor-not-allowed`}
-                                >
-                                  {t('settings.member')}
-                                </button>
+                                {!isAdmin ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRoleChange(user.id, 'admin')}
+                                    className="inline-flex items-center px-2.5 h-7 rounded-full text-xs font-medium border border-violet-200 text-violet-700 hover:bg-violet-50 transition-colors"
+                                  >
+                                    {t('settings.makeAdmin')}
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRoleChange(user.id, 'member')}
+                                    disabled={disableMemberRole}
+                                    className="inline-flex items-center px-2.5 h-7 rounded-full text-xs font-medium border border-neutral-200 text-neutral-600 hover:border-neutral-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                  >
+                                    {t('settings.makeMember')}
+                                  </button>
+                                )}
                               </>
                             )}
                           </div>

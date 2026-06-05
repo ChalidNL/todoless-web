@@ -188,6 +188,11 @@ interface TranslationStructure {
     noSavedFilters: string;
     notifications: string;
     openSwaggerDocs: string;
+    admin: string;
+    autoFamilyJoinHint: string;
+    firstAdmin: string;
+    makeAdmin: string;
+    makeMember: string;
     owner: string;
     password: string;
     passwordMinLength: string;
@@ -450,6 +455,7 @@ export const translations: Record<Language, TranslationStructure> = {
       inProgress: 'In Progress',
       todo: 'To Do',
       comment: 'Comment',
+      focus: 'Focus',
       commentPlaceholder: 'Add context or a blocker note…',
       commentRequiredForFlag: 'Add a comment before flagging this task.',
       addCommentAndFlag: 'Add comment & flag',
@@ -550,6 +556,11 @@ export const translations: Record<Language, TranslationStructure> = {
       noSavedFilters: 'No saved filters',
       notifications: 'Notifications',
       openSwaggerDocs: 'Open Swagger Docs',
+      admin: 'Admin',
+      autoFamilyJoinHint: 'New members automatically join this family.',
+      firstAdmin: 'First admin',
+      makeAdmin: 'Make admin',
+      makeMember: 'Make member',
       owner: 'Owner',
       password: 'Password',
       passwordMinLength: 'Password must be at least {n} characters',
@@ -810,6 +821,7 @@ export const translations: Record<Language, TranslationStructure> = {
       inProgress: 'En cours',
       todo: 'À faire',
       comment: 'Commentaire',
+      focus: 'Focus',
       commentPlaceholder: 'Ajoutez du contexte ou un blocage…',
       commentRequiredForFlag: 'Ajoutez un commentaire avant de signaler cette tâche.',
       addCommentAndFlag: 'Ajouter un commentaire et signaler',
@@ -910,6 +922,11 @@ export const translations: Record<Language, TranslationStructure> = {
       noSavedFilters: 'Aucun filtre enregistré',
       notifications: 'Notifications',
       openSwaggerDocs: 'Ouvrir la documentation Swagger',
+      admin: 'Admin',
+      autoFamilyJoinHint: 'Les nouveaux membres rejoignent automatiquement cette famille.',
+      firstAdmin: 'Premier admin',
+      makeAdmin: 'Rendre admin',
+      makeMember: 'Rendre membre',
       owner: 'Propriétaire',
       password: 'Mot de passe',
       passwordMinLength: 'Le mot de passe doit contenir au moins {n} caractères',
@@ -1170,6 +1187,7 @@ export const translations: Record<Language, TranslationStructure> = {
       inProgress: 'Bezig',
       todo: 'Te doen',
       comment: 'Commentaar',
+      focus: 'Focus',
       commentPlaceholder: 'Voeg context of een blokkade toe…',
       commentRequiredForFlag: 'Voeg eerst een commentaar toe voordat je deze taak flagt.',
       addCommentAndFlag: 'Commentaar toevoegen en flaggen',
@@ -1270,6 +1288,11 @@ export const translations: Record<Language, TranslationStructure> = {
       noSavedFilters: 'Geen opgeslagen filters',
       notifications: 'Meldingen',
       openSwaggerDocs: 'Open Swagger Docs',
+      admin: 'Admin',
+      autoFamilyJoinHint: 'Nieuwe leden komen automatisch in deze familie.',
+      firstAdmin: 'Eerste admin',
+      makeAdmin: 'Maak admin',
+      makeMember: 'Maak member',
       owner: 'Eigenaar',
       password: 'Wachtwoord',
       passwordMinLength: 'Wachtwoord moet minimaal {n} tekens bevatten',
@@ -1530,6 +1553,7 @@ export const translations: Record<Language, TranslationStructure> = {
       inProgress: 'In Bearbeitung',
       todo: 'Zu erledigen',
       comment: 'Kommentar',
+      focus: 'Fokus',
       commentPlaceholder: 'Kontext oder Blocker hinzufügen…',
       commentRequiredForFlag: 'Füge vor dem Markieren zuerst einen Kommentar hinzu.',
       addCommentAndFlag: 'Kommentar hinzufügen und markieren',
@@ -1630,6 +1654,11 @@ export const translations: Record<Language, TranslationStructure> = {
       noSavedFilters: 'Keine gespeicherten Filter',
       notifications: 'Benachrichtigungen',
       openSwaggerDocs: 'Swagger-Dokumentation öffnen',
+      admin: 'Admin',
+      autoFamilyJoinHint: 'Neue Mitglieder treten dieser Familie automatisch bei.',
+      firstAdmin: 'Erster Admin',
+      makeAdmin: 'Zum Admin machen',
+      makeMember: 'Zum Mitglied machen',
       owner: 'Besitzer',
       password: 'Passwort',
       passwordMinLength: 'Passwort muss mindestens {n} Zeichen lang sein',

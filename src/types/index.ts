@@ -315,3 +315,16 @@ export interface Agent {
   created: string;
   updated?: string;
 }
+
+export type NotificationInboxKind = 'custom' | 'reminder' | 'system';
+export type NotificationInboxChannel = 'inbox' | 'push' | 'email';
+
+export interface NotificationInboxItem {
+  id: string;
+  title: string;
+  kind: NotificationInboxKind;
+  channel: NotificationInboxChannel;
+  read: boolean;
+  archived: boolean;
+  createdAt: number;
+}
