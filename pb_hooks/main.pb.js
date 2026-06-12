@@ -199,12 +199,8 @@ routerAdd('POST', '/api/invites/create', (c) => {
       return c.json(400, { error: 'type must be \"human\"' });
     }
 
-    // Generate 6-digit code
-    var code = '';
-    var digits = '0123456789';
-    for (var i = 0; i < 6; i++) {
-      code += digits.charAt(Math.floor(Math.random() * digits.length));
-    }
+    // Generate invite code with CSPRNG
+    var code = $security.randomString(12);
 
     var now = new Date();
     var expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
@@ -249,7 +245,7 @@ routerAdd('GET', '/api/validate-invite', (c) => {
     if (!code) return c.json(400, { status: 'error', message: 'code required' });
 
     var now = new Date().toISOString();
-    var invites = $app.findRecordsByFilter('invite_codes', 'code = "' + code + '" && used = false && expires_at > "' + now + '"', '-created', 1, 0);
+    var invites = $app.findRecordsByFilter('invite_codes', 'code = {:code} && used = false && expires_at > {:now}', '-created', 1, 0, { code: code, now: now });
 
     if (invites.length === 0) {
       return c.json(200, { valid: false, status: 'invalid_or_expired' });
@@ -282,13 +278,12 @@ routerAdd('POST', '/api/register', (c) => {
     var u = $app.unsafeWithoutHooks();
     var rec = new Record(col);
     rec.set('id', $security.randomString(15));
-    rec.set('tokenKey', $security.randomString(30));
     rec.set('verified', false);
     rec.set('email', data.email);
     rec.set('password', data.password);
     rec.set('passwordConfirm', data.passwordConfirm || data.password);
     rec.set('name', data.name || '');
-    rec.set('emailVisibility', true);
+    rec.set('emailVisibility', false);
     rec.set('role', data.role || 'user');
     rec.set('family_id', data.family_id || '');
     rec.set('member_status', data.member_status || 'active');
@@ -301,7 +296,6 @@ routerAdd('POST', '/api/register', (c) => {
     var fc = $app.findCollectionByNameOrId('families');
     var fam = new Record(fc);
     fam.set('id', $security.randomString(15));
-    fam.set('tokenKey', $security.randomString(30));
     fam.set('name', name || 'My Family');
     fam.set('created_by', createdBy);
     var u = $app.unsafeWithoutHooks();
@@ -360,7 +354,7 @@ routerAdd('POST', '/api/register', (c) => {
     var ic = String(d.invite_code || '').trim().toUpperCase();
     if (!ic) throw new BadRequestError('Invite code required for registration.', {});
     var now = new Date().toISOString();
-    var invites = $app.findRecordsByFilter('invite_codes', 'code="' + ic + '"&&used=false&&expires_at>"' + now + '"', '-created', 1, 0);
+    var invites = $app.findRecordsByFilter('invite_codes', 'code = {:code} && used = false && expires_at > {:now}', '-created', 1, 0, { code: ic, now: now });
     if (invites.length === 0) throw new BadRequestError('Invalid or expired invite code.', {});
     var inviter = $app.findRecordById('users', String(invites[0].get('user') || ''));
     var fid = inviter ? String(inviter.get('family_id') || '') : '';
@@ -390,7 +384,7 @@ routerAdd('POST', '/api/register', (c) => {
     return c.json(201, {
       user: { id: rec.id, email: String(rec.get('email')||''), name: String(rec.get('name')||''), role: role, family_id: fid }
     });
-  } catch(e) { return c.json(400, { error: String(e), stack: String(e.stack||'') }); }
+  } catch(e) { try { $app.logger().error('invite registration error: ' + String(e)); } catch(_e) {} return c.json(400, { error: 'Unable to register with invite code' }); }
 });
 
 // ── Entries: LIST (GET) ──
@@ -412,7 +406,7 @@ routerAdd('GET', '/api/entries', (c) => {
       var rawEnabled = tokRec.get('enabled');
       if (rawEnabled === false || rawEnabled === 0 || rawEnabled === 'false') return c.json(401,{'error':'API token is disabled'});
       var rawExp = tokRec.get('expires_at');
-      if (rawExp) { var expMs=0;if(typeof rawExp==='string')expMs=new Date(rawExp).getTime();else if(rawExp&&typeof rawExp.getTime==='function')expMs=rawExp.getTime();else if(rawExp)expMs=new Date(String(rawExp)).getTime();var nowMs=new Date().getTime();if(expMs>0&&expMs<nowMs)return c.json(401,{'error':'API token has expired'}); }
+      if (rawExp) { var expMs=0;if(typeof rawExp==='string')expMs=new Date(String(rawExp).replace(' ', 'T')).getTime();else if(rawExp&&typeof rawExp.getTime==='function')expMs=rawExp.getTime();else if(rawExp)expMs=new Date(String(rawExp).replace(' ', 'T')).getTime();var nowMs=new Date().getTime();if(expMs>0&&expMs<nowMs)return c.json(401,{'error':'API token has expired'}); }
       var userId = String(tokRec.get('user')||'');
       var user = null; try { user = $app.findRecordById('users',userId); } catch(e) { return c.json(401,{'error':'Token owner not found'}); }
       if (!user) return c.json(401,{'error':'Token owner not found'});
@@ -433,14 +427,17 @@ routerAdd('GET', '/api/entries', (c) => {
     var ba = bearerAuthMiddleware(c);
     if (ba) return ba;
     var info = c.requestInfo();
-    var auth = info && info.auth ? info.auth : null;
+    var auth = (info && info.auth) || c.get('authRecord');
     if (!auth) return c.json(401, { error: 'Unauthorized' });
+    var tokInfo = c.get('apiTokenInfo');
+    function _hasPerm(req){ if(!tokInfo)return true; var ps=tokInfo.permissions||[]; for(var pi=0;pi<ps.length;pi++){var p=String(ps[pi]||''); if(p===req||p==='*')return true; var a=p.split(':'), b=req.split(':'); if(a.length===2&&b.length===2&&a[0]===b[0]&&a[1]==='*')return true;} return false; }
+    if (!_hasPerm('tasks:read') && !_hasPerm('groceries:read')) return c.json(403, { error: 'Missing read permission' });
+    function _canRead(r){ var uid=String(r.get('user')||''); if(uid===auth.id)return true; var af=String(auth.get('family_id')||''); if(!af||!uid)return false; try{var u=$app.findRecordById('users',uid); return String(u.get('family_id')||'')===af;}catch(e){return false;} }
     var q = info.query || {};
-    var f = ''; // All entries visible to everyone
-    var tasks = $app.findRecordsByFilter('tasks', f, '-created', 0, 0).map(function(r) {
+    var tasks = $app.findRecordsByFilter('tasks', '', '-created', 10000, 0).filter(_canRead).map(function(r) {
       return { id:r.id, type:'task', title: (r.get('title')||''), description: (r.get('blocked_comment')||''), status: (r.get('status')||'todo'), priority: (r.get('priority')||'medium'), assignee_id: (r.get('assigned_to')||''), labels: (r.get('labels')||[]), shop_id:'', quantity:null, created_by: (r.get('user')||''), completed_by:'', created_at: r.get("created"), updated_at: r.get("updated") };
     });
-    var items = $app.findRecordsByFilter('items', f, '-created', 0, 0).map(function(r) {
+    var items = $app.findRecordsByFilter('items', '', '-created', 10000, 0).filter(_canRead).map(function(r) {
       return { id:r.id, type:'grocery', title: (r.get('title')||''), description:'', status: r.get('completed')?'done':'todo', priority: (r.get('priority')||'medium'), assignee_id: (r.get('assigned_to')||''), labels: (r.get('labels')||[]), shop_id: (r.get('shop_id')||''), quantity: (r.get('quantity')||1), created_by: (r.get('user')||''), completed_by:'', created_at: r.get("created"), updated_at: r.get("updated") };
     });
     var all = tasks.concat(items);
@@ -474,7 +471,7 @@ routerAdd('POST', '/api/v1', (c) => {
       var rawEnabled = tokRec.get('enabled');
       if (rawEnabled === false || rawEnabled === 0 || rawEnabled === 'false') return c.json(401,{'error':'API token is disabled'});
       var rawExp = tokRec.get('expires_at');
-      if (rawExp) { var expMs=0;if(typeof rawExp==='string')expMs=new Date(rawExp).getTime();else if(rawExp&&typeof rawExp.getTime==='function')expMs=rawExp.getTime();else if(rawExp)expMs=new Date(String(rawExp)).getTime();var nowMs=new Date().getTime();if(expMs>0&&expMs<nowMs)return c.json(401,{'error':'API token has expired'}); }
+      if (rawExp) { var expMs=0;if(typeof rawExp==='string')expMs=new Date(String(rawExp).replace(' ', 'T')).getTime();else if(rawExp&&typeof rawExp.getTime==='function')expMs=rawExp.getTime();else if(rawExp)expMs=new Date(String(rawExp).replace(' ', 'T')).getTime();var nowMs=new Date().getTime();if(expMs>0&&expMs<nowMs)return c.json(401,{'error':'API token has expired'}); }
       var userId = String(tokRec.get('user')||'');
       var user = null; try { user = $app.findRecordById('users',userId); } catch(e) { return c.json(401,{'error':'Token owner not found'}); }
       if (!user) return c.json(401,{'error':'Token owner not found'});
@@ -508,14 +505,24 @@ routerAdd('POST', '/api/v1', (c) => {
     }
 
     var gv = function(o,k,f) { if(f===undefined)f='';if(!o)return f;if(Object.prototype.hasOwnProperty.call(o,k)){var v=o[k];return(v===undefined||v===null)?f:v;}return f; };
+    var tokInfo = c.get('apiTokenInfo');
+    function _hasPerm(req){ if(!tokInfo)return true; var ps=tokInfo.permissions||[]; for(var pi=0;pi<ps.length;pi++){var p=String(ps[pi]||''); if(p===req||p==='*')return true; var a=p.split(':'), b=req.split(':'); if(a.length===2&&b.length===2&&a[0]===b[0]&&a[1]==='*')return true;} return false; }
+    var reqPerm = '';
+    var reqType = String(gv(d,'type','task')).trim();
+    if(action==='list'||action==='filters') reqPerm='tasks:read';
+    if(action==='create'||action==='update'||action==='complete'||action==='assign') reqPerm=(reqType==='grocery'?'groceries:write':'tasks:write');
+    if(action==='delete') reqPerm=(reqType==='grocery'?'groceries:delete':'tasks:delete');
+    if(action==='add_subtask') reqPerm='tasks:write';
+    if(tokInfo && (action==='set_role'||action==='set_user_block'||action==='delete_user')) return c.json(403,{error:'API tokens cannot manage members'});
+    if(reqPerm && !_hasPerm(reqPerm)) return c.json(403,{error:'Missing permission: '+reqPerm});
+    function _canAccess(r){ if(!auth||!r)return false; var uid=String(r.get('user')||r.get('created_by')||''); if(uid&&uid===auth.id)return true; var af=String(auth.get('family_id')||''); if(!af||!uid)return false; try{var u=$app.findRecordById('users',uid); return String(u.get('family_id')||'')===af;}catch(e){return false;} }
 
     if (action === 'list') {
     var q = info.query || {};
-    var f = ''; // All entries visible to everyone
-      var tasks = $app.findRecordsByFilter('tasks', f, '-created', 0, 0).map(function(r) {
+      var tasks = $app.findRecordsByFilter('tasks', '', '-created', 10000, 0).filter(_canAccess).map(function(r) {
         return { id:r.id, type:'task', title:(r.get('title')||''), description:(r.get('blocked_comment')||''), status:(r.get('status')||'todo'), assignee_id:(r.get('assigned_to')||''), labels:(r.get('labels')||[]), shop_id:'', quantity:null, created_by:(r.get('user')||''), completed_by:'', created_at:r.get("created"), updated_at:r.get("updated") };
       });
-      var items = $app.findRecordsByFilter('items', f, '-created', 0, 0).map(function(r) {
+      var items = $app.findRecordsByFilter('items', '', '-created', 10000, 0).filter(_canAccess).map(function(r) {
         return { id:r.id, type:'grocery', title:(r.get('title')||''), description:'', status:r.get('completed')?'done':'todo', assignee_id:(r.get('assigned_to')||''), labels:(r.get('labels')||[]), shop_id:(r.get('shop_id')||''), quantity:(r.get('quantity')||1), created_by:(r.get('user')||''), completed_by:'', created_at:r.get("created"), updated_at:r.get("updated") };
       });
       var all = tasks.concat(items);
@@ -597,6 +604,7 @@ routerAdd('POST', '/api/v1', (c) => {
       if(!type||(type!=='task'&&type!=='grocery')) return c.json(400,{error:'type must be task or grocery'});
       var rec = $app.findRecordById(type==='task'?'tasks':'items',id);
       if(!rec) return c.json(404,{error:'Entry not found'});
+      if(!_canAccess(rec)) return c.json(404,{error:'Entry not found'});
       if(type==='task'){ rec.set('status','done'); } else { rec.set('completed',true); }
       $app.save(rec);return c.json(200,{completed:true});
     }
@@ -608,6 +616,7 @@ routerAdd('POST', '/api/v1', (c) => {
       if(!type||(type!=='task'&&type!=='grocery')) return c.json(400,{error:'type must be task or grocery'});
       var rec = $app.findRecordById(type==='task'?'tasks':'items',id);
       if(!rec) return c.json(404,{error:'Entry not found'});
+      if(!_canAccess(rec)) return c.json(404,{error:'Entry not found'});
       rec.set('assigned_to',String(gv(d,'assignee_id','')));
       $app.save(rec);return c.json(200,{assigned:true});
     }
@@ -619,6 +628,7 @@ routerAdd('POST', '/api/v1', (c) => {
       if(!type||(type!=='task'&&type!=='grocery')) return c.json(400,{error:'type must be task or grocery'});
       var rec = $app.findRecordById(type==='task'?'tasks':'items',id);
       if(!rec) return c.json(404,{error:'Entry not found'});
+      if(!_canAccess(rec)) return c.json(404,{error:'Entry not found'});
       $app.delete(rec);return c.json(200,{deleted:true});
     }
 
@@ -629,6 +639,7 @@ routerAdd('POST', '/api/v1', (c) => {
       if (!taskId || !subtaskId) return c.json(400, { error: 'task_id and subtask_id required' });
       var parent = $app.findRecordById('tasks', taskId);
       if (!parent) return c.json(404, { error: 'Parent task not found' });
+      if (!_canAccess(parent)) return c.json(404, { error: 'Parent task not found' });
       var existing = parent.get('subtask_ids') || [];
       if (!Array.isArray(existing)) existing = [];
       if (existing.indexOf(subtaskId) === -1) {
@@ -640,10 +651,10 @@ routerAdd('POST', '/api/v1', (c) => {
     }
 
     if (action === 'filters') {
-      var f = ''; // All entries visible to everyone
-      var labels = $app.findRecordsByFilter('labels',f,'name',0,0).map(function(r){return{id:r.id,name:r.get('name'),color:r.get('color')};});
-      var shops = $app.findRecordsByFilter('shops',f,'name',0,0).map(function(r){return{id:r.id,name:r.get('name'),color:r.get('color')};});
-      var users = $app.findRecordsByFilter('users','','name',0,0).map(function(r){return{id:r.id,name:r.get('name')||r.email};});
+      var labels = $app.findRecordsByFilter('labels','', 'name',10000,0).filter(_canAccess).map(function(r){return{id:r.id,name:r.get('name'),color:r.get('color')};});
+      var shops = $app.findRecordsByFilter('shops','', 'name',10000,0).filter(_canAccess).map(function(r){return{id:r.id,name:r.get('name'),color:r.get('color')};});
+      var af=String(auth.get('family_id')||''); var uf=af?'family_id = {:f}':'id = {:u}'; var up=af?{f:af}:{u:auth.id};
+      var users = $app.findRecordsByFilter('users',uf,'name',10000,0,up).map(function(r){return{id:r.id,name:r.get('name')||r.get('email')||r.id};});
       return c.json(200,{labels:labels,shops:shops,users:users});
     }
 

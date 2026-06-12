@@ -24,12 +24,7 @@ function hashToken(token) {
 
 function generateToken(length) {
   if (typeof length === 'undefined') length = 48;
-  var chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  var result = '';
-  for (var i = 0; i < length; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return 'tl_' + result;
+  return 'tl_' + $security.randomString(length);
 }
 
 // ─── Bearer token auth middleware ─────────────────────
@@ -75,9 +70,9 @@ function bearerAuthMiddleware(c) {
     var rawExp = tokRec.get('expires_at');
     if (rawExp) {
       var expMs = 0;
-      if (typeof rawExp === 'string') expMs = new Date(rawExp).getTime();
+      if (typeof rawExp === 'string') expMs = new Date(String(rawExp).replace(' ', 'T')).getTime();
       else if (rawExp && typeof rawExp.getTime === 'function') expMs = rawExp.getTime();
-      else if (rawExp) expMs = new Date(String(rawExp)).getTime();
+      else if (rawExp) expMs = new Date(String(rawExp).replace(' ', 'T')).getTime();
 
       var nowMs = new Date().getTime();
       if (expMs > 0 && expMs < nowMs) {

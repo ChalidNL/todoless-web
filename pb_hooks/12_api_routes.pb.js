@@ -19,15 +19,7 @@ var _ht = function(tok) {
 };
 
 // Generate new token (var = hoistable in PB 0.35 callbacks)
-var _gt = function(len) {
-  if (typeof len === 'undefined') len = 48;
-  var c = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  var r = '';
-  for (var i = 0; i < len; i++) {
-    r += c.charAt(Math.floor(Math.random() * c.length));
-  }
-  return 'tl_' + r;
-}
+var _gt = function(len) { if (typeof len === 'undefined') len = 48; return 'tl_' + $security.randomString(len); }
 
 // ─── POST /api/tasks — Create task (optional subtasks) ──────────
 routerAdd('POST', '/api/tasks', function(c) {
@@ -49,9 +41,9 @@ routerAdd('POST', '/api/tasks', function(c) {
           var rawExp = tokRec.get('expires_at');
           if (rawExp) {
             var expMs = 0;
-            if (typeof rawExp === 'string') expMs = new Date(rawExp).getTime();
+            if (typeof rawExp === 'string') expMs = new Date(String(rawExp).replace(' ', 'T')).getTime();
             else if (rawExp && typeof rawExp.getTime === 'function') expMs = rawExp.getTime();
-            else if (rawExp) expMs = new Date(String(rawExp)).getTime();
+            else if (rawExp) expMs = new Date(String(rawExp).replace(' ', 'T')).getTime();
             if (expMs > 0 && expMs < new Date().getTime()) {
               return c.json(401, { error: 'API token has expired' });
             }
@@ -67,7 +59,8 @@ routerAdd('POST', '/api/tasks', function(c) {
             user_id: user.id,
             user_role: String(user.get('role') || 'user'),
             user_name: String(user.get('name') || user.get('email') || ''),
-            family_id: String(user.get('family_id') || '')
+            family_id: String(user.get('family_id') || ''),
+            permissions: (function(){var rp=tokRec.get('permissions')||tokRec.get('scopes'),ps=[]; if(Array.isArray(rp)) ps=rp; else if(typeof rp==='string') try{ps=JSON.parse(rp)}catch(e){} return ps;})()
           });
         }
       }
@@ -92,6 +85,7 @@ routerAdd('POST', '/api/tasks', function(c) {
     }
 
     // Step 3: Parse body
+    if (tokInfo) { var ps=tokInfo.permissions||[]; var ok=false; for(var pi=0;pi<ps.length;pi++){var pp=String(ps[pi]||''); if(pp==='*'||pp==='tasks:write'||pp==='tasks:*') ok=true;} if(!ok) return c.json(403, { error: 'Missing permission: tasks:write' }); }
     var body = info.body || {};
     var title = String(body.title || '').trim();
     if (!title) return c.json(400, { error: 'title is required' });
@@ -168,7 +162,8 @@ routerAdd('POST', '/api/tasks', function(c) {
 
     return c.json(201, response);
   } catch(e) {
-    return c.json(500, { error: String(e), stack: String(e.stack || '') });
+    try { $app.logger().error('api route error: ' + String(e)); } catch(_e) {}
+    return c.json(500, { error: 'Internal server error' });
   }
 });
 
@@ -190,9 +185,9 @@ routerAdd('POST', '/api/tasks/:taskId/subtasks', function(c) {
           var rawExp = tokRec.get('expires_at');
           if (rawExp) {
             var expMs = 0;
-            if (typeof rawExp === 'string') expMs = new Date(rawExp).getTime();
+            if (typeof rawExp === 'string') expMs = new Date(String(rawExp).replace(' ', 'T')).getTime();
             else if (rawExp && typeof rawExp.getTime === 'function') expMs = rawExp.getTime();
-            else if (rawExp) expMs = new Date(String(rawExp)).getTime();
+            else if (rawExp) expMs = new Date(String(rawExp).replace(' ', 'T')).getTime();
             if (expMs > 0 && expMs < new Date().getTime()) return c.json(401, { error: 'API token has expired' });
           }
           var tokUserId = String(tokRec.get('user') || '');
@@ -200,7 +195,7 @@ routerAdd('POST', '/api/tasks/:taskId/subtasks', function(c) {
           try { user = $app.findRecordById('users', tokUserId); } catch(e) {}
           if (!user) return c.json(401, { error: 'Token owner not found' });
           c.set('authRecord', user);
-          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, family_id: String(user.get('family_id') || '') });
+          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, family_id: String(user.get('family_id') || ''), permissions: (function(){var rp=tokRec.get('permissions')||tokRec.get('scopes'),ps=[]; if(Array.isArray(rp)) ps=rp; else if(typeof rp==='string') try{ps=JSON.parse(rp)}catch(e){} return ps;})() });
         }
       }
     }
@@ -224,6 +219,7 @@ routerAdd('POST', '/api/tasks/:taskId/subtasks', function(c) {
 
     var taskId = c.pathParam('taskId');
     if (!taskId) return c.json(400, { error: 'taskId is required' });
+    if (tokInfo) { var ps=tokInfo.permissions||[]; var ok=false; for(var pi=0;pi<ps.length;pi++){var pp=String(ps[pi]||''); if(pp==='*'||pp==='tasks:write'||pp==='tasks:*') ok=true;} if(!ok) return c.json(403, { error: 'Missing permission: tasks:write' }); }
 
     var body = info.body || {};
     var title = String(body.title || '').trim();
@@ -233,6 +229,7 @@ routerAdd('POST', '/api/tasks/:taskId/subtasks', function(c) {
     var parentTask = null;
     try { parentTask = $app.findRecordById('tasks', taskId); } catch(e) {}
     if (!parentTask) return c.json(404, { error: 'Task not found' });
+    var parentOwner=String(parentTask.get('user')||''); if(parentOwner!==userId) return c.json(404,{error:'Task not found'});
 
     // Create subtask
     var coll = $app.findCollectionByNameOrId('tasks');
@@ -263,7 +260,8 @@ routerAdd('POST', '/api/tasks/:taskId/subtasks', function(c) {
       visibleToMembers: true
     });
   } catch(e) {
-    return c.json(500, { error: String(e), stack: String(e.stack || '') });
+    try { $app.logger().error('api route error: ' + String(e)); } catch(_e) {}
+    return c.json(500, { error: 'Internal server error' });
   }
 });
 
@@ -284,9 +282,9 @@ routerAdd('PATCH', '/api/tasks/:taskId', function(c) {
           var rawExp = tokRec.get('expires_at');
           if (rawExp) {
             var expMs = 0;
-            if (typeof rawExp === 'string') expMs = new Date(rawExp).getTime();
+            if (typeof rawExp === 'string') expMs = new Date(String(rawExp).replace(' ', 'T')).getTime();
             else if (rawExp && typeof rawExp.getTime === 'function') expMs = rawExp.getTime();
-            else if (rawExp) expMs = new Date(String(rawExp)).getTime();
+            else if (rawExp) expMs = new Date(String(rawExp).replace(' ', 'T')).getTime();
             if (expMs > 0 && expMs < new Date().getTime()) return c.json(401, { error: 'API token has expired' });
           }
           var tokUserId = String(tokRec.get('user') || '');
@@ -294,7 +292,7 @@ routerAdd('PATCH', '/api/tasks/:taskId', function(c) {
           try { user = $app.findRecordById('users', tokUserId); } catch(e) {}
           if (!user) return c.json(401, { error: 'Token owner not found' });
           c.set('authRecord', user);
-          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, family_id: String(user.get('family_id') || '') });
+          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, family_id: String(user.get('family_id') || ''), permissions: (function(){var rp=tokRec.get('permissions')||tokRec.get('scopes'),ps=[]; if(Array.isArray(rp)) ps=rp; else if(typeof rp==='string') try{ps=JSON.parse(rp)}catch(e){} return ps;})() });
         }
       }
     }
@@ -316,10 +314,12 @@ routerAdd('PATCH', '/api/tasks/:taskId', function(c) {
 
     var taskId = c.pathParam('taskId');
     if (!taskId) return c.json(400, { error: 'taskId is required' });
+    if (tokInfo) { var ps=tokInfo.permissions||[]; var ok=false; for(var pi=0;pi<ps.length;pi++){var pp=String(ps[pi]||''); if(pp==='*'||pp==='tasks:write'||pp==='tasks:*') ok=true;} if(!ok) return c.json(403, { error: 'Missing permission: tasks:write' }); }
 
     var rec = null;
     try { rec = $app.findRecordById('tasks', taskId); } catch(e) {}
     if (!rec) return c.json(404, { error: 'Task not found' });
+    var ownerId=String(rec.get('user')||''); if(ownerId!==userId) return c.json(404,{error:'Not found'});
 
     var body = info.body || {};
     var changed = false;
@@ -351,7 +351,8 @@ routerAdd('PATCH', '/api/tasks/:taskId', function(c) {
       updated: true
     });
   } catch(e) {
-    return c.json(500, { error: String(e), stack: String(e.stack || '') });
+    try { $app.logger().error('api route error: ' + String(e)); } catch(_e) {}
+    return c.json(500, { error: 'Internal server error' });
   }
 });
 
@@ -372,9 +373,9 @@ routerAdd('PATCH', '/api/subtasks/:subtaskId', function(c) {
           var rawExp = tokRec.get('expires_at');
           if (rawExp) {
             var expMs = 0;
-            if (typeof rawExp === 'string') expMs = new Date(rawExp).getTime();
+            if (typeof rawExp === 'string') expMs = new Date(String(rawExp).replace(' ', 'T')).getTime();
             else if (rawExp && typeof rawExp.getTime === 'function') expMs = rawExp.getTime();
-            else if (rawExp) expMs = new Date(String(rawExp)).getTime();
+            else if (rawExp) expMs = new Date(String(rawExp).replace(' ', 'T')).getTime();
             if (expMs > 0 && expMs < new Date().getTime()) return c.json(401, { error: 'API token has expired' });
           }
           var tokUserId = String(tokRec.get('user') || '');
@@ -382,7 +383,7 @@ routerAdd('PATCH', '/api/subtasks/:subtaskId', function(c) {
           try { user = $app.findRecordById('users', tokUserId); } catch(e) {}
           if (!user) return c.json(401, { error: 'Token owner not found' });
           c.set('authRecord', user);
-          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, family_id: String(user.get('family_id') || '') });
+          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, family_id: String(user.get('family_id') || ''), permissions: (function(){var rp=tokRec.get('permissions')||tokRec.get('scopes'),ps=[]; if(Array.isArray(rp)) ps=rp; else if(typeof rp==='string') try{ps=JSON.parse(rp)}catch(e){} return ps;})() });
         }
       }
     }
@@ -390,21 +391,26 @@ routerAdd('PATCH', '/api/subtasks/:subtaskId', function(c) {
     var tokInfo = c.get('apiTokenInfo');
     var info = c.requestInfo();
     var userId = null;
+    var familyId = '';
 
     if (tokInfo) {
       userId = tokInfo.user_id;
+      familyId = tokInfo.family_id;
     } else {
       var auth = info && info.auth ? info.auth : null;
       if (!auth) return c.json(401, { error: 'Unauthorized' });
       userId = auth.id;
+      familyId = String(auth.get('family_id') || '');
     }
 
     var subtaskId = c.pathParam('subtaskId');
     if (!subtaskId) return c.json(400, { error: 'subtaskId is required' });
+    if (tokInfo) { var ps=tokInfo.permissions||[]; var ok=false; for(var pi=0;pi<ps.length;pi++){var pp=String(ps[pi]||''); if(pp==='*'||pp==='tasks:write'||pp==='tasks:*') ok=true;} if(!ok) return c.json(403, { error: 'Missing permission: tasks:write' }); }
 
     var rec = null;
     try { rec = $app.findRecordById('tasks', subtaskId); } catch(e) {}
     if (!rec) return c.json(404, { error: 'Subtask not found' });
+    var ownerId=String(rec.get('user')||''); if(ownerId!==userId) return c.json(404,{error:'Not found'});
 
     var body = info.body || {};
     var changed = false;
@@ -424,7 +430,8 @@ routerAdd('PATCH', '/api/subtasks/:subtaskId', function(c) {
       updated: true
     });
   } catch(e) {
-    return c.json(500, { error: String(e), stack: String(e.stack || '') });
+    try { $app.logger().error('api route error: ' + String(e)); } catch(_e) {}
+    return c.json(500, { error: 'Internal server error' });
   }
 });
 
@@ -445,9 +452,9 @@ routerAdd('POST', '/api/groceries', function(c) {
           var rawExp = tokRec.get('expires_at');
           if (rawExp) {
             var expMs = 0;
-            if (typeof rawExp === 'string') expMs = new Date(rawExp).getTime();
+            if (typeof rawExp === 'string') expMs = new Date(String(rawExp).replace(' ', 'T')).getTime();
             else if (rawExp && typeof rawExp.getTime === 'function') expMs = rawExp.getTime();
-            else if (rawExp) expMs = new Date(String(rawExp)).getTime();
+            else if (rawExp) expMs = new Date(String(rawExp).replace(' ', 'T')).getTime();
             if (expMs > 0 && expMs < new Date().getTime()) return c.json(401, { error: 'API token has expired' });
           }
           var tokUserId = String(tokRec.get('user') || '');
@@ -455,7 +462,7 @@ routerAdd('POST', '/api/groceries', function(c) {
           try { user = $app.findRecordById('users', tokUserId); } catch(e) {}
           if (!user) return c.json(401, { error: 'Token owner not found' });
           c.set('authRecord', user);
-          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, family_id: String(user.get('family_id') || '') });
+          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, family_id: String(user.get('family_id') || ''), permissions: (function(){var rp=tokRec.get('permissions')||tokRec.get('scopes'),ps=[]; if(Array.isArray(rp)) ps=rp; else if(typeof rp==='string') try{ps=JSON.parse(rp)}catch(e){} return ps;})() });
         }
       }
     }
@@ -481,6 +488,7 @@ routerAdd('POST', '/api/groceries', function(c) {
     var title = String(body.title || '').trim();
     if (!title) return c.json(400, { error: 'title is required' });
 
+    if (tokInfo) { var ps=tokInfo.permissions||[]; var ok=false; for(var pi=0;pi<ps.length;pi++){var pp=String(ps[pi]||''); if(pp==='*'||pp==='groceries:write'||pp==='groceries:*') ok=true;} if(!ok) return c.json(403, { error: 'Missing permission: groceries:write' }); }
     var coll = $app.findCollectionByNameOrId('items');
     var rec = new Record(coll);
     rec.set('title', title);
@@ -507,7 +515,8 @@ routerAdd('POST', '/api/groceries', function(c) {
       visibleToMembers: true
     });
   } catch(e) {
-    return c.json(500, { error: String(e), stack: String(e.stack || '') });
+    try { $app.logger().error('api route error: ' + String(e)); } catch(_e) {}
+    return c.json(500, { error: 'Internal server error' });
   }
 });
 
@@ -528,9 +537,9 @@ routerAdd('PATCH', '/api/groceries/:itemId', function(c) {
           var rawExp = tokRec.get('expires_at');
           if (rawExp) {
             var expMs = 0;
-            if (typeof rawExp === 'string') expMs = new Date(rawExp).getTime();
+            if (typeof rawExp === 'string') expMs = new Date(String(rawExp).replace(' ', 'T')).getTime();
             else if (rawExp && typeof rawExp.getTime === 'function') expMs = rawExp.getTime();
-            else if (rawExp) expMs = new Date(String(rawExp)).getTime();
+            else if (rawExp) expMs = new Date(String(rawExp).replace(' ', 'T')).getTime();
             if (expMs > 0 && expMs < new Date().getTime()) return c.json(401, { error: 'API token has expired' });
           }
           var tokUserId = String(tokRec.get('user') || '');
@@ -538,7 +547,7 @@ routerAdd('PATCH', '/api/groceries/:itemId', function(c) {
           try { user = $app.findRecordById('users', tokUserId); } catch(e) {}
           if (!user) return c.json(401, { error: 'Token owner not found' });
           c.set('authRecord', user);
-          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, family_id: String(user.get('family_id') || '') });
+          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, family_id: String(user.get('family_id') || ''), permissions: (function(){var rp=tokRec.get('permissions')||tokRec.get('scopes'),ps=[]; if(Array.isArray(rp)) ps=rp; else if(typeof rp==='string') try{ps=JSON.parse(rp)}catch(e){} return ps;})() });
         }
       }
     }
@@ -546,21 +555,26 @@ routerAdd('PATCH', '/api/groceries/:itemId', function(c) {
     var tokInfo = c.get('apiTokenInfo');
     var info = c.requestInfo();
     var userId = null;
+    var familyId = '';
 
     if (tokInfo) {
       userId = tokInfo.user_id;
+      familyId = tokInfo.family_id;
     } else {
       var auth = info && info.auth ? info.auth : null;
       if (!auth) return c.json(401, { error: 'Unauthorized' });
       userId = auth.id;
+      familyId = String(auth.get('family_id') || '');
     }
 
+    if (tokInfo) { var ps=tokInfo.permissions||[]; var ok=false; for(var pi=0;pi<ps.length;pi++){var pp=String(ps[pi]||''); if(pp==='*'||pp==='groceries:write'||pp==='groceries:*') ok=true;} if(!ok) return c.json(403, { error: 'Missing permission: groceries:write' }); }
     var itemId = c.pathParam('itemId');
     if (!itemId) return c.json(400, { error: 'itemId is required' });
 
     var rec = null;
     try { rec = $app.findRecordById('items', itemId); } catch(e) {}
     if (!rec) return c.json(404, { error: 'Grocery item not found' });
+    var ownerId=String(rec.get('user')||''); if(ownerId!==userId) return c.json(404,{error:'Not found'});
 
     var body = info.body || {};
     var changed = false;
@@ -585,7 +599,8 @@ routerAdd('PATCH', '/api/groceries/:itemId', function(c) {
       updated: true
     });
   } catch(e) {
-    return c.json(500, { error: String(e), stack: String(e.stack || '') });
+    try { $app.logger().error('api route error: ' + String(e)); } catch(_e) {}
+    return c.json(500, { error: 'Internal server error' });
   }
 });
 
@@ -611,7 +626,7 @@ routerAdd('GET', '/api/members/:userId/token', function(c) {
           try { user = $app.findRecordById('users', tokUserId); } catch(e) {}
           if (!user) return c.json(401, { error: 'Token owner not found' });
           c.set('authRecord', user);
-          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, user_role: String(user.get('role') || 'user'), family_id: String(user.get('family_id') || '') });
+          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, user_role: String(user.get('role') || 'user'), family_id: String(user.get('family_id') || ''), permissions: (function(){var rp=tokRec.get('permissions')||tokRec.get('scopes'),ps=[]; if(Array.isArray(rp)) ps=rp; else if(typeof rp==='string') try{ps=JSON.parse(rp)}catch(e){} return ps;})() });
         }
       }
     }
@@ -670,7 +685,8 @@ routerAdd('GET', '/api/members/:userId/token', function(c) {
       expiresAt: t.get('expires_at') || null
     });
   } catch(e) {
-    return c.json(500, { error: String(e), stack: String(e.stack || '') });
+    try { $app.logger().error('api route error: ' + String(e)); } catch(_e) {}
+    return c.json(500, { error: 'Internal server error' });
   }
 });
 
@@ -694,7 +710,7 @@ routerAdd('POST', '/api/members/:userId/token', function(c) {
           try { user = $app.findRecordById('users', tokUserId); } catch(e) {}
           if (!user) return c.json(401, { error: 'Token owner not found' });
           c.set('authRecord', user);
-          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, user_role: String(user.get('role') || 'user'), family_id: String(user.get('family_id') || '') });
+          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, user_role: String(user.get('role') || 'user'), family_id: String(user.get('family_id') || ''), permissions: (function(){var rp=tokRec.get('permissions')||tokRec.get('scopes'),ps=[]; if(Array.isArray(rp)) ps=rp; else if(typeof rp==='string') try{ps=JSON.parse(rp)}catch(e){} return ps;})() });
         }
       }
     }
@@ -721,6 +737,7 @@ routerAdd('POST', '/api/members/:userId/token', function(c) {
     if (!targetUserId) return c.json(400, { error: 'userId is required' });
 
     // Admin only
+    if (tokInfo) return c.json(403, { error: 'API tokens cannot manage member tokens' });
     if (actingRole !== 'admin' && actingRole !== 'owner') {
       return c.json(403, { error: 'Admin only' });
     }
@@ -764,7 +781,8 @@ routerAdd('POST', '/api/members/:userId/token', function(c) {
       enabled: true
     });
   } catch(e) {
-    return c.json(500, { error: String(e), stack: String(e.stack || '') });
+    try { $app.logger().error('api route error: ' + String(e)); } catch(_e) {}
+    return c.json(500, { error: 'Internal server error' });
   }
 });
 
@@ -788,7 +806,7 @@ routerAdd('DELETE', '/api/members/:userId/token', function(c) {
           try { user = $app.findRecordById('users', tokUserId); } catch(e) {}
           if (!user) return c.json(401, { error: 'Token owner not found' });
           c.set('authRecord', user);
-          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, user_role: String(user.get('role') || 'user'), family_id: String(user.get('family_id') || '') });
+          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, user_role: String(user.get('role') || 'user'), family_id: String(user.get('family_id') || ''), permissions: (function(){var rp=tokRec.get('permissions')||tokRec.get('scopes'),ps=[]; if(Array.isArray(rp)) ps=rp; else if(typeof rp==='string') try{ps=JSON.parse(rp)}catch(e){} return ps;})() });
         }
       }
     }
@@ -815,6 +833,7 @@ routerAdd('DELETE', '/api/members/:userId/token', function(c) {
     if (!targetUserId) return c.json(400, { error: 'userId is required' });
 
     // Admin only
+    if (tokInfo) return c.json(403, { error: 'API tokens cannot manage member tokens' });
     if (actingRole !== 'admin' && actingRole !== 'owner') {
       return c.json(403, { error: 'Admin only' });
     }
@@ -843,6 +862,7 @@ routerAdd('DELETE', '/api/members/:userId/token', function(c) {
       message: 'All API tokens revoked for this member'
     });
   } catch(e) {
-    return c.json(500, { error: String(e), stack: String(e.stack || '') });
+    try { $app.logger().error('api route error: ' + String(e)); } catch(_e) {}
+    return c.json(500, { error: 'Internal server error' });
   }
 });

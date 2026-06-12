@@ -3,7 +3,7 @@
 // Creates tasks from incoming email.
 //
 // Expected: from (email), subject (title), body (desc, optional)
-// Auth: Bearer MAIL_WEBHOOK_SECRET env var (optional if unset)
+// Auth: Bearer MAIL_WEBHOOK_SECRET env var (required; fail closed if unset)
 //
 // PB 0.35 patterns:
 // - new Record(collection) instead of $app.findRecordById(randomId)
@@ -11,21 +11,26 @@
 
 routerAdd('POST', '/api/integrations/mail/webhook', function(c) {
   function checkAuth() {
+    var secret = String($os.getenv('MAIL_WEBHOOK_SECRET') || '').trim();
+    if (!secret) return 'secret-not-configured';
     var info = c.requestInfo();
     if (!info || !info.headers) return 'no-header';
-    var h = info.headers.Authorization || '';
+    var h = info.headers.authorization || info.headers.Authorization || '';
     if (!h) return 'no-header';
     var p = String(h).split(' ');
     if (p.length !== 2 || p[0].toLowerCase() !== 'bearer') return 'bad-format';
     var t = p[1].trim();
     if (!t) return 'empty-token';
-    var secret = $os.getenv('MAIL_WEBHOOK_SECRET');
-    if (secret && t !== String(secret).trim()) return 'wrong-secret';
+    if (t.length !== secret.length) return 'wrong-secret';
+    var diff = 0;
+    for (var i = 0; i < t.length; i++) diff |= t.charCodeAt(i) ^ secret.charCodeAt(i);
+    if (diff !== 0) return 'wrong-secret';
     return null;
   }
   try {
     var authErr = checkAuth();
-    if ($os.getenv('MAIL_WEBHOOK_SECRET') && authErr) return c.json(401, {error: 'Unauthorized'});
+    if (authErr === 'secret-not-configured') return c.json(503, {error: 'Mail webhook secret not configured'});
+    if (authErr) return c.json(401, {error: 'Unauthorized'});
     var info = c.requestInfo();
     var b = info && info.body ? info.body : {};
     var from = '', subject = '', bodyText = '', familyId = '';
@@ -54,8 +59,7 @@ routerAdd('POST', '/api/integrations/mail/webhook', function(c) {
     if (bodyText) task.set('blocked_comment', bodyText);
     task.set('status', 'todo');
     task.set('user', user.id);
-    task.set('family_id', familyId);
     $app.save(task);
     return c.json(201, {id: task.id, title: subject, status: 'todo', family_id: familyId, source: 'email'});
-  } catch(e) { return c.json(500, {error: String(e)}); }
+  } catch(e) { try { $app.logger().error('mail webhook error: ' + String(e)); } catch(_e) {} return c.json(500, {error: 'Internal server error'}); }
 });

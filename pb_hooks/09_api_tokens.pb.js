@@ -20,7 +20,7 @@ routerAdd('GET', '/api/api-tokens', (c) => {
       var tokRec = tokens[0];
       if (tokRec.get('enabled') === false || tokRec.get('enabled') === 0 || tokRec.get('enabled') === 'false') return c.json(401,{'error':'API token is disabled'});
       var rawExp = tokRec.get('expires_at');
-      if (rawExp) { var expMs=0;if(typeof rawExp==='string')expMs=new Date(rawExp).getTime();else if(rawExp&&typeof rawExp.getTime==='function')expMs=rawExp.getTime();else if(rawExp)expMs=new Date(String(rawExp)).getTime();if(expMs>0&&expMs<new Date().getTime())return c.json(401,{'error':'API token has expired'});}
+      if (rawExp) { var expMs=0;if(typeof rawExp==='string')expMs=new Date(String(rawExp).replace(' ', 'T')).getTime();else if(rawExp&&typeof rawExp.getTime==='function')expMs=rawExp.getTime();else if(rawExp)expMs=new Date(String(rawExp).replace(' ', 'T')).getTime();if(expMs>0&&expMs<new Date().getTime())return c.json(401,{'error':'API token has expired'});}
       var userId = String(tokRec.get('user')||'');
       var user = null; try { user = $app.findRecordById('users',userId); } catch(e) { return c.json(401,{'error':'Token owner not found'}); }
       if (!user) return c.json(401,{'error':'Token owner not found'});
@@ -87,7 +87,7 @@ routerAdd('POST', '/api/api-tokens', (c) => {
       var tokRec = tokens[0];
       if (tokRec.get('enabled') === false || tokRec.get('enabled') === 0 || tokRec.get('enabled') === 'false') return c.json(401,{'error':'API token is disabled'});
       var rawExp = tokRec.get('expires_at');
-      if (rawExp) { var expMs=0;if(typeof rawExp==='string')expMs=new Date(rawExp).getTime();else if(rawExp&&typeof rawExp.getTime==='function')expMs=rawExp.getTime();else if(rawExp)expMs=new Date(String(rawExp)).getTime();if(expMs>0&&expMs<new Date().getTime())return c.json(401,{'error':'API token has expired'});}
+      if (rawExp) { var expMs=0;if(typeof rawExp==='string')expMs=new Date(String(rawExp).replace(' ', 'T')).getTime();else if(rawExp&&typeof rawExp.getTime==='function')expMs=rawExp.getTime();else if(rawExp)expMs=new Date(String(rawExp).replace(' ', 'T')).getTime();if(expMs>0&&expMs<new Date().getTime())return c.json(401,{'error':'API token has expired'});}
       var userId = String(tokRec.get('user')||'');
       var user = null; try { user = $app.findRecordById('users',userId); } catch(e) { return c.json(401,{'error':'Token owner not found'}); }
       if (!user) return c.json(401,{'error':'Token owner not found'});
@@ -103,7 +103,7 @@ routerAdd('POST', '/api/api-tokens', (c) => {
       return null;
     } catch(e) { return c.json(500,{'error':'Token auth error: '+String(e)}); }
   }
-  function _gt(len) { if(typeof len==='undefined')len=48;var c='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',r='';for(var i=0;i<len;i++){r+=c.charAt(Math.floor(Math.random()*c.length));}return'tl_'+r; }
+  function _gt(len) { if(typeof len==='undefined')len=48; return 'tl_'+$security.randomString(len); }
   function _ht(tok) { try { return $security.SHA256(tok); } catch(e) { var h=0;if(tok.length===0)return'd';for(var i=0;i<tok.length;i++){h=((h<<5)-h)+tok.charCodeAt(i);h=h&h;}return'd_'+Math.abs(h).toString(16).padStart(8,'0');} }
   try {
     var ba = _bam(c);
@@ -182,7 +182,7 @@ routerAdd('DELETE', '/api/api-tokens/:id', (c) => {
       var tokRec = tokens[0];
       if (tokRec.get('enabled') === false || tokRec.get('enabled') === 0 || tokRec.get('enabled') === 'false') return c.json(401,{'error':'API token is disabled'});
       var rawExp = tokRec.get('expires_at');
-      if (rawExp) { var expMs=0;if(typeof rawExp==='string')expMs=new Date(rawExp).getTime();else if(rawExp&&typeof rawExp.getTime==='function')expMs=rawExp.getTime();else if(rawExp)expMs=new Date(String(rawExp)).getTime();if(expMs>0&&expMs<new Date().getTime())return c.json(401,{'error':'API token has expired'});}
+      if (rawExp) { var expMs=0;if(typeof rawExp==='string')expMs=new Date(String(rawExp).replace(' ', 'T')).getTime();else if(rawExp&&typeof rawExp.getTime==='function')expMs=rawExp.getTime();else if(rawExp)expMs=new Date(String(rawExp).replace(' ', 'T')).getTime();if(expMs>0&&expMs<new Date().getTime())return c.json(401,{'error':'API token has expired'});}
       var userId = String(tokRec.get('user')||'');
       var user = null; try { user = $app.findRecordById('users',userId); } catch(e) { return c.json(401,{'error':'Token owner not found'}); }
       if (!user) return c.json(401,{'error':'Token owner not found'});
@@ -242,7 +242,7 @@ routerAdd('PATCH', '/api/api-tokens/:id/toggle', (c) => {
       var tokRec = tokens[0];
       if (tokRec.get('enabled') === false || tokRec.get('enabled') === 0 || tokRec.get('enabled') === 'false') return c.json(401,{'error':'API token is disabled'});
       var rawExp = tokRec.get('expires_at');
-      if (rawExp) { var expMs=0;if(typeof rawExp==='string')expMs=new Date(rawExp).getTime();else if(rawExp&&typeof rawExp.getTime==='function')expMs=rawExp.getTime();else if(rawExp)expMs=new Date(String(rawExp)).getTime();if(expMs>0&&expMs<new Date().getTime())return c.json(401,{'error':'API token has expired'});}
+      if (rawExp) { var expMs=0;if(typeof rawExp==='string')expMs=new Date(String(rawExp).replace(' ', 'T')).getTime();else if(rawExp&&typeof rawExp.getTime==='function')expMs=rawExp.getTime();else if(rawExp)expMs=new Date(String(rawExp).replace(' ', 'T')).getTime();if(expMs>0&&expMs<new Date().getTime())return c.json(401,{'error':'API token has expired'});}
       var userId = String(tokRec.get('user')||'');
       var user = null; try { user = $app.findRecordById('users',userId); } catch(e) { return c.json(401,{'error':'Token owner not found'}); }
       if (!user) return c.json(401,{'error':'Token owner not found'});

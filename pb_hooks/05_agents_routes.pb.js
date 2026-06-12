@@ -5,12 +5,7 @@
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function generateApiKey() {
-  var chars = 'abcdef0123456789';
-  var key = 'tlsk_';
-  for (var i = 0; i < 40; i++) {
-    key += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return key;
+  return 'tlsk_' + $security.randomString(40);
 }
 
 function getKeyPrefix(key) {
@@ -33,7 +28,7 @@ function hasScope(agentKey, requiredScope) {
 
 function auditLog(agentKey, action, entityType, entityId, details, c) {
   try {
-    var rec = $app.createRecord('agent_audit_log');
+    var rec = new Record($app.findCollectionByNameOrId('agent_audit_log'));
     rec.set('agent_key_id', agentKey.id);
     rec.set('agent_name', agentKey.get('name') || '');
     rec.set('action', action);
@@ -75,7 +70,8 @@ function getAgentUserFamily(agentKey) {
 // Create a new API key: POST /api/agent/keys
 routerAdd('POST', '/api/agent/keys', function(c) {
   function authFromApiKey(c) {
-    var authHeader = c.requestInfo().headers.Authorization || '';
+    var headers = c.requestInfo().headers || {};
+    var authHeader = headers.authorization || headers.Authorization || '';
     var parts = authHeader.split(' ');
     var token = '';
     if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
@@ -86,10 +82,11 @@ routerAdd('POST', '/api/agent/keys', function(c) {
     var prefix = token.substring(0, 12); // "tlsk_" + first 8 hex chars
     var candidates = $app.findRecordsByFilter(
       'agent_keys',
-      'key_prefix = "' + prefix + '" && active = true',
+      'key_prefix = {:prefix} && active = true',
       '-created',
       10,
-      0
+      0,
+      { prefix: prefix }
     );
   
     for (var i = 0; i < candidates.length; i++) {
@@ -131,7 +128,7 @@ routerAdd('POST', '/api/agent/keys', function(c) {
     var prefix = getKeyPrefix(rawKey);
     var keyHash = $security.hashWithPassword(rawKey);
 
-    var rec = $app.createRecord('agent_keys');
+    var rec = new Record($app.findCollectionByNameOrId('agent_keys'));
     rec.set('name', name);
     rec.set('key_hash', keyHash);
     rec.set('key_prefix', prefix);
@@ -161,7 +158,8 @@ routerAdd('POST', '/api/agent/keys', function(c) {
 // List API keys: GET /api/agent/keys
 routerAdd('GET', '/api/agent/keys', function(c) {
   function authFromApiKey(c) {
-    var authHeader = c.requestInfo().headers.Authorization || '';
+    var headers = c.requestInfo().headers || {};
+    var authHeader = headers.authorization || headers.Authorization || '';
     var parts = authHeader.split(' ');
     var token = '';
     if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
@@ -172,10 +170,11 @@ routerAdd('GET', '/api/agent/keys', function(c) {
     var prefix = token.substring(0, 12); // "tlsk_" + first 8 hex chars
     var candidates = $app.findRecordsByFilter(
       'agent_keys',
-      'key_prefix = "' + prefix + '" && active = true',
+      'key_prefix = {:prefix} && active = true',
       '-created',
       10,
-      0
+      0,
+      { prefix: prefix }
     );
   
     for (var i = 0; i < candidates.length; i++) {
@@ -230,7 +229,8 @@ routerAdd('GET', '/api/agent/keys', function(c) {
 // Revoke an API key: POST /api/agent/keys/:id/revoke
 routerAdd('POST', '/api/agent/keys/:id/revoke', function(c) {
   function authFromApiKey(c) {
-    var authHeader = c.requestInfo().headers.Authorization || '';
+    var headers = c.requestInfo().headers || {};
+    var authHeader = headers.authorization || headers.Authorization || '';
     var parts = authHeader.split(' ');
     var token = '';
     if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
@@ -241,10 +241,11 @@ routerAdd('POST', '/api/agent/keys/:id/revoke', function(c) {
     var prefix = token.substring(0, 12); // "tlsk_" + first 8 hex chars
     var candidates = $app.findRecordsByFilter(
       'agent_keys',
-      'key_prefix = "' + prefix + '" && active = true',
+      'key_prefix = {:prefix} && active = true',
       '-created',
       10,
-      0
+      0,
+      { prefix: prefix }
     );
   
     for (var i = 0; i < candidates.length; i++) {
@@ -294,7 +295,8 @@ routerAdd('POST', '/api/agent/keys/:id/revoke', function(c) {
 
 routerAdd('POST', '/api/agent/dispatch', function(c) {
   function authFromApiKey(c) {
-    var authHeader = c.requestInfo().headers.Authorization || '';
+    var headers = c.requestInfo().headers || {};
+    var authHeader = headers.authorization || headers.Authorization || '';
     var parts = authHeader.split(' ');
     var token = '';
     if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
@@ -305,10 +307,11 @@ routerAdd('POST', '/api/agent/dispatch', function(c) {
     var prefix = token.substring(0, 12); // "tlsk_" + first 8 hex chars
     var candidates = $app.findRecordsByFilter(
       'agent_keys',
-      'key_prefix = "' + prefix + '" && active = true',
+      'key_prefix = {:prefix} && active = true',
       '-created',
       10,
-      0
+      0,
+      { prefix: prefix }
     );
   
     for (var i = 0; i < candidates.length; i++) {
@@ -333,7 +336,7 @@ routerAdd('POST', '/api/agent/dispatch', function(c) {
     // Check expiry
     var rawExpires = agentKey.get('expires_at');
     if (rawExpires) {
-      var expMs = new Date(String(rawExpires)).getTime();
+      var expMs = new Date(String(rawExpires).replace(' ', 'T')).getTime();
       if (expMs > 0 && expMs < Date.now()) {
         return c.json(403, { error: 'API key has expired' });
       }
@@ -484,7 +487,7 @@ routerAdd('POST', '/api/agent/dispatch', function(c) {
       if (!title) return c.json(400, { error: 'title required' });
 
       if (type === 'task') {
-        var rec = $app.createRecord('tasks');
+        var rec = new Record($app.findCollectionByNameOrId('tasks'));
         rec.set('user', actingUserId);
         rec.set('title', title);
         var rawStatus = String(gv(d, 'status', 'todo'));
@@ -683,7 +686,8 @@ routerAdd('POST', '/api/agent/dispatch', function(c) {
 // ─── Agent: GET list (lightweight alternative to POST read) ─────────────────
 routerAdd('GET', '/api/agent/dispatch', function(c) {
   function authFromApiKey(c) {
-    var authHeader = c.requestInfo().headers.Authorization || '';
+    var headers = c.requestInfo().headers || {};
+    var authHeader = headers.authorization || headers.Authorization || '';
     var parts = authHeader.split(' ');
     var token = '';
     if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
@@ -694,10 +698,11 @@ routerAdd('GET', '/api/agent/dispatch', function(c) {
     var prefix = token.substring(0, 12); // "tlsk_" + first 8 hex chars
     var candidates = $app.findRecordsByFilter(
       'agent_keys',
-      'key_prefix = "' + prefix + '" && active = true',
+      'key_prefix = {:prefix} && active = true',
       '-created',
       10,
-      0
+      0,
+      { prefix: prefix }
     );
   
     for (var i = 0; i < candidates.length; i++) {
@@ -785,7 +790,8 @@ routerAdd('GET', '/api/agent/dispatch', function(c) {
 // ─── Auth test endpoint: GET /api/agent/auth-test ──────────────────
 routerAdd('GET', '/api/agent/auth-test', function(c) {
   function authFromApiKey(c) {
-    var authHeader = c.requestInfo().headers.Authorization || '';
+    var headers = c.requestInfo().headers || {};
+    var authHeader = headers.authorization || headers.Authorization || '';
     var parts = authHeader.split(' ');
     var token = '';
     if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
@@ -796,10 +802,11 @@ routerAdd('GET', '/api/agent/auth-test', function(c) {
     var prefix = token.substring(0, 12); // "tlsk_" + first 8 hex chars
     var candidates = $app.findRecordsByFilter(
       'agent_keys',
-      'key_prefix = "' + prefix + '" && active = true',
+      'key_prefix = {:prefix} && active = true',
       '-created',
       10,
-      0
+      0,
+      { prefix: prefix }
     );
   
     for (var i = 0; i < candidates.length; i++) {
@@ -835,7 +842,8 @@ routerAdd('GET', '/api/agent/auth-test', function(c) {
 // ─── Agent audit log: GET /api/agent/audit-log ────────────────────
 routerAdd('GET', '/api/agent/audit-log', function(c) {
   function authFromApiKey(c) {
-    var authHeader = c.requestInfo().headers.Authorization || '';
+    var headers = c.requestInfo().headers || {};
+    var authHeader = headers.authorization || headers.Authorization || '';
     var parts = authHeader.split(' ');
     var token = '';
     if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
@@ -846,10 +854,11 @@ routerAdd('GET', '/api/agent/audit-log', function(c) {
     var prefix = token.substring(0, 12); // "tlsk_" + first 8 hex chars
     var candidates = $app.findRecordsByFilter(
       'agent_keys',
-      'key_prefix = "' + prefix + '" && active = true',
+      'key_prefix = {:prefix} && active = true',
       '-created',
       10,
-      0
+      0,
+      { prefix: prefix }
     );
   
     for (var i = 0; i < candidates.length; i++) {
